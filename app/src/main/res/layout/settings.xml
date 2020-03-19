@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--suppress AndroidUnknownAttribute -->
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:cardBackgroundColor="#212121"
+    tools:ignore="HardcodedText"
+    >
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:padding="15dp"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:orientation="horizontal"
+                android:padding="16dp">
+
+                <ImageView
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center"
+                    android:src="@mipmap/ic_launcher_round"
+                    tools:ignore="ContentDescription" />
+
+                <TextView
+                    android:id="@+id/about_header"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
+                    android:textSize="33sp"
+                    android:layout_marginBottom="2dp"
+                    android:paddingLeft="16dp"
+                    android:paddingRight="16dp"
+                    android:textColor="#fbfbfb"
+                    android:text="AbleMusic"
+                    android:textStyle="bold"
+                    fontPath="fonts/interbold.otf"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Headline" tools:ignore="MissingPrefix"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_marginTop="10dp"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical"
+                    android:paddingBottom="8dp"
+                    android:paddingTop="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="start|center_vertical"
+                        android:paddingBottom="16dp"
+                        android:paddingEnd="16dp"
+                        android:text="Info"
+                        fontPath="fonts/interbold.otf"
+                        android:textSize="18sp"
+                        android:textColor="@color/colorAccent"
+                        tools:ignore="MissingPrefix,RtlSymmetry"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.6"
+                        android:textColor="#fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="start|center_vertical"
+                        android:paddingEnd="16dp"
+                        android:text="Version"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        android:textColor="#80fbfbfb" tools:ignore="RtlSymmetry"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Beta"
+                        android:layout_marginTop="10dp"
+                        android:textColor="#fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Flavour"
+                        android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Unicorn"
+                        android:textColor="#fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Codename"
+                        android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingRight="16dp"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:orientation="vertical"
+                    android:paddingBottom="8dp"
+                    android:paddingTop="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="start|center_vertical"
+                        android:paddingBottom="16dp"
+                        android:textColor="@color/colorAccent"
+                        fontPath="fonts/interbold.otf"
+                        android:paddingRight="16dp"
+                        android:text="Authors"
+                        android:textSize="18sp"
+                        tools:ignore="MissingPrefix" />
+
+                    <TextView
+                        android:id="@+id/udit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Udit Karode"
+                        android:textColor="#fbfbfb"
+                        fontPath="interbold.otf"
+                        android:textSize="18sp"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                        tools:ignore="MissingPrefix"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10sp"
+                        android:text="Developer"
+                        android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Hyperterminal"
+                        android:textColor="#fbfbfb"
+                        android:textSize="18sp"
+                        fontPath="SanFranciscoM.otf"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                        tools:ignore="MissingPrefix"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Head Product Manager"
+                        android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:id="@+id/himanshu"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="18sp"
+                        android:layout_marginTop="10dp"
+                        android:text="Sajid Shaik"
+                        android:textColor="#fbfbfb"
+                        fontPath="interbold.otf"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                        tools:ignore="MissingPrefix"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Graphic Designer"
+                        android:layout_marginBottom="10sp"
+                        android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Safan Sulfikar"
+                        android:textColor="#fbfbfb"
+                        android:textSize="18sp"
+                        fontPath="SanFranciscoM.otf"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                        tools:ignore="MissingPrefix"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Product Manager"
+                        android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:orientation="horizontal"
+                        android:layout_gravity="center_horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/support"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Support"
+                            app:backgroundTint="#29b6f6"
+                            android:padding="12dp"
+                            android:layout_marginEnd="10dp"
+                            android:textSize="18sp"
+                            app:icon="@drawable/telegram"
+                            android:layout_gravity="center_horizontal"
+                            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                            tools:ignore="MissingPrefix"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/donate"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Donate"
+                            app:backgroundTint="#ff5023"
+                            android:padding="12dp"
+                            android:textSize="18sp"
+                            app:icon="@drawable/ic_heart"
+                            android:layout_gravity="center_horizontal"
+                            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
+                            tools:ignore="MissingPrefix"/>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.cardview.widget.CardView>

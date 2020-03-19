@@ -1,0 +1,43 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!--suppress AndroidUnknownAttribute -->
+        <TextView
+            android:id="@+id/able_header"
+            fontPath="fonts/interbold.otf"
+            tools:ignore="MissingPrefix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:padding="20dp"
+            android:text="@string/app_name"
+            android:textColor="#fbfbfb"
+            android:textSize="38.69sp" />
+
+        <ImageView
+            android:id="@+id/settings"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:paddingVertical="20dp"
+            android:layout_marginTop="15dp"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/ic_settings_black_24dp"
+            />
+
+    </RelativeLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/songs"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fadingEdge="vertical"
+        android:requiresFadingEdge="vertical" />
+
+</LinearLayout>

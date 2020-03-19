@@ -1,0 +1,150 @@
+package io.github.uditkarode.able.fragments
+
+import android.app.Activity
+import android.content.Context
+import android.os.AsyncTask
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import io.github.uditkarode.able.R
+import io.github.uditkarode.able.adapters.ResultAdapter
+import io.github.uditkarode.able.models.Song
+import kotlinx.android.synthetic.main.search.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import org.jsoup.Jsoup
+import java.io.IOException
+import java.lang.Integer.min
+import java.lang.ref.WeakReference
+
+
+class Search : Fragment() {
+    private lateinit var itemPressed: SongCallback
+    private var okClient = OkHttpClient()
+
+    interface SongCallback {
+        fun sendItem(song: Song)
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? =
+        inflater.inflate(R.layout.search, container, false)
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        try {
+            itemPressed = context as Activity as SongCallback
+        } catch (e: ClassCastException) {
+            throw ClassCastException(
+                activity.toString()
+                        + " must implement SongCallback"
+            )
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val searchBar: EditText = view.findViewById(R.id.search_bar)
+        val searchRv: RecyclerView = view.findViewById(R.id.search_rv)
+
+        loading_view.enableMergePathsForKitKatAndAbove(true)
+
+        searchBar.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == 6) {
+                loading_view.progress = 0.3080229f
+                loading_view.playAnimation()
+
+                if(searchRv.visibility == View.VISIBLE){
+                    searchRv.animate().alpha(0f).duration = 200
+                    searchRv.visibility = View.GONE
+                }
+                val text = searchBar.text
+                if(loading_view.visibility == View.GONE){
+                    loading_view.alpha = 0f
+                    loading_view.visibility = View.VISIBLE
+                    loading_view.animate().alpha(1f).duration = 200
+                }
+
+                hideKeyboard(activity as Activity)
+                val request = Request.Builder()
+                    .url(
+                        "https://m.youtube.com/results?search_query=${text.replace(
+                            Regex(" "),
+                            "+"
+                        )}"
+                    )
+                    .removeHeader("User-Agent")
+                    .build()
+
+                try {
+                    AsyncTask.execute {
+                        val resultArray = ArrayList<Song>()
+                        val response = okClient.newCall(request).execute()
+                        val resultHtml = response.body?.string() ?: ""
+
+                        val doc = Jsoup.parse(resultHtml)
+                        val videos = doc.select("h3.yt-lockup-title a")
+                        val channels = doc.getElementsByClass(
+                            "yt-uix-sessionlink" +
+                                    "       spf-link "
+                        )
+
+                        for (i in 0 until min(videos.size, channels.size)) {
+                            val element = videos[i]
+                            val finalLink = "https://www.youtube.com" + element.attr("href")
+                            resultArray.add(
+                                Song(
+                                    name = element.text(),
+                                    youtubeLink = finalLink
+                                )
+                            )
+                        }
+
+                        for (i in 0 until min(resultArray.size, channels.size)) {
+                            resultArray[i].artist = channels[i].text()
+                        }
+
+                        activity?.runOnUiThread {
+                            Log.e("asd", "xpivvod")
+                            searchRv.adapter = ResultAdapter(resultArray, WeakReference(this@Search))
+                            searchRv.layoutManager = LinearLayoutManager(activity as Context)
+                            loading_view.visibility = View.GONE
+                            loading_view.pauseAnimation()
+                                searchRv.alpha = 0f
+                                searchRv.visibility = View.VISIBLE
+                                searchRv.animate().alpha(1f).duration = 200
+                        }
+                    }
+                } catch (e: IOException) {
+                    Log.e("Err", e.toString())
+                    Toast.makeText(activity as Context, "Something failed!", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+            false
+        }
+    }
+
+    fun itemPressed(song: Song) {
+        itemPressed.sendItem(song)
+    }
+
+    private fun hideKeyboard(activity: Activity) {
+        val imm: InputMethodManager =
+            activity.getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
+        val view = activity.currentFocus ?: View(activity)
+
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+}

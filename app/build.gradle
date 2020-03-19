@@ -1,0 +1,54 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+    defaultConfig {
+        applicationId "io.github.uditkarode.able"
+        minSdkVersion 24
+        //noinspection OldTargetApi
+        targetSdkVersion 28
+        versionCode 1
+        versionName "Beta"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    packagingOptions {
+        exclude 'lib/x86_64/**'
+        exclude 'lib/armeabi-v7a/**'
+        exclude 'lib/x86/**'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation"org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.core:core-ktx:1.2.0'
+    implementation 'com.github.yausername.youtubedl-android:library:0.7.0'
+    implementation 'com.google.android.material:material:1.1.0'
+    implementation 'io.github.inflationx:calligraphy3:3.1.1'
+    implementation 'io.github.inflationx:viewpump:2.0.3'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha01'
+    implementation 'com.afollestad.material-dialogs:core:3.3.0'
+    implementation 'com.afollestad.material-dialogs:input:3.3.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.4.0'
+    implementation 'com.arthenica:mobile-ffmpeg-min:4.3.1'
+    implementation 'org.jsoup:jsoup:1.10.3'
+    implementation 'io.github.dreierf:material-intro-screen:0.0.6'
+    implementation 'com.airbnb.android:lottie:3.4.0'
+    implementation 'co.revely:gradient:1.0.1'
+    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'com.afollestad.material-dialogs:bottomsheets:3.2.1'
+    implementation 'org.greenrobot:eventbus:3.2.0'
+    implementation 'com.github.bumptech.glide:glide:4.11.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+}

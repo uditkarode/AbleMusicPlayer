@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--suppress AndroidUnknownAttribute -->
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:background="#212121"
+    android:orientation="vertical"
+    android:animateLayoutChanges="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.viewpager.widget.ViewPager
+        android:id="@+id/main_content"
+        android:layout_above="@+id/bn_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
+    <LinearLayout
+        android:id="@+id/bn_parent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:animateLayoutChanges="true"
+        android:layout_alignParentBottom="true">
+
+        <SeekBar
+            android:id="@+id/activity_seekbar"
+            android:layout_width="match_parent"
+            android:focusable="false"
+            android:layout_height="1dp"
+            android:background="#80fbfbfb"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            android:splitTrack="false"
+            android:progressTint="@color/white"
+            />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="51.5dp"
+            android:animateLayoutChanges="true"
+            android:orientation="horizontal">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/bb_expand"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginStart="15dp"
+                    android:src="@drawable/up_arrow"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:contentDescription="@string/app_name"
+                    />
+
+                <TextView
+                    android:id="@+id/bb_song"
+                    android:requiresFadingEdge="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:textSize="15sp"
+                    android:singleLine="true"
+                    android:ellipsize="marquee"
+                    android:fadingEdge="horizontal"
+                    android:text="Welcome!"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="10.5dp"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:maxWidth="100dp"
+                    android:textColor="#fbfbfb"
+                    android:layout_toEndOf="@id/bb_expand"
+                    android:layout_toStartOf="@id/bb_icon"
+                    android:gravity="center"
+                    fontPath="fonts/interbold.otf"
+                    tools:ignore="MissingPrefix" />
+
+                <ImageView
+                    android:id="@+id/bb_icon"
+                    android:layout_width="29dp"
+                    android:layout_height="29dp"
+                    android:layout_marginEnd="15dp"
+                    android:src="@drawable/play"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:contentDescription="@string/app_name"
+                    />
+
+            </RelativeLayout>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#000000"
+            />
+
+        <com.google.android.material.bottomnavigation.BottomNavigationView
+            android:id="@+id/bottom_navigation"
+            android:animateLayoutChanges="true"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:labelVisibilityMode="labeled"
+            android:layout_gravity="bottom"
+            android:padding="3dp"
+            android:background="@color/colorPrimaryDark"
+            app:itemIconTint="@color/bnselector"
+            app:itemTextColor="@color/bnselector"
+            app:elevation="0dp"
+            app:itemRippleColor="#5e92f3"
+            app:menu="@menu/bottom_nav" />
+
+    </LinearLayout>
+
+</RelativeLayout>

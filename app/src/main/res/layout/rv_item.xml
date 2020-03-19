@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--suppress AndroidUnknownAttribute -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:animateLayoutChanges="true"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/item_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:animateLayoutChanges="true"
+        android:paddingTop="9dp"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:fadingEdge="horizontal"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:textSize="21sp"
+        android:textColor="#fbfbfb"
+        fontPath="fonts/interbold.otf"
+        tools:ignore="MissingPrefix" />
+
+    <TextView
+        android:id="@+id/item_artist"
+        android:layout_width="match_parent"
+        android:paddingHorizontal="20dp"
+        android:layout_below="@+id/item_header"
+        android:paddingBottom="9dp"
+        android:layout_height="wrap_content"
+        android:textSize="17sp"
+        android:textColor="#80fbfbfb" />
+
+    <LinearLayout android:id="@+id/buttonsPanel"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:layout_below="@+id/item_artist"
+        android:layout_width="match_parent"
+        android:paddingHorizontal="10dp"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/add_to_playlist"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="Add To Playlist"
+            android:layout_weight="1.0"
+            android:layout_margin="5sp"
+            android:backgroundTint="#43a047"
+            />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/delete_from_disk"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:text="Delete From Disk"
+            android:layout_weight="1.0"
+            android:layout_margin="5sp"
+            android:backgroundTint="#b71c1c"
+            />
+
+
+    </LinearLayout>
+
+</RelativeLayout>

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Able</string>
+    <string name="add_song">Add Song</string>
+    <string name="up_txt">Uploader:</string>
+    <string name="t_txt">Title:</string>
+    <string name="search">Search</string>
+</resources>

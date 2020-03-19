@@ -1,12 +1,11 @@
 package io.github.uditkarode.able.fragments
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.Color
-import android.os.AsyncTask
-import android.os.Bundle
-import android.os.Environment
-import android.os.Handler
+import android.os.*
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -24,14 +23,23 @@ import com.yausername.youtubedl_android.YoutubeDLRequest
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.events.BindServiceEvent
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
+import org.greenrobot.eventbus.EventBus
 import java.io.File
+import java.lang.Exception
+import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
-class Home: Fragment() {
+class Home(private val applContext: Context): Fragment() {
     private var songList = ArrayList<Song>()
     var songAdapter: SongAdapter? = null
+    var mService: MusicService? = null
+    var isBound = false
+    private lateinit var serviceConn: ServiceConnection
 
     @Suppress("DEPRECATION")
     val ableSongDir = File(
@@ -63,12 +71,36 @@ class Home: Fragment() {
             startActivity(Intent((activity as Context), Settings::class.java))
         }
 
+        serviceConn = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                mService = (service as MusicService.MusicBinder).getService()
+                Shared.mService = service.getService()
+                isBound = true
+            }
+
+            override fun onServiceDisconnected(name: ComponentName) {
+                isBound = false
+            }
+        }
+
+        bindEvent()
+
         thread {
             songList = getSongList(ableSongDir)
-            songAdapter = SongAdapter(songList)
+            songAdapter = SongAdapter(songList, WeakReference(this@Home))
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(activity as Context)
+            }
+        }
+    }
+
+    fun bindEvent(){
+        if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
+            try {
+                val k = applContext.bindService(Intent(applContext, MusicService::class.java), serviceConn, 0)
+            } catch(e: Exception){
+                Log.e("ERR>", e.toString())
             }
         }
     }

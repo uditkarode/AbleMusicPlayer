@@ -58,9 +58,9 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>): RecyclerView.
                 }
             }
 
-            EventBus.getDefault().post(QueueEvent(Shared.getSongsFromPlaylist(current)))
-            EventBus.getDefault().post(IndexEvent(0))
-            EventBus.getDefault().post(PlayPauseEvent(SongState.playing))
+            //EventBus.getDefault().post(QueueEvent(Shared.getSongsFromPlaylist(current)))
+            //EventBus.getDefault().post(IndexEvent(0))
+            //EventBus.getDefault().post(PlayPauseEvent(SongState.playing))
         }
 
         holder.itemView.setOnLongClickListener {

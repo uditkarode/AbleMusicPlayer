@@ -12,6 +12,7 @@ import android.media.MediaMetadata
 import android.media.MediaPlayer
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -22,26 +23,31 @@ import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
 import kotlin.concurrent.thread
 
 class MusicService : Service() {
 
-    companion object {
-        private val mediaPlayer = MediaPlayer()
-        var currentIndex = -1
-        var onShuffle = false
-        var onRepeat = false
-        var playQueue = ArrayList<Song>()
+    private val binder = MusicBinder(this@MusicService)
 
-        private var isInstantiated = false
-        private var ps = PlaybackState.Builder()
+    val mediaPlayer = MediaPlayer()
+    var currentIndex = -1
+    var onShuffle = false
+    var onRepeat = false
+    var playQueue = ArrayList<Song>()
 
-        private lateinit var notification: Notification
-        private lateinit var builder: Notification.Builder
-        private var wakeLock: PowerManager.WakeLock? = null
-        private lateinit var mediaSession: MediaSession
+    private val receiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            setPlayPause(SongState.paused)
+        }
     }
+
+    private var isInstantiated = false
+    private var ps = PlaybackState.Builder()
+
+    private lateinit var notification: Notification
+    private lateinit var builder: Notification.Builder
+    private var wakeLock: PowerManager.WakeLock? = null
+    private lateinit var mediaSession: MediaSession
 
     private val actions: Long = (PlaybackState.ACTION_PLAY
             or PlaybackState.ACTION_PAUSE
@@ -54,13 +60,7 @@ class MusicService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        registerReceiver(object: BroadcastReceiver(){
-            override fun onReceive(context: Context?, intent: Intent?) {
-                EventBus.getDefault().postSticky(PlayPauseEvent(SongState.paused))
-            }
-        }, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
-
-        EventBus.getDefault().register(this)
+        registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
 
         mediaSession = MediaSession(this, "AbleSession")
 
@@ -80,8 +80,19 @@ class MusicService : Service() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(receiver)
+    }
+
+    class MusicBinder(private val service: MusicService) : Binder() {
+        fun getService(): MusicService {
+            return service
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? {
-        return null
+        return binder
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -101,7 +112,7 @@ class MusicService : Service() {
                         "ACTION_PAUSE"
                     ), true
                 )
-                EventBus.getDefault().postSticky(PlayPauseEvent(SongState.playing))
+                setPlayPause(SongState.playing)
             }
             action.equals("ACTION_PAUSE", ignoreCase = true) -> {
                 showNotification(
@@ -111,13 +122,13 @@ class MusicService : Service() {
                         "ACTION_PLAY"
                     ), false
                 )
-                EventBus.getDefault().postSticky(PlayPauseEvent(SongState.paused))
+                EventBus.getDefault().postSticky(GetPlayPauseEvent(SongState.paused))
             }
             action.equals("ACTION_PREVIOUS", ignoreCase = true) -> {
-                EventBus.getDefault().postSticky(NextPreviousEvent(next = false))
+                setNextPrevious(next = false)
             }
             action.equals("ACTION_NEXT", ignoreCase = true) -> {
-                EventBus.getDefault().postSticky(NextPreviousEvent(next = true))
+                setNextPrevious(next = true)
             }
             action.equals("ACTION_KILL", ignoreCase = true) -> {
                 cleanUp()
@@ -126,100 +137,49 @@ class MusicService : Service() {
         }
     }
 
-    /* Event Provider Related Functions Here */
-
-    @Subscribe(sticky = true)
-    fun RequestFulfiller(request: RequestEvent){
-        when(request.event){
-            "GetDurationEvent" -> {
-                EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-            }
-
-            "GetIndexEvent" -> {
-                EventBus.getDefault().post(GetIndexEvent(currentIndex))
-            }
-
-            "GetPlayPauseEvent" -> {
-                EventBus.getDefault().post(GetPlayPauseEvent(
-                    run {
-                        val songState =
-                            if(mediaPlayer.isPlaying)
-                                SongState.playing
-                            else SongState.paused
-
-                        songState
-                    }
-                ))
-            }
-
-            "GetProgressEvent" -> {
-                EventBus.getDefault().post(GetProgressEvent(mediaPlayer.currentPosition))
-            }
-
-            "GetQueueEvent" -> {
-                EventBus.getDefault().post(GetQueueEvent(playQueue))
-            }
-
-            "GetShuffleRepeatEvent" -> {
-                EventBus.getDefault().post(GetShuffleRepeatEvent(onShuffle, onRepeat))
-            }
-
-            "GetSongEvent" -> {
-                EventBus.getDefault().post(GetSongEvent(playQueue[currentIndex]))
-            }
-        }
-    }
-
-    @Subscribe(sticky = true)
-    fun QueueAdder(addToQueueEvent: AddToQueueEvent){
-        addToPlayQueue(addToQueueEvent.song)
+    fun addToQueue(song: Song) {
+        addToPlayQueue(song)
         EventBus.getDefault().post(GetQueueEvent(playQueue))
     }
 
-    @Subscribe
-    fun QueueSetter(queueEvent: QueueEvent){
-        playQueue = queueEvent.queue
+    fun setQueue(queue: ArrayList<Song>) {
+        playQueue = queue
         EventBus.getDefault().post(GetQueueEvent(playQueue))
     }
 
-    @Subscribe(sticky = true)
-    fun ProgressSetter(progressEvent: ProgressEvent){
-        seekTo(progressEvent.progress)
-        EventBus.getDefault().post(GetProgressEvent(progressEvent.progress))
+    fun setProgress(progress: Int) {
+        seekTo(progress)
+        EventBus.getDefault().post(GetProgressEvent(progress))
     }
 
-    @Subscribe(sticky = true)
-    fun ShuffleRepeatSetter(shuffleRepeatEvent: ShuffleRepeatEvent){
-        setShuffle(shuffleRepeatEvent.onShuffle)
-        onRepeat = shuffleRepeatEvent.onRepeat
+    fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
+        setShuffle(shuffle)
+        onRepeat = repeat
         EventBus.getDefault().post(GetShuffleRepeatEvent(onShuffle, onRepeat))
     }
 
-    @Subscribe(sticky = true)
-    fun IndexSetter(indexEvent: IndexEvent){
-        currentIndex = indexEvent.index
+    fun setIndex(index: Int) {
+        currentIndex = index
         songChanged()
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
     }
 
-    @Subscribe(sticky = true)
-    fun PlayPauseSetter(playPauseEvent: PlayPauseEvent){
-        if(playPauseEvent.state == SongState.playing) playAudio()
+    fun setPlayPause(state: SongState) {
+        if (state == SongState.playing) playAudio()
         else pauseAudio()
 
-        EventBus.getDefault().post(GetPlayPauseEvent(playPauseEvent.state))
+        EventBus.getDefault().post(GetPlayPauseEvent(state))
     }
 
-    @Subscribe
-    fun NextPreviousSetter(nextPreviousEvent: NextPreviousEvent){
-        if(nextPreviousEvent.next) nextSong()
+    fun setNextPrevious(next: Boolean) {
+        if (next) nextSong()
         else previousSong()
     }
 
     /* Music Related Helper Functions Here */
 
-    private fun setShuffle(enabled: Boolean){
-        if(enabled){
+    private fun setShuffle(enabled: Boolean) {
+        if (enabled) {
             val detachedSong = playQueue[currentIndex]
             playQueue.removeAt(currentIndex)
             playQueue.shuffle()
@@ -237,21 +197,21 @@ class MusicService : Service() {
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
     }
 
-    private fun previousSong(){
-        if(mediaPlayer.currentPosition > 2000){
-            EventBus.getDefault().post(ProgressEvent(0))
+    private fun previousSong() {
+        if (mediaPlayer.currentPosition > 2000) {
+            seekTo(0)
         } else {
-            if(currentIndex == 0) currentIndex = playQueue.size - 1
+            if (currentIndex == 0) currentIndex = playQueue.size - 1
             else currentIndex--
             songChanged()
             playAudio()
         }
     }
 
-    private fun nextSong(){
-        if(onRepeat) EventBus.getDefault().postSticky(ProgressEvent(0))
-        if(currentIndex+1 < playQueue.size){
-            if(!onRepeat) currentIndex++
+    private fun nextSong() {
+        if (onRepeat) seekTo(0)
+        if (currentIndex + 1 < playQueue.size) {
+            if (!onRepeat) currentIndex++
             songChanged()
             playAudio()
         } else {
@@ -261,12 +221,12 @@ class MusicService : Service() {
         }
     }
 
-    private fun addToPlayQueue(song: Song){
-        if(currentIndex != playQueue.size-1) playQueue.add(currentIndex+1, song)
+    private fun addToPlayQueue(song: Song) {
+        if (currentIndex != playQueue.size - 1) playQueue.add(currentIndex + 1, song)
         else playQueue.add(song)
     }
 
-    fun seekTo(position: Int){
+    fun seekTo(position: Int) {
         mediaPlayer.seekTo(position)
         mediaSession.setPlaybackState(
             ps
@@ -281,23 +241,23 @@ class MusicService : Service() {
         EventBus.getDefault().post(GetProgressEvent(position))
     }
 
-    private fun songChanged(){
-        if(!isInstantiated) isInstantiated = true
+    private fun songChanged() {
+        if (!isInstantiated) isInstantiated = true
         else {
-            if(mediaPlayer.isPlaying) mediaPlayer.stop()
+            if (mediaPlayer.isPlaying) mediaPlayer.stop()
             mediaPlayer.reset()
         }
         mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
         mediaPlayer.prepare()
 
-        EventBus.getDefault().post(SongChangedEvent(playQueue[currentIndex], mediaPlayer.duration))
-        EventBus.getDefault().post(GetSongEvent(playQueue[currentIndex]))
+        EventBus.getDefault().postSticky(GetSongChangedEvent())
+        EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
         EventBus.getDefault().postSticky(GetIndexEvent(currentIndex))
     }
 
-    @SuppressLint("WakelockTimeout")
+    @SuppressLint("WakelockTimeout") /* user might sleep with songs on, let it jam */
     private fun playAudio() {
-        if(wakeLock?.isHeld != true) {
+        if (wakeLock?.isHeld != true) {
             wakeLock =
                 (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
                     newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AbleMusic::lock").apply {
@@ -341,7 +301,7 @@ class MusicService : Service() {
     }
 
     private fun pauseAudio() {
-        if(wakeLock?.isHeld == true)
+        if (wakeLock?.isHeld == true)
             wakeLock?.release()
 
         showNotification(
@@ -359,29 +319,25 @@ class MusicService : Service() {
                     PlaybackState.STATE_PAUSED,
                     mediaPlayer.currentPosition.toLong(), 1f
                 )
-                .build())
+                .build()
+        )
 
         mediaPlayer.pause()
         EventBus.getDefault().post(GetPlayPauseEvent(run {
-            if(mediaPlayer.isPlaying) SongState.playing
+            if (mediaPlayer.isPlaying) SongState.playing
             else SongState.paused
         }))
     }
 
-    private fun cleanUp(){
+    private fun cleanUp() {
         EventBus.getDefault().unregister(this)
         mediaPlayer.stop()
         mediaSession.release()
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
             it.cancelAll()
         }
-        if(wakeLock?.isHeld == true)
+        if (wakeLock?.isHeld == true)
             wakeLock?.release()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cleanUp()
     }
 
     private fun generateAction(
@@ -416,7 +372,14 @@ class MusicService : Service() {
             .setLargeIcon(BitmapFactory.decodeResource(this.resources, R.drawable.def_albart))
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
-            .setContentIntent(PendingIntent.getActivity(this, 0, Intent(this, Player::class.java), 0))
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, Player::class.java),
+                    0
+                )
+            )
             .setDeleteIntent(pendingIntent).style = style
 
         builder.addAction(
@@ -446,7 +409,8 @@ class MusicService : Service() {
         )
 
         style.setShowActionsInCompactView(0, 1, 2, 3)
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(

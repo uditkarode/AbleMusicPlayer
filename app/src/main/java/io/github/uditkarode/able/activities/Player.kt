@@ -1,8 +1,13 @@
 package io.github.uditkarode.able.activities
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
+import android.os.IBinder
+import android.util.Log
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +25,8 @@ import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.player.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -32,12 +39,12 @@ import kotlin.concurrent.thread
 class Player: AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
-    private var currentIndex = 0
     private var playing = false
     private var scheduled = false
 
     private lateinit var timer: Timer
-    private lateinit var playQueue: ArrayList<Song>
+    private lateinit var mService: MusicService
+    private lateinit var serviceConn: ServiceConnection
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
@@ -61,37 +68,37 @@ class Player: AppCompatActivity() {
 
         shuffle_button.setOnClickListener {
             if(onShuffle){
-                EventBus.getDefault().postSticky(ShuffleRepeatEvent(false, onRepeat))
+                mService.setShuffleRepeat(shuffle = false, repeat = onRepeat)
             }
             else {
-                EventBus.getDefault().postSticky(ShuffleRepeatEvent(true, onRepeat))
+                mService.setShuffleRepeat(shuffle = true, repeat = onRepeat)
             }
         }
 
         player_center_icon.setOnClickListener {
             thread {
-                if(playing) EventBus.getDefault().postSticky(PlayPauseEvent(SongState.paused))
-                else EventBus.getDefault().postSticky(PlayPauseEvent(SongState.playing))
+                if(playing) mService.setPlayPause(SongState.paused)
+                else mService.setPlayPause(SongState.playing)
             }
         }
 
         repeat_button.setOnClickListener {
             if(onRepeat) {
-                EventBus.getDefault().postSticky(ShuffleRepeatEvent(onShuffle, false))
+                mService.setShuffleRepeat(shuffle = onShuffle, repeat = false)
                 DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#80fbfbfb"))
             }
             else {
-                EventBus.getDefault().postSticky(ShuffleRepeatEvent(onShuffle, true))
+                mService.setShuffleRepeat(shuffle = onShuffle, repeat = true)
                 DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#805e92f3"))
             }
         }
 
         next_song.setOnClickListener {
-            EventBus.getDefault().postSticky(NextPreviousEvent(next = true))
+            mService.setNextPrevious(next = true)
         }
 
         previous_song.setOnClickListener {
-            EventBus.getDefault().postSticky(NextPreviousEvent(next = false))
+            mService.setNextPrevious(next = false)
         }
 
         RevelyGradient
@@ -106,22 +113,39 @@ class Player: AppCompatActivity() {
 
         player_seekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                EventBus.getDefault().postSticky(ProgressEvent(seekBar.progress))
+                mService.seekTo(seekBar.progress)
             }
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
-        player_queue.setOnClickListener {
+         player_queue.setOnClickListener {
             MaterialDialog(this@Player, BottomSheet()).show {
                 customListAdapter(SongAdapter(
-                    ArrayList(playQueue.subList(
-                        currentIndex,
-                        playQueue.size-1
+                    ArrayList(mService.playQueue.subList(
+                        mService.currentIndex,
+                        mService.playQueue.size-1
                     ))
                 ))
             }
         }
+
+        serviceConn = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                mService = (service as MusicService.MusicBinder).getService()
+                songChangeEvent(GetSongChangedEvent())
+            }
+
+            override fun onServiceDisconnected(name: ComponentName) { }
+        }
+
+        bindEvent(BindServiceEvent())
+    }
+
+    @Subscribe
+    private fun bindEvent(bindServiceEvent: BindServiceEvent){
+        if(Shared.serviceRunning(MusicService::class.java, this@Player))
+            bindService(Intent(this@Player, MusicService::class.java), serviceConn, Context.BIND_IMPORTANT)
     }
 
     override fun onPause() {
@@ -140,7 +164,7 @@ class Player: AppCompatActivity() {
             timer = Timer()
             timer.schedule(object: TimerTask() {
                 override fun run() {
-                    player_seekbar.progress += 1000
+                    player_seekbar.progress = mService.mediaPlayer.currentPosition
                     runOnUiThread {
                         player_current_position.text = getDurationFromMs(player_seekbar.progress)
                     }
@@ -155,7 +179,6 @@ class Player: AppCompatActivity() {
         else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
 
         if(playing){
-            EventBus.getDefault().postSticky(RequestEvent("GetProgressEvent"))
             startSeekbarUpdates()
         }
         else {
@@ -172,27 +195,20 @@ class Player: AppCompatActivity() {
         playPauseEvent(playPauseEvent.state)
     }
 
-    private fun setUi(song: Song){
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun songChangeEvent(songChangedEvent: GetSongChangedEvent){
+        val duration = mService.mediaPlayer.duration
+        player_seekbar.max = duration
+        complete_position.text = getDurationFromMs(duration)
+
+        val song = mService.playQueue[mService.currentIndex]
         song_name.text = song.name
         artist_name.text = song.artist
         player_seekbar.progress = 0
-    }
-
-    @Subscribe
-    fun getIndexEvent(getIndexObj: GetIndexEvent){
-        currentIndex = getIndexObj.index
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songEvent(songEvent: GetSongEvent){
-        setUi(songEvent.song)
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songChangeEvent(songChangedEvent: SongChangedEvent){
-        player_seekbar.max = songChangedEvent.duration
-        complete_position.text = getDurationFromMs(songChangedEvent.duration)
-        setUi(songChangedEvent.song)
+        playPauseEvent(mService.mediaPlayer.run {
+            if(this.isPlaying) SongState.playing
+            else SongState.paused
+        })
     }
 
     @Subscribe
@@ -218,11 +234,6 @@ class Player: AppCompatActivity() {
         player_current_position.text = getDurationFromMs(progressEvent.progress)
     }
 
-    @Subscribe
-    fun progressUpdate(queueEvent: GetQueueEvent){
-        playQueue = queueEvent.queue
-    }
-
     private fun getDurationFromMs(durtn: Int): String {
         val duration = durtn.toLong()
         val seconds = (TimeUnit.MILLISECONDS.toSeconds(duration) -
@@ -243,18 +254,15 @@ class Player: AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        EventBus.getDefault().register(this)
-        EventBus.getDefault().postSticky(RequestEvent("GetShuffleRepeatEvent"))
-        EventBus.getDefault().postSticky(RequestEvent("GetSongEvent"))
-        EventBus.getDefault().postSticky(RequestEvent("GetPlayPauseEvent"))
-        EventBus.getDefault().postSticky(RequestEvent("GetDurationEvent"))
-        EventBus.getDefault().postSticky(RequestEvent("GetQueueEvent"))
-        EventBus.getDefault().postSticky(RequestEvent("GetIndexEvent"))
-        EventBus.getDefault().postSticky(RequestEvent("GetProgressEvent"))
+        if(!EventBus.getDefault().isRegistered(this))
+            EventBus.getDefault().register(this)
+        bindEvent(BindServiceEvent())
     }
 
     override fun onStop() {
         super.onStop()
-        EventBus.getDefault().unregister(this)
+        if(EventBus.getDefault().isRegistered(this))
+            EventBus.getDefault().unregister(this)
+        unbindService(serviceConn)
     }
 }

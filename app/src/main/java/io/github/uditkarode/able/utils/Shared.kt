@@ -5,13 +5,11 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
-import androidx.core.content.ContextCompat.getSystemService
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import io.github.uditkarode.able.events.GetQueueEvent
 import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.services.MusicService
 import org.greenrobot.eventbus.EventBus
 import org.json.JSONArray
 import java.io.BufferedReader
@@ -20,6 +18,8 @@ import java.io.InputStreamReader
 
 class Shared {
     companion object {
+        lateinit var mService: MusicService
+
         @Suppress("DEPRECATION")
         private val playlistFolder = File(
             Environment.getExternalStorageDirectory(),

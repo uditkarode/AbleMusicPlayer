@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Handler
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +17,7 @@ import com.afollestad.materialdialogs.list.listItems
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
@@ -26,18 +26,16 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.File
+import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
-class SongAdapter(private var songList: ArrayList<Song>): RecyclerView.Adapter<SongAdapter.RVVH>() {
+class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakReference<Home>? = null): RecyclerView.Adapter<SongAdapter.RVVH>() {
     private var registered = false
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH {
         if(!registered){
             registered = true
             EventBus.getDefault().register(this)
-            EventBus.getDefault().postSticky(RequestEvent("GetPlayPauseEvent"))
-            EventBus.getDefault().postSticky(RequestEvent("GetShuffleRepeatEvent"))
-            EventBus.getDefault().postSticky(RequestEvent("GetQueueEvent"))
         }
         return RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_item, parent, false))
     }
@@ -48,14 +46,13 @@ class SongAdapter(private var songList: ArrayList<Song>): RecyclerView.Adapter<S
     private var currentIndex = -1
     private var onShuffle = false
     private lateinit var playingSong: Song
-    private var playQueue = ArrayList<Song>()
 
     override fun onBindViewHolder(holder: RVVH, position: Int) {
         val current = songList[position]
         holder.songName.text = current.name
         holder.artistName.text = current.artist
 
-        if(currentIndex > 0 && currentIndex < playQueue.size && songList.size != 0){
+        if(currentIndex > 0 && currentIndex < songList.size && songList.size != 0){
             if(songList[position].filePath == playingSong.filePath) {
                 holder.songName.setTextColor(Color.parseColor("#5e92f3"))
             }
@@ -69,28 +66,33 @@ class SongAdapter(private var songList: ArrayList<Song>): RecyclerView.Adapter<S
                 } else {
                     holder.itemView.context.startService(Intent(holder.itemView.context, MusicService::class.java))
                 }
+
+                wr?.get()!!.bindEvent()
             }
 
             thread {
+                @Suppress("ControlFlowWithEmptyBody")
+                while(!wr?.get()!!.isBound){}
+
+                val mService = wr.get()?.mService!!
+
                 if(currentIndex != position){
                     currentIndex = position
                     (holder.itemView.context as Activity).runOnUiThread {
                         if(onShuffle){
-                            EventBus.getDefault().postSticky(AddToQueueEvent(current))
-                            EventBus.getDefault().postSticky(NextPreviousEvent(next = true))
+                            mService.addToQueue(current)
+                            mService.setNextPrevious(next = true)
                         } else {
                             currentIndex = position
-                            EventBus.getDefault().postSticky(QueueEvent(songList))
-                            EventBus.getDefault().postSticky(IndexEvent(position))
-                            EventBus.getDefault().postSticky(PlayPauseEvent(SongState.playing))
+                            mService.setQueue(songList)
+                            mService.setIndex(position)
+                            mService.setPlayPause(SongState.playing)
                         }
 
                         notifyDataSetChanged()
                     }
                 }
             }
-
-            EventBus.getDefault().postSticky(RequestEvent("GetSongEvent"))
         }
 
         holder.addToPlaylist.setOnClickListener {
@@ -105,7 +107,7 @@ class SongAdapter(private var songList: ArrayList<Song>): RecyclerView.Adapter<S
             MaterialDialog(holder.itemView.context).show {
                 listItems(items = names){ _, index, _ ->
                     when(index){
-                        0 -> EventBus.getDefault().postSticky(AddToQueueEvent(current))
+                        0 -> wr?.get()?.mService!!.addToQueue(current)
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
                                 title(text = "Enter the name of your new playlist")
@@ -169,15 +171,23 @@ class SongAdapter(private var songList: ArrayList<Song>): RecyclerView.Adapter<S
         currentIndex = indexEvent.index
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
+    @Subscribe
+    fun indexUpdate(sce: GetSongChangedEvent) {
+        playingSong = wr?.get()?.mService.run {
+            this!!.playQueue[this.currentIndex]
+        }
+        notifyDataSetChanged()
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun songUpdate(getSong: GetSongEvent) {
         playingSong = getSong.song
         Handler().postDelayed({ notifyDataSetChanged() }, 100)
     }
 
     @Subscribe
-    fun getQueueUpdate(songEvent: QueueEvent){
-        playQueue = songEvent.queue
+    fun getQueueUpdate(songEvent: GetQueueEvent){
+        songList = songEvent.queue
     }
 
     fun temp(song: Song){

@@ -1,3 +1,4 @@
+echo "pushing build..."
 if [ -d build/outputs/apk ]; then
         if [ -n "$(ls -A build/outputs/apk)" ]; then
           mkdir ~/tmp

@@ -19,4 +19,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.token }}
         GH_REPO: ${{ github.repository }}
-      run: ./gradlew build && bash pushbuild.sh
+      run: |
+              sudo /usr/local/lib/android/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT}
+              ./gradlew build
+              bash pushbuild.sh

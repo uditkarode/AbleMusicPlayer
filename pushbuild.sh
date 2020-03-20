@@ -3,7 +3,8 @@ if [ -d app/build/outputs/apk/debug ]; then
         if [ -n "$(ls -A app/build/outputs/apk/debug)" ]; then
           mkdir ~/tmp
           cp app/build/outputs/apk/debug/*.apk ~/tmp/AbleMusic-arm64.apk
-          git checkout builds
+          git clone https://github.com/uditkarode/AbleMusicPlayer -b builds
+	  cd AbleMusicPlayer 
           rm *.apk -f
           cp ~/tmp/* .
           git add .

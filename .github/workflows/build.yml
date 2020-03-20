@@ -21,5 +21,5 @@ jobs:
         GH_REPO: ${{ github.repository }}
       run: |
               sudo /usr/local/lib/android/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT}
-              ./gradlew build
+              ./gradlew assemble
               bash pushbuild.sh

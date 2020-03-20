@@ -1,9 +1,9 @@
 echo "pushing build..."
-if [ -d build/outputs/apk ]; then
-        if [ -n "$(ls -A build/outputs/apk)" ]; then
+if [ -d app/build/outputs/apk/debug ]; then
+        if [ -n "$(ls -A app/build/outputs/apk/debug)" ]; then
           mkdir ~/tmp
-          cp build/outputs/apk/*.apk ~/tmp
-          git checkout -b builds
+          cp app/build/outputs/apk/debug/*.apk ~/tmp/AbleMusic-arm64.apk
+          git checkout builds
           rm *.apk -f
           cp ~/tmp/* .
           git add .

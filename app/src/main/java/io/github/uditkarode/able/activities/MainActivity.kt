@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         setContentView(R.layout.activity_main)
 
         thread {
-            YoutubeDL.getInstance().init(application)
+            YoutubeDL.instance.init(application)
             okClient = OkHttpClient()
         }
 
@@ -225,7 +225,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     private fun updateYoutubeDl(){
             thread {
                 try {
-                    YoutubeDL.getInstance().updateYoutubeDL(application)
+                    YoutubeDL.instance.updateYoutubeDL(application)
                 } catch (err: YoutubeDLException){
                     Log.e("ERR: ", err.toString())
                 }

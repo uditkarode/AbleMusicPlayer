@@ -26,7 +26,7 @@ class YoutubeDLRequest {
     private val options = YoutubeDLOptions()
 
     constructor(url: String) {
-        urls = Arrays.asList(url)
+        urls = listOf(url)
     }
 
     constructor(urls: List<String>) {

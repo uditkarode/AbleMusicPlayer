@@ -34,13 +34,13 @@ import java.io.File
 import java.io.IOException
 import java.util.*
 
-open class YoutubeDL private constructor() {
+class YoutubeDL {
     private var initialized = false
     private lateinit var pythonPath: File
-    private var youtubeDLPath: File? = null
-    private var binDir: File? = null
-    private var ENV_LD_LIBRARY_PATH: String? = null
-    private var ENV_SSL_CERT_FILE: String? = null
+    private lateinit var youtubeDLPath: File
+    private lateinit var binDir: File
+    private lateinit var ldLibraryPath: String
+    private lateinit var envSslCertPath: String
 
     @Synchronized
     @Throws(YoutubeDLException::class)
@@ -55,8 +55,8 @@ open class YoutubeDL private constructor() {
         pythonPath = File(packagesDir, pythonBin)
         val youtubeDLDir = File(baseDir, youtubeDLName)
         youtubeDLPath = File(youtubeDLDir, youtubeDLBin)
-        ENV_LD_LIBRARY_PATH = packagesDir.absolutePath + "/usr/lib"
-        ENV_SSL_CERT_FILE = packagesDir.absolutePath + "/usr/etc/tls/cert.pem"
+        ldLibraryPath = packagesDir.absolutePath + "/usr/lib"
+        envSslCertPath = packagesDir.absolutePath + "/usr/etc/tls/cert.pem"
         initPython(application, packagesDir)
         initYoutubeDL(application, youtubeDLDir)
         initialized = true
@@ -82,7 +82,7 @@ open class YoutubeDL private constructor() {
     }
 
     @Throws(YoutubeDLException::class)
-    protected fun initPython(
+    private fun initPython(
         application: Application,
         packagesDir: File
     ) {
@@ -95,7 +95,7 @@ open class YoutubeDL private constructor() {
                     application.resources.openRawResource(R.raw.python3_7_arm), packagesDir
                 )
             } catch (e: IOException) {
-                // delete for recovery later
+                /* delete for recovery later */
                 YoutubeDLUtils.delete(pythonPath)
                 throw YoutubeDLException("failed to initialize", e)
             }
@@ -142,25 +142,25 @@ open class YoutubeDL private constructor() {
         val youtubeDLResponse: YoutubeDLResponse
         val process: Process
         val exitCode: Int
-        val outBuffer = StringBuffer() //stdout
-        val errBuffer = StringBuffer() //stderr
+        val outBuffer = StringBuffer()
+        val errBuffer = StringBuffer()
         val startTime = System.currentTimeMillis()
         val args = request.buildCommand()
         val command: MutableList<String> =
             ArrayList()
         command.addAll(
-            Arrays.asList(
+            listOf(
                 pythonPath.absolutePath,
-                youtubeDLPath!!.absolutePath
+                youtubeDLPath.absolutePath
             )
         )
         command.addAll(args)
         val processBuilder = ProcessBuilder(command)
         val env =
             processBuilder.environment()
-        env["LD_LIBRARY_PATH"] = ENV_LD_LIBRARY_PATH
-        env["SSL_CERT_FILE"] = ENV_SSL_CERT_FILE
-        env["PATH"] = System.getenv("PATH") + ":" + binDir!!.absolutePath
+        env["LD_LIBRARY_PATH"] = ldLibraryPath
+        env["SSL_CERT_FILE"] = envSslCertPath
+        env["PATH"] = System.getenv("PATH") + ":" + binDir.absolutePath
         process = try {
             processBuilder.start()
         } catch (e: IOException) {

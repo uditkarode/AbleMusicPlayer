@@ -26,16 +26,13 @@ import java.util.zip.ZipInputStream
 
 object YoutubeDLUtils {
     @Throws(IOException::class)
-    fun unzip(zipFile: File?, targetDirectory: File?) {
+    fun unzip(zipFile: File, targetDirectory: File) {
         unzip(FileInputStream(zipFile), targetDirectory)
     }
 
     @Throws(IOException::class)
-    fun unzip(inputStream: InputStream?, targetDirectory: File?) {
-        val zis = ZipInputStream(
-            BufferedInputStream(inputStream)
-        )
-        try {
+    fun unzip(inputStream: InputStream, targetDirectory: File) {
+        ZipInputStream(BufferedInputStream(inputStream)).use { zis ->
             var ze: ZipEntry
             var count: Int
             val buffer = ByteArray(8192)
@@ -47,26 +44,21 @@ object YoutubeDLUtils {
                             dir.absolutePath
                 )
                 if (ze.isDirectory) continue
-                val fout = FileOutputStream(file)
-                try {
-                    while (zis.read(buffer).also { count = it } != -1) fout.write(
+                FileOutputStream(file).use { fOut ->
+                    while (zis.read(buffer).also { count = it } != -1) fOut.write(
                         buffer,
                         0,
                         count
                     )
-                } finally {
-                    fout.close()
                 }
             }
-        } finally {
-            zis.close()
         }
     }
 
     @Throws(FileNotFoundException::class)
     fun deleteIfExists(file: File) {
         if (file.isDirectory) {
-            for (c in file.listFiles()) deleteIfExists(c)
+            for (c in file.listFiles()?: arrayOf()) deleteIfExists(c)
         }
         if (!file.delete()) throw FileNotFoundException("Failed to delete file: $file")
     }

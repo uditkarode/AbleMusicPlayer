@@ -33,7 +33,7 @@ class StreamProcessExtractor(
     private val callback: DownloadProgressCallback?
 ) : Thread() {
     private val p =
-        Pattern.compile("\\[download\\]\\s+(\\d+\\.\\d)% .* ETA (\\d+):(\\d+)")
+        Pattern.compile("\\[download]\\s+(\\d+\\.\\d)% .* ETA (\\d+):(\\d+)")
 
     override fun run() {
         try {
@@ -58,12 +58,12 @@ class StreamProcessExtractor(
         val m = p.matcher(line)
         if (m.matches()) {
             val progress =
-                m.group(GROUP_PERCENT).toFloat()
+                m.group(GROUP_PERCENT)?.toFloat()
             val eta = convertToSeconds(
-                m.group(GROUP_MINUTES),
-                m.group(GROUP_SECONDS)
+                m.group(GROUP_MINUTES)?:"?",
+                m.group(GROUP_SECONDS)?:"?"
             ).toLong()
-            callback!!.onProgressUpdate(progress, eta)
+            callback!!.onProgressUpdate(progress?:0f, eta)
         }
     }
 

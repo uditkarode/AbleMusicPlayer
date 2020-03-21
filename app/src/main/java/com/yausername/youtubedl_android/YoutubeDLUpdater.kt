@@ -35,7 +35,7 @@ object YoutubeDLUpdater {
             YoutubeDLUtils.unzip(file, youtubeDLDir)
         } catch (e: Exception) {
             //if something went wrong restore default version
-            YoutubeDLUtils.delete(youtubeDLDir)
+            YoutubeDLUtils.delete(youtubeDLDir!!)
             YoutubeDL.getYtdlInstance().initYoutubeDL(application, youtubeDLDir!!)
             throw e
         } finally {

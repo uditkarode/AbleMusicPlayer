@@ -16,9 +16,9 @@ import java.io.File
 import java.io.IOException
 import java.util.*
 
-class YoutubeDL private constructor() {
+open class YoutubeDL private constructor() {
     private var initialized = false
-    private var pythonPath: File? = null
+    private lateinit var pythonPath: File
     private var youtubeDLPath: File? = null
     private var binDir: File? = null
     private var ENV_LD_LIBRARY_PATH: String? = null
@@ -68,7 +68,7 @@ class YoutubeDL private constructor() {
         application: Application,
         packagesDir: File
     ) {
-        if (!pythonPath!!.exists()) {
+        if (!pythonPath.exists()) {
             if (!packagesDir.exists()) {
                 packagesDir.mkdirs()
             }
@@ -81,7 +81,7 @@ class YoutubeDL private constructor() {
                 YoutubeDLUtils.delete(pythonPath)
                 throw YoutubeDLException("failed to initialize", e)
             }
-            pythonPath!!.setExecutable(true)
+            pythonPath.setExecutable(true)
         }
     }
 
@@ -132,7 +132,7 @@ class YoutubeDL private constructor() {
             ArrayList()
         command.addAll(
             Arrays.asList(
-                pythonPath!!.absolutePath,
+                pythonPath.absolutePath,
                 youtubeDLPath!!.absolutePath
             )
         )

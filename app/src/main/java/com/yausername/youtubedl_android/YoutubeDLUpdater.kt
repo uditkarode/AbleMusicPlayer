@@ -55,7 +55,7 @@ object YoutubeDLUpdater {
         } catch (e: Exception) {
             //if something went wrong restore default version
             YoutubeDLUtils.delete(youtubeDLDir!!)
-            YoutubeDL.getYtdlInstance().initYoutubeDL(application, youtubeDLDir!!)
+            YoutubeDL.getYtdlInstance().initYoutubeDL(application, youtubeDLDir)
             throw e
         } finally {
             file.delete()
@@ -136,7 +136,7 @@ object YoutubeDLUpdater {
                 transferPosition += bytesRead
             }
         } catch (e: Exception) {
-            // delete temp file if something went wrong
+            /* delete temp file if something went wrong */
             if (null != file && file.exists()) {
                 file.delete()
             }

@@ -117,7 +117,7 @@ class Home(private val applContext: Context): Fragment() {
         request.setOption("--audio-format", "aac")
         request.setOption("-o", ableSongDir.absolutePath + "/$fileName.webm.tmp")
         AsyncTask.execute {
-            YoutubeDL.getInstance().execute(request) { progress: Float, eta: Long ->
+            YoutubeDL.instance.execute(request) { progress: Float, eta: Long ->
                 activity?.runOnUiThread {
                     songAdapter?.temp(Song(song.name, "${progress}% - ${eta}s remaining"))
                 }

@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     @Subscribe
     private fun bindEvent(bindServiceEvent: BindServiceEvent){
+        bindServiceEvent.toString() /* because the IDE doesn't like it unused */
         if(Shared.serviceRunning(MusicService::class.java, this@MainActivity)) bindService(Intent(this@MainActivity, MusicService::class.java), serviceConn, Context.BIND_IMPORTANT)
     }
 
@@ -164,6 +165,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun songChange(event: GetSongChangedEvent){
+        event.toString() /* because the IDE doesn't like it unused */
         activity_seekbar.progress = 0
         activity_seekbar.max = Shared.mService.mediaPlayer.duration
 

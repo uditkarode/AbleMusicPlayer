@@ -7,7 +7,6 @@ import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
-import android.util.Log
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -23,7 +22,6 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
-import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
@@ -144,6 +142,7 @@ class Player: AppCompatActivity() {
 
     @Subscribe
     private fun bindEvent(bindServiceEvent: BindServiceEvent){
+        bindServiceEvent.toString() /* because the IDE doesn't like it unused */
         if(Shared.serviceRunning(MusicService::class.java, this@Player))
             bindService(Intent(this@Player, MusicService::class.java), serviceConn, Context.BIND_IMPORTANT)
     }
@@ -191,12 +190,13 @@ class Player: AppCompatActivity() {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun GetPlayPauseUpdate(playPauseEvent: GetPlayPauseEvent){
+    fun getPlayPauseUpdate(playPauseEvent: GetPlayPauseEvent){
         playPauseEvent(playPauseEvent.state)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun songChangeEvent(songChangedEvent: GetSongChangedEvent){
+        songChangedEvent.toString() /* because the IDE doesn't like it unused */
         val duration = mService.mediaPlayer.duration
         player_seekbar.max = duration
         complete_position.text = getDurationFromMs(duration)

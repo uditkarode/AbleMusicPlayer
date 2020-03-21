@@ -24,12 +24,10 @@ import com.yausername.youtubedl_android.YoutubeDLRequest
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.events.BindServiceEvent
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
-import org.greenrobot.eventbus.EventBus
 import java.io.File
 import java.lang.Exception
 import java.lang.ref.WeakReference
@@ -99,7 +97,7 @@ class Home(private val applContext: Context): Fragment() {
     fun bindEvent(){
         if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
             try {
-                val k = applContext.bindService(Intent(applContext, MusicService::class.java), serviceConn, 0)
+                applContext.bindService(Intent(applContext, MusicService::class.java), serviceConn, 0)
             } catch(e: Exception){
                 Log.e("ERR>", e.toString())
             }
@@ -119,54 +117,72 @@ class Home(private val applContext: Context): Fragment() {
         request.setOption("-o", ableSongDir.absolutePath + "/$fileName.webm.tmp")
         AsyncTask.execute {
             YoutubeDL.instance.execute(request,
-                DownloadProgressCallback { progress, eta ->
-                    activity?.runOnUiThread {
-                        songAdapter?.temp(Song(song.name, "${progress}% - ${eta}s remaining"))
-                    }
+                object : DownloadProgressCallback {
+                    override fun onProgressUpdate(progress: Float, etaInSeconds: Long) {
+                        activity?.runOnUiThread {
+                            songAdapter?.temp(Song(song.name, "${progress}% - ${etaInSeconds}s remaining"))
+                        }
 
-                    if(progress == 100.toFloat()){
-                        if(!hasCompleted) {
-                            hasCompleted = true
-                            activity?.runOnUiThread{
-                                Handler().postDelayed({
-                                    thread {
-                                        var name = song.name
-                                        name = name.replace(Regex("${song.artist}\\s*[-,:]*\\s*"), "")
-                                        name = name.replace(Regex("\\(([Oo]]fficial)?\\s*([Mm]usic)?\\s*([Vv]ideo)?\\s*\\)"), "")
-                                        name = name.replace(Regex("\\s?\\(\\[?[Ll]yrics?\\)]?\\s*([Vv]ideo)?\\)?"), "")
-                                        name = name.replace(Regex("\\s?\\(?[aA]udio\\)?\\s*"), "")
-                                        name = name.replace(Regex("\\[Lyrics]"), "")
-                                        name = name.replace(Regex("\\(Official Music Video\\)"), "")
-                                        name = name.replace(Regex("\\[HD & HQ]"), "")
+                        if (progress == 100.toFloat()) {
+                            if (!hasCompleted) {
+                                hasCompleted = true
+                                activity?.runOnUiThread {
+                                    Handler().postDelayed({
+                                        thread {
+                                            var name = song.name
+                                            name = name.replace(
+                                                Regex("${song.artist}\\s*[-,:]*\\s*"),
+                                                ""
+                                            )
+                                            name = name.replace(
+                                                Regex("\\(([Oo]]fficial)?\\s*([Mm]usic)?\\s*([Vv]ideo)?\\s*\\)"),
+                                                ""
+                                            )
+                                            name = name.replace(
+                                                Regex("\\s?\\(\\[?[Ll]yrics?\\)]?\\s*([Vv]ideo)?\\)?"),
+                                                ""
+                                            )
+                                            name =
+                                                name.replace(Regex("\\s?\\(?[aA]udio\\)?\\s*"), "")
+                                            name = name.replace(Regex("\\[Lyrics]"), "")
+                                            name = name.replace(
+                                                Regex("\\(Official Music Video\\)"),
+                                                ""
+                                            )
+                                            name = name.replace(Regex("\\[HD & HQ]"), "")
 
-                                        when (val rc = FFmpeg.execute(
-                                            "-i ${ableSongDir.absolutePath}/${fileName}.webm.tmp -c copy " +
-                                                    "-metadata title=\"${name}\" " +
-                                                    "-metadata artist=\"${song.artist}\"" +
-                                                    " ${ableSongDir.absolutePath}/${fileName}.webm"
-                                        )) {
-                                            Config.RETURN_CODE_SUCCESS -> {
-                                                File("${ableSongDir.absolutePath}/${fileName}.webm.tmp").delete()
-                                                songList = getSongList(ableSongDir)
-                                                activity?.runOnUiThread {
-                                                    songAdapter?.update(songList)
+                                            when (val rc = FFmpeg.execute(
+                                                "-i ${ableSongDir.absolutePath}/${fileName}.webm.tmp -c copy " +
+                                                        "-metadata title=\"${name}\" " +
+                                                        "-metadata artist=\"${song.artist}\"" +
+                                                        " ${ableSongDir.absolutePath}/${fileName}.webm"
+                                            )) {
+                                                Config.RETURN_CODE_SUCCESS -> {
+                                                    File("${ableSongDir.absolutePath}/${fileName}.webm.tmp").delete()
+                                                    songList = getSongList(ableSongDir)
+                                                    activity?.runOnUiThread {
+                                                        songAdapter?.update(songList)
+                                                    }
+                                                }
+                                                Config.RETURN_CODE_CANCEL -> {
+                                                    Log.e(
+                                                        "K",
+                                                        "Command execution cancelled by user."
+                                                    )
+                                                }
+                                                else -> {
+                                                    Log.e(
+                                                        "K",
+                                                        String.format(
+                                                            "Command execution failed with rc=%d and the output below.",
+                                                            rc
+                                                        )
+                                                    )
                                                 }
                                             }
-                                            Config.RETURN_CODE_CANCEL -> {
-                                                Log.e("K", "Command execution cancelled by user.")
-                                            }
-                                            else -> {
-                                                Log.e(
-                                                    "K",
-                                                    String.format(
-                                                        "Command execution failed with rc=%d and the output below.",
-                                                        rc
-                                                    )
-                                                )
-                                            }
                                         }
-                                    }
-                                }, 300)
+                                    }, 300)
+                                }
                             }
                         }
                     }

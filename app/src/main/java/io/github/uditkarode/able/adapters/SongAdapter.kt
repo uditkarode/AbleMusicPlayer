@@ -173,6 +173,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
 
     @Subscribe
     fun indexUpdate(sce: GetSongChangedEvent) {
+        sce.toString() /* because the IDE doesn't like it unused */
         playingSong = wr?.get()?.mService.run {
             this!!.playQueue[this.currentIndex]
         }

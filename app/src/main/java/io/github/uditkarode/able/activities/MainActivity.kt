@@ -29,6 +29,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
+import com.flurry.android.FlurryAgent
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
@@ -71,6 +72,9 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
             startActivity(Intent(this@MainActivity, Splash::class.java))
 
         super.onCreate(savedInstanceState)
+        FlurryAgent.Builder()
+            .withLogEnabled(true)
+            .build(this, "INSERT_FLURRY_KEY")
         home = Home(applicationContext)
         ViewPump.init(
             ViewPump.builder()

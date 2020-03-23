@@ -31,8 +31,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.yausername.youtubedl_android.YoutubeDL
-import com.yausername.youtubedl_android.YoutubeDLException
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -70,8 +68,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     private lateinit var home: Home
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        updateYoutubeDl()
-
         if(!Shared.serviceRunning(MusicService::class.java, this@MainActivity))
             startActivity(Intent(this@MainActivity, Splash::class.java))
 
@@ -90,11 +86,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
             .build()
         )
         setContentView(R.layout.activity_main)
-
-        thread {
-            YoutubeDL.instance.init(application)
-            okClient = OkHttpClient()
-        }
+        okClient = OkHttpClient()
 
         mainContent = main_content
         bb_icon.setOnClickListener {
@@ -240,16 +232,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         super.onStop()
         if(EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().unregister(this)
-    }
-
-    private fun updateYoutubeDl(){
-            thread {
-                try {
-                    YoutubeDL.instance.updateYoutubeDL(application)
-                } catch (err: YoutubeDLException){
-                    Log.e("ERR: ", err.toString())
-                }
-            }
     }
 
     override fun sendItem(song: Song) {

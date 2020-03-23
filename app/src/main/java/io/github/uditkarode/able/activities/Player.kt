@@ -222,7 +222,7 @@ class Player: AppCompatActivity() {
         val song = mService.playQueue[mService.currentIndex]
         song_name.text = song.name
         artist_name.text = song.artist
-        player_seekbar.progress = 0
+        player_seekbar.progress = mService.mediaPlayer.currentPosition
         playPauseEvent(mService.mediaPlayer.run {
             if(this.isPlaying) SongState.playing
             else SongState.paused

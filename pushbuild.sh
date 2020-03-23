@@ -11,7 +11,7 @@ if [ -d app/build/outputs/apk/release ]; then
           git config --global user.name 'Bob The Builder'
           git config --global user.email 'bob@the.builder'
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}"
-          git commit -m "bot: build arch: ${1} <$(TZ=Asia/Kolkata date +'%Y%m%d %T')>"
+	  git commit -m "bot: build arch: ${1} <$(echo $GITHUB_SHA | cut -c1-6)>"
           git push -u origin builds
 	  cd ..
 	  rm -rf AbleMusicPlayer

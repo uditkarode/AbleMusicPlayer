@@ -1,12 +1,12 @@
 if [ -d app/build/outputs/apk/release ]; then
         if [ -n "$(ls -A app/build/outputs/apk/release)" ]; then
           mkdir ~/tmp
-	  rm -f AbleMusic-${1}-*.apk
 	  mv app/build/outputs/apk/release/*.apk ~/tmp/AbleMusic-${1}-$(echo $GITHUB_SHA | cut -c1-6).apk
           rm -rf app/build/outputs/apk
 	  git clone https://github.com/uditkarode/AbleMusicPlayer -b builds
 	  cd AbleMusicPlayer 
-          mv ~/tmp/* .
+          rm -f AbleMusic-${1}-*.apk
+	  mv ~/tmp/* .
           git add .
           git config --global user.name 'Bob The Builder'
           git config --global user.email 'bob@the.builder'

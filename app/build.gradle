@@ -13,10 +13,20 @@ android {
         versionName "Beta"
     }
 
+    signingConfigs {
+        release {
+            storeFile file("release.keystore")
+            storePassword System.getenv('STORE_PASS')
+            keyAlias System.getenv('KEY_ALIAS')
+            keyPassword System.getenv('KEY_PASS')
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
     }
 

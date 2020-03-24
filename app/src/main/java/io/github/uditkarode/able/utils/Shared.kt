@@ -123,12 +123,12 @@ class Shared {
             return false
         }
 
-        fun createPlaylist(name: String, context: Context){
+        fun createPlaylist(name: String, context: Context) {
             try {
                 if(name.isNotBlank()){
                     val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name + ".json")
                     @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-                    playlistFile.parentFile.mkdirs()
+                    if(!playlistFile.parentFile.exists()) playlistFile.parentFile.mkdirs()
                     playlistFile.writeText("[]")
 
                     Toast.makeText(context, "Playlist created", Toast.LENGTH_SHORT).show()

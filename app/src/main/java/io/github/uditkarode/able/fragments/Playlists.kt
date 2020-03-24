@@ -18,8 +18,13 @@
 
 package io.github.uditkarode.able.fragments
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,29 +33,52 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaylistAdapter
 import io.github.uditkarode.able.events.PlaylistEvent
+import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.playlists.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
+import java.lang.Exception
+import java.lang.ref.WeakReference
 
 
 class Playlists: Fragment() {
+    var mService: MusicService? = null
+    var isBound = false
+    private lateinit var serviceConn: ServiceConnection
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
-        if(!EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().register(this)
+        serviceConn = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                mService = (service as MusicService.MusicBinder).getService()
+                Shared.mService = service.getService()
+                isBound = true
+            }
+
+            override fun onServiceDisconnected(name: ComponentName) {
+                isBound = false
+            }
+        }
         return inflater.inflate(R.layout.playlists, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists())
+        playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists(), WeakReference(this@Playlists))
         playlists_rv.layoutManager = LinearLayoutManager(activity as Context)
     }
 
-    @Subscribe
-    fun updateEvent(playlistEvent: PlaylistEvent){
-        (playlists_rv.adapter as PlaylistAdapter).update(playlistEvent.playlists)
+    fun bindEvent(){
+        if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
+            try {
+                (activity!!.applicationContext).also {
+                    it.bindService(Intent(it, MusicService::class.java), serviceConn, 0)
+                }
+            } catch(e: Exception){
+                Log.e("ERR>", e.toString())
+            }
+        }
     }
 
     override fun onStop() {

@@ -20,6 +20,7 @@ package io.github.uditkarode.able.adapters
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
 import android.os.Handler
@@ -30,6 +31,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import com.google.android.material.button.MaterialButton
@@ -135,6 +137,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                                         it.name == "$charSequence.json"
                                     }[0], current, holder.itemView.context)
                                 }
+                                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                             }
                         }
                         else -> {

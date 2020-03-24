@@ -18,10 +18,12 @@
 
 package io.github.uditkarode.able.activities
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.IBinder
 import android.text.Html
@@ -68,8 +70,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     private lateinit var home: Home
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        if(!Shared.serviceRunning(MusicService::class.java, this@MainActivity))
-            startActivity(Intent(this@MainActivity, Splash::class.java))
+        if(!Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
+            if(checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED){
+                startActivity(Intent(this@MainActivity, Welcome::class.java))
+            } else startActivity(Intent(this@MainActivity, Splash::class.java))
+        }
 
         super.onCreate(savedInstanceState)
         FlurryAgent.Builder()

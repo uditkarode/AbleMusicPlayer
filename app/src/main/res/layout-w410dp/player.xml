@@ -11,17 +11,63 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:orientation="horizontal">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:id="@+id/player_down_arrow"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
+                    android:padding="20dp"
+                    android:src="@drawable/down_arrow"/>
+
+                <ImageView
+                    android:id="@+id/player_queue"
+                    android:layout_width="68dp"
+                    android:layout_height="68dp"
+                    android:padding="20dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_alignParentEnd="true"
+                    android:src="@drawable/playlist"/>
+
+            </RelativeLayout>
+        </LinearLayout>
+
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             tools:ignore="UselessParent">
 
+            <RelativeLayout
+                android:id="@+id/album_art"
+                android:layout_width="match_parent"
+                android:layout_height="360dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/rounded_rectangle">
+
+                <ImageView
+                    android:layout_width="128dp"
+                    android:layout_height="128dp"
+                    android:src="@drawable/ic_music_note_black_24dp"
+                    android:layout_centerInParent="true"
+                    />
+
+            </RelativeLayout>
             <LinearLayout
                 android:id="@+id/controls"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/album_art"
+                android:layout_marginTop="60dp"
                 android:orientation="vertical">
 
                 <LinearLayout
@@ -38,7 +84,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:paddingEnd="5dp"
-                        android:maxLines="1"
+                        android:maxLines="2"
                         android:text="Wake Up"
                         android:textColor="#fbfbfb"
                         android:textSize="22sp"
@@ -51,7 +97,6 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:paddingEnd="5dp"
-                        android:maxLines="1"
                         android:paddingBottom="10dp"
                         android:text="Eden"
                         android:textColor="#80fbfbfb"
@@ -163,5 +208,32 @@
 
     </RelativeLayout>
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="35dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/cast"
+            />
+
+        <!--suppress AndroidUnknownAttribute -->
+        <TextView
+            fontPath="fonts/interbold.otf"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingEnd="5dp"
+            android:paddingStart="5dp"
+            android:text="Cast"
+            android:textColor="#80fbfbfb"
+            android:textSize="15sp"
+            tools:ignore="MissingPrefix" />
+
+    </LinearLayout>
 
 </RelativeLayout>

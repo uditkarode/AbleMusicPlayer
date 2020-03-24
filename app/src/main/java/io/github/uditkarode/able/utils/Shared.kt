@@ -65,7 +65,7 @@ class Shared {
             return ret
         }
 
-        fun getSongsFromPlaylist(playlist: Playlist): ArrayList<Song>{
+        fun getSongsFromPlaylist(playlist: Playlist): ArrayList<Song> {
             val songs = ArrayList<Song>()
             val gson = Gson()
 

@@ -40,13 +40,7 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 
 class PlaylistAdapter(private var playlists: ArrayList<Playlist>): RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
-    private var registered = false
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {
-        /*if(!registered){
-            registered = true
-            EventBus.getDefault().register(this)
-        }*/
         return PLVH(LayoutInflater.from(parent.context).inflate(R.layout.playlist_item, parent, false))
     }
 

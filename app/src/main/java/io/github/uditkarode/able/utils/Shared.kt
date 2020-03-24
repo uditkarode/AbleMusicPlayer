@@ -38,14 +38,9 @@ class Shared {
     companion object {
         lateinit var mService: MusicService
 
-        @Suppress("DEPRECATION")
-        private val playlistFolder = File(
-            Environment.getExternalStorageDirectory(),
-            "AbleMusic/playlists")
-
         fun getPlaylists(): ArrayList<Playlist> {
             val ret: ArrayList<Playlist> = ArrayList()
-            for (f in playlistFolder.listFiles()?:arrayOf()) {
+            for (f in Constants.playlistFolder.listFiles()?:arrayOf()) {
                 if(!f.isDirectory){
                     if(!f.name.contains(".json")) continue
 
@@ -103,7 +98,7 @@ class Shared {
         private fun modifyPlaylist(name: String, songs: ArrayList<Song>? = null){
             try {
                 if(name.isNotBlank()){
-                    val playlistFile = File(playlistFolder.absolutePath + "/" + name)
+                    val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name)
                     playlistFile.writeText("[]")
                     if(!songs.isNullOrEmpty()){
                         playlistFile.writeText(
@@ -131,7 +126,7 @@ class Shared {
         fun createPlaylist(name: String, context: Context){
             try {
                 if(name.isNotBlank()){
-                    val playlistFile = File(playlistFolder.absolutePath + "/" + name + ".json")
+                    val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name + ".json")
                     @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
                     playlistFile.parentFile.mkdirs()
                     playlistFile.writeText("[]")

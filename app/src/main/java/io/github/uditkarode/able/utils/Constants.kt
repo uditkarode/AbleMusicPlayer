@@ -18,8 +18,14 @@
 
 package io.github.uditkarode.able.utils
 
+import android.os.Environment
+import java.io.File
+
 class Constants {
     companion object {
-        const val prefName = "AbleMusic"
+        @Suppress("DEPRECATION")
+        val playlistFolder = File(
+            Environment.getExternalStorageDirectory(),
+            "AbleMusic/playlists")
     }
 }

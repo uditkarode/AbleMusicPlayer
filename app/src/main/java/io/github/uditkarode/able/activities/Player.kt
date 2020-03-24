@@ -25,6 +25,8 @@ import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
+import android.util.DisplayMetrics
+import android.util.Log
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -44,6 +46,18 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.player.*
+import kotlinx.android.synthetic.main.player.artist_name
+import kotlinx.android.synthetic.main.player.complete_position
+import kotlinx.android.synthetic.main.player.next_song
+import kotlinx.android.synthetic.main.player.player_bg
+import kotlinx.android.synthetic.main.player.player_center_icon
+import kotlinx.android.synthetic.main.player.player_current_position
+import kotlinx.android.synthetic.main.player.player_seekbar
+import kotlinx.android.synthetic.main.player.previous_song
+import kotlinx.android.synthetic.main.player.repeat_button
+import kotlinx.android.synthetic.main.player.shuffle_button
+import kotlinx.android.synthetic.main.player.song_name
+import kotlinx.android.synthetic.main.player410.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -52,7 +66,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
-class Player: AppCompatActivity() {
+class Player : AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
     private var playing = false
@@ -62,7 +76,7 @@ class Player: AppCompatActivity() {
     private lateinit var mService: MusicService
     private lateinit var serviceConn: ServiceConnection
 
-    override fun onCreate(savedInstanceState: Bundle?){
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ViewPump.init(
             ViewPump.builder()
@@ -76,34 +90,41 @@ class Player: AppCompatActivity() {
                 )
                 .build()
         )
-        setContentView(R.layout.player)
 
-        player_down_arrow.setOnClickListener {
+        val ydpi = DisplayMetrics().run {
+            windowManager.defaultDisplay.getMetrics(this)
+            this.ydpi
+        }
+
+        if(ydpi >= 405) setContentView(R.layout.player410)
+        else if(ydpi >= 395) setContentView(R.layout.player400)
+        else if(ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
+        else setContentView(R.layout.player220)
+
+        player_down_arrow?.setOnClickListener {
             finish()
         }
 
         shuffle_button.setOnClickListener {
-            if(onShuffle){
+            if (onShuffle) {
                 mService.setShuffleRepeat(shuffle = false, repeat = onRepeat)
-            }
-            else {
+            } else {
                 mService.setShuffleRepeat(shuffle = true, repeat = onRepeat)
             }
         }
 
         player_center_icon.setOnClickListener {
             thread {
-                if(playing) mService.setPlayPause(SongState.paused)
+                if (playing) mService.setPlayPause(SongState.paused)
                 else mService.setPlayPause(SongState.playing)
             }
         }
 
         repeat_button.setOnClickListener {
-            if(onRepeat) {
+            if (onRepeat) {
                 mService.setShuffleRepeat(shuffle = onShuffle, repeat = false)
                 DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#80fbfbfb"))
-            }
-            else {
+            } else {
                 mService.setShuffleRepeat(shuffle = onShuffle, repeat = true)
                 DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#805e92f3"))
             }
@@ -119,10 +140,12 @@ class Player: AppCompatActivity() {
 
         RevelyGradient
             .linear()
-            .colors(intArrayOf(
-                Color.parseColor("#002171"),
-                Color.parseColor("#212121")
-            ))
+            .colors(
+                intArrayOf(
+                    Color.parseColor("#002171"),
+                    Color.parseColor("#212121")
+                )
+            )
             .angle(90f)
             .alpha(0.2f)
             .onBackgroundOf(player_bg)
@@ -131,18 +154,26 @@ class Player: AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 mService.seekTo(seekBar.progress)
             }
+
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
-         player_queue?.setOnClickListener {
+        player_queue?.setOnClickListener {
             MaterialDialog(this@Player, BottomSheet()).show {
-                customListAdapter(SongAdapter(
-                    ArrayList(mService.playQueue.subList(
-                        mService.currentIndex,
-                        mService.playQueue.size
-                    ) + mService.playQueue)
-                ))
+                customListAdapter(
+                    SongAdapter(
+                        ArrayList(
+                            mService.playQueue.subList(
+                                mService.currentIndex,
+                                mService.playQueue.size
+                            ) + mService.playQueue.run {
+                                if(this.size > 10) this.subList(0, 10)
+                                else this
+                            }
+                        )
+                    )
+                )
             }
         }
 
@@ -152,22 +183,26 @@ class Player: AppCompatActivity() {
                 songChangeEvent(GetSongChangedEvent())
             }
 
-            override fun onServiceDisconnected(name: ComponentName) { }
+            override fun onServiceDisconnected(name: ComponentName) {}
         }
 
         bindEvent(BindServiceEvent())
     }
 
     @Subscribe
-    private fun bindEvent(bindServiceEvent: BindServiceEvent){
+    private fun bindEvent(bindServiceEvent: BindServiceEvent) {
         bindServiceEvent.toString() /* because the IDE doesn't like it unused */
-        if(Shared.serviceRunning(MusicService::class.java, this@Player))
-            bindService(Intent(this@Player, MusicService::class.java), serviceConn, Context.BIND_IMPORTANT)
+        if (Shared.serviceRunning(MusicService::class.java, this@Player))
+            bindService(
+                Intent(this@Player, MusicService::class.java),
+                serviceConn,
+                Context.BIND_IMPORTANT
+            )
     }
 
     override fun onPause() {
         super.onPause()
-        if(scheduled){
+        if (scheduled) {
             scheduled = false
             timer.cancel()
             timer.purge()
@@ -175,11 +210,11 @@ class Player: AppCompatActivity() {
         EventBus.getDefault().unregister(this)
     }
 
-    private fun startSeekbarUpdates(){
-        if(!scheduled){
+    private fun startSeekbarUpdates() {
+        if (!scheduled) {
             scheduled = true
             timer = Timer()
-            timer.schedule(object: TimerTask() {
+            timer.schedule(object : TimerTask() {
                 override fun run() {
                     player_seekbar.progress = mService.mediaPlayer.currentPosition
                     runOnUiThread {
@@ -191,20 +226,19 @@ class Player: AppCompatActivity() {
     }
 
     @Subscribe
-    fun getPlayPauseEvent(pp: GetPlayPauseEvent){
+    fun getPlayPauseEvent(pp: GetPlayPauseEvent) {
         playPauseEvent(pp.state)
     }
 
-    private fun playPauseEvent(ss: SongState){
+    private fun playPauseEvent(ss: SongState) {
         playing = ss == SongState.playing
-        if(playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
+        if (playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
         else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
 
-        if(playing){
+        if (playing) {
             startSeekbarUpdates()
-        }
-        else {
-            if(scheduled){
+        } else {
+            if (scheduled) {
                 scheduled = false
                 timer.cancel()
                 timer.purge()
@@ -214,7 +248,7 @@ class Player: AppCompatActivity() {
 
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songChangeEvent(songChangedEvent: GetSongChangedEvent){
+    fun songChangeEvent(songChangedEvent: GetSongChangedEvent) {
         songChangedEvent.toString() /* because the IDE doesn't like it unused */
         val duration = mService.mediaPlayer.duration
         player_seekbar.max = duration
@@ -228,24 +262,24 @@ class Player: AppCompatActivity() {
     }
 
     @Subscribe
-    fun setupShuffleRepeat(songEvent: GetShuffleRepeatEvent){
+    fun setupShuffleRepeat(songEvent: GetShuffleRepeatEvent) {
         onShuffle = songEvent.onShuffle
         onRepeat = songEvent.onRepeat
 
-        if(onShuffle)
+        if (onShuffle)
             DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#805e92f3"))
         else
             DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#fbfbfb"))
     }
 
     @Subscribe
-    fun durationUpdate(durationEvent: GetDurationEvent){
+    fun durationUpdate(durationEvent: GetDurationEvent) {
         player_seekbar.max = durationEvent.duration
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
 
     @Subscribe
-    fun getProgressUpdate(progressEvent: GetProgressEvent){
+    fun getProgressUpdate(progressEvent: GetProgressEvent) {
         player_seekbar.progress = progressEvent.progress
         player_current_position.text = getDurationFromMs(progressEvent.progress)
     }
@@ -258,7 +292,7 @@ class Player: AppCompatActivity() {
         val minutes = TimeUnit.MILLISECONDS.toMinutes(duration)
 
         var ret = "${minutes}:"
-        if(seconds < 10) ret += "0${seconds}"
+        if (seconds < 10) ret += "0${seconds}"
         else ret += seconds
 
         return ret
@@ -270,14 +304,14 @@ class Player: AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if(!EventBus.getDefault().isRegistered(this))
+        if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
         bindEvent(BindServiceEvent())
     }
 
     override fun onStop() {
         super.onStop()
-        if(EventBus.getDefault().isRegistered(this))
+        if (EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().unregister(this)
         unbindService(serviceConn)
     }

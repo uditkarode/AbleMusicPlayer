@@ -131,6 +131,9 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                                 title(text = "Enter the name of your new playlist")
                                 input("Name"){ _, charSequence ->
                                     Shared.createPlaylist(charSequence.toString(), holder.itemView.context)
+                                    Shared.addToPlaylist(Shared.getPlaylists().filter {
+                                        it.name == "$charSequence.json"
+                                    }[0], current, holder.itemView.context)
                                 }
                             }
                         }

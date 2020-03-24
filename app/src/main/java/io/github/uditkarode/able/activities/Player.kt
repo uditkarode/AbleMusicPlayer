@@ -190,6 +190,11 @@ class Player: AppCompatActivity() {
         }
     }
 
+    @Subscribe
+    fun getPlayPauseEvent(pp: GetPlayPauseEvent){
+        playPauseEvent(pp.state)
+    }
+
     private fun playPauseEvent(ss: SongState){
         playing = ss == SongState.playing
         if(playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
@@ -207,10 +212,6 @@ class Player: AppCompatActivity() {
         }
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun getPlayPauseUpdate(playPauseEvent: GetPlayPauseEvent){
-        playPauseEvent(playPauseEvent.state)
-    }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun songChangeEvent(songChangedEvent: GetSongChangedEvent){
@@ -223,10 +224,7 @@ class Player: AppCompatActivity() {
         song_name.text = song.name
         artist_name.text = song.artist
         player_seekbar.progress = mService.mediaPlayer.currentPosition
-        playPauseEvent(mService.mediaPlayer.run {
-            if(this.isPlaying) SongState.playing
-            else SongState.paused
-        })
+        playPauseEvent(SongState.playing)
     }
 
     @Subscribe

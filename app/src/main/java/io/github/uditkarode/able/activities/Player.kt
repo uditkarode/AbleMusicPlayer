@@ -135,13 +135,13 @@ class Player: AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
-         player_queue.setOnClickListener {
+         player_queue?.setOnClickListener {
             MaterialDialog(this@Player, BottomSheet()).show {
                 customListAdapter(SongAdapter(
                     ArrayList(mService.playQueue.subList(
                         mService.currentIndex,
-                        mService.playQueue.size-1
-                    ))
+                        mService.playQueue.size
+                    ) + mService.playQueue)
                 ))
             }
         }

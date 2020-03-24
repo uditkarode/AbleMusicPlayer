@@ -38,13 +38,7 @@ class Splash: AppCompatActivity() {
         setContentView(R.layout.splash)
 
         Handler().postDelayed({
-            if(checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED){
-                splash_logo.visibility = View.GONE
-                startActivity(Intent(this@Splash, Welcome::class.java))
-            } else {
-                finish()
-            }
+             finish()
         }, 1000)
     }
 

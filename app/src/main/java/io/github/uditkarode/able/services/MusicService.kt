@@ -49,8 +49,8 @@ class MusicService : Service() {
 
     val mediaPlayer = MediaPlayer()
     var currentIndex = -1
-    var onShuffle = false
-    var onRepeat = false
+    private var onShuffle = false
+    private var onRepeat = false
     var playQueue = ArrayList<Song>()
 
     private val receiver = object : BroadcastReceiver() {
@@ -131,6 +131,7 @@ class MusicService : Service() {
                     ), true
                 )
                 setPlayPause(SongState.playing)
+                EventBus.getDefault().post(GetPlayPauseEvent(SongState.playing))
             }
             action.equals("ACTION_PAUSE", ignoreCase = true) -> {
                 showNotification(
@@ -140,7 +141,8 @@ class MusicService : Service() {
                         "ACTION_PLAY"
                     ), false
                 )
-                EventBus.getDefault().postSticky(GetPlayPauseEvent(SongState.paused))
+                setPlayPause(SongState.paused)
+                EventBus.getDefault().post(GetPlayPauseEvent(SongState.paused))
             }
             action.equals("ACTION_PREVIOUS", ignoreCase = true) -> {
                 setNextPrevious(next = false)

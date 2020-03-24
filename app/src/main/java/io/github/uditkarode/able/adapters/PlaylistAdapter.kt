@@ -22,6 +22,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Build
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,14 +33,20 @@ import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.fragments.Playlists
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
+import java.io.File
+import java.lang.ref.WeakReference
+import kotlin.concurrent.thread
 
-class PlaylistAdapter(private var playlists: ArrayList<Playlist>): RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
+class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
+                      private val wr: WeakReference<Playlists>) : RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {
         return PLVH(LayoutInflater.from(parent.context).inflate(R.layout.playlist_item, parent, false))
     }
@@ -68,11 +75,19 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>): RecyclerView.
                 } else {
                     holder.itemView.context.startService(Intent(holder.itemView.context, MusicService::class.java))
                 }
+
+                wr.get()!!.bindEvent()
             }
 
-            //EventBus.getDefault().post(QueueEvent(Shared.getSongsFromPlaylist(current)))
-            //EventBus.getDefault().post(IndexEvent(0))
-            //EventBus.getDefault().post(PlayPauseEvent(SongState.playing))
+            thread {
+                @Suppress("ControlFlowWithEmptyBody")
+                while(!wr.get()!!.isBound){}
+
+                val mService = wr.get()?.mService!!
+                mService.setQueue(Shared.getSongsFromPlaylist(current))
+                mService.setIndex(0)
+                mService.setPlayPause(SongState.playing)
+            }
         }
 
         holder.itemView.setOnLongClickListener {
@@ -80,9 +95,15 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>): RecyclerView.
             Shared.getSongsFromPlaylist(current).also { for (song in it) songNames.add(song.name) }
 
             MaterialDialog(holder.itemView.context).show {
-                title(text = "Choose song to delete")
+                title(text = "Choose song to remove")
                 listItems(items = songNames){ _, index, _ ->
                     Shared.removeFromPlaylist(current, songs[index])
+                }
+
+                negativeButton(text = "Remove Playlist") {
+                    File(Constants.playlistFolder.absolutePath + "/" + current.name).delete()
+                    playlists = Shared.getPlaylists()
+                    notifyDataSetChanged()
                 }
             }
             false

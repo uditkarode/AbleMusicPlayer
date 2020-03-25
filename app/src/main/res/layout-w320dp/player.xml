@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,7 +16,7 @@
             android:id="@+id/control_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
+            android:layout_marginTop="20dp"
             android:orientation="horizontal">
 
             <RelativeLayout
@@ -25,15 +25,15 @@
 
                 <ImageView
                     android:id="@+id/player_down_arrow"
-                    android:layout_width="75dp"
-                    android:layout_height="75dp"
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
                     android:padding="20dp"
                     android:src="@drawable/down_arrow"/>
 
                 <ImageView
                     android:id="@+id/player_queue"
-                    android:layout_width="68dp"
-                    android:layout_height="68dp"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
                     android:padding="20dp"
                     android:layout_marginTop="4dp"
                     android:layout_alignParentEnd="true"
@@ -45,7 +45,7 @@
         <RelativeLayout
             android:id="@+id/main_player_stuff"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             tools:ignore="UselessParent">
 
             <LinearLayout
@@ -79,7 +79,7 @@
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_marginHorizontal="30dp"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="6dp"
                         android:orientation="vertical"
                         android:layout_height="wrap_content">
 
@@ -93,7 +93,7 @@
                             android:maxLines="2"
                             android:text="Wake Up"
                             android:textColor="#fbfbfb"
-                            android:textSize="22sp"
+                            android:textSize="18sp"
                             tools:ignore="MissingPrefix,RtlSymmetry" />
 
                         <!--suppress AndroidUnknownAttribute -->
@@ -106,7 +106,7 @@
                             android:paddingBottom="10dp"
                             android:text="Eden"
                             android:textColor="#80fbfbfb"
-                            android:textSize="20sp"
+                            android:textSize="16sp"
                             tools:ignore="MissingPrefix" />
                     </LinearLayout>
 
@@ -133,10 +133,10 @@
                             android:id="@+id/player_current_position"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:paddingStart="7dp"
+                            android:paddingStart="5dp"
                             android:text="0:00"
                             android:textColor="#80fbfbfb"
-                            android:textSize="12sp"
+                            android:textSize="10sp"
                             tools:ignore="RtlSymmetry" />
 
                         <TextView
@@ -147,7 +147,7 @@
                             android:text="2:54"
                             android:layout_alignParentEnd="true"
                             android:textColor="#80fbfbfb"
-                            android:textSize="12sp"
+                            android:textSize="10sp"
                             tools:ignore="RtlSymmetry" />
 
                     </RelativeLayout>
@@ -156,13 +156,12 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginHorizontal="26dp"
-                        android:paddingTop="10dp"
                         android:orientation="horizontal">
 
                         <ImageView
                             android:id="@+id/shuffle_button"
-                            android:layout_width="28dp"
-                            android:layout_height="28dp"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
                             android:src="@drawable/shuffle"
                             android:paddingStart="4dp"
                             android:layout_alignParentStart="true"
@@ -171,8 +170,8 @@
 
                         <ImageView
                             android:id="@+id/previous_song"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
                             android:src="@drawable/skip_previous"
                             android:layout_toStartOf="@+id/player_center_icon"
                             android:layout_marginEnd="35dp"
@@ -181,16 +180,16 @@
 
                         <ImageView
                             android:id="@+id/player_center_icon"
-                            android:layout_width="62dp"
-                            android:layout_height="62dp"
+                            android:layout_width="55dp"
+                            android:layout_height="55dp"
                             android:src="@drawable/play"
                             android:layout_centerInParent="true"
                             />
 
                         <ImageView
                             android:id="@+id/next_song"
-                            android:layout_width="30dp"
-                            android:layout_height="30dp"
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
                             android:src="@drawable/skip_next"
                             android:layout_toEndOf="@+id/player_center_icon"
                             android:layout_marginStart="35dp"
@@ -199,8 +198,8 @@
 
                         <ImageView
                             android:id="@+id/repeat_button"
-                            android:layout_width="26.5dp"
-                            android:layout_height="26.5dp"
+                            android:layout_width="23dp"
+                            android:layout_height="23dp"
                             android:src="@drawable/repeat"
                             android:layout_alignParentEnd="true"
                             android:layout_centerVertical="true"
@@ -220,7 +219,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:visibility="gone"
         android:paddingBottom="35dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true">
@@ -245,4 +243,4 @@
 
     </LinearLayout>
 
-</LinearLayout>
+</RelativeLayout>

@@ -26,7 +26,6 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
 import android.util.DisplayMetrics
-import android.util.Log
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -46,18 +45,6 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.player.*
-import kotlinx.android.synthetic.main.player.artist_name
-import kotlinx.android.synthetic.main.player.complete_position
-import kotlinx.android.synthetic.main.player.next_song
-import kotlinx.android.synthetic.main.player.player_bg
-import kotlinx.android.synthetic.main.player.player_center_icon
-import kotlinx.android.synthetic.main.player.player_current_position
-import kotlinx.android.synthetic.main.player.player_seekbar
-import kotlinx.android.synthetic.main.player.previous_song
-import kotlinx.android.synthetic.main.player.repeat_button
-import kotlinx.android.synthetic.main.player.shuffle_button
-import kotlinx.android.synthetic.main.player.song_name
-import kotlinx.android.synthetic.main.player410.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -91,15 +78,7 @@ class Player : AppCompatActivity() {
                 .build()
         )
 
-        val ydpi = DisplayMetrics().run {
-            windowManager.defaultDisplay.getMetrics(this)
-            this.ydpi
-        }
-
-        if(ydpi >= 405) setContentView(R.layout.player410)
-        else if(ydpi >= 395) setContentView(R.layout.player400)
-        else if(ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
-        else setContentView(R.layout.player220)
+        setContentView(R.layout.player)
 
         player_down_arrow?.setOnClickListener {
             finish()

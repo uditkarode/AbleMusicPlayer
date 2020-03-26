@@ -134,7 +134,6 @@ class Search : Fragment() {
                         }
 
                         activity?.runOnUiThread {
-                            Log.e("asd", "xpivvod")
                             searchRv.adapter = ResultAdapter(resultArray, WeakReference(this@Search))
                             searchRv.layoutManager = LinearLayoutManager(activity as Context)
                             loading_view.visibility = View.GONE

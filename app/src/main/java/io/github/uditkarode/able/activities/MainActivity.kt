@@ -81,7 +81,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         FlurryAgent.Builder()
             .withLogEnabled(true)
             .build(this, "INSERT_FLURRY_KEY")
-        home = Home(applicationContext)
+        home = Home()
         ViewPump.init(
             ViewPump.builder()
                 .addInterceptor(

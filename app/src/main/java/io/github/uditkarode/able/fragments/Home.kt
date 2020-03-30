@@ -51,7 +51,7 @@ import java.lang.Exception
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
-class Home(private val applContext: Context): Fragment() {
+class Home: Fragment() {
     private var songList = ArrayList<Song>()
     var songAdapter: SongAdapter? = null
     var mService: MusicService? = null
@@ -115,7 +115,7 @@ class Home(private val applContext: Context): Fragment() {
     fun bindEvent(){
         if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
             try {
-                applContext.bindService(Intent(applContext, MusicService::class.java), serviceConn, 0)
+                activity?.applicationContext?.bindService(Intent(activity?.applicationContext, MusicService::class.java), serviceConn, 0)
             } catch(e: Exception){
                 Log.e("ERR>", e.toString())
             }
@@ -199,7 +199,7 @@ class Home(private val applContext: Context): Fragment() {
                 }
 
                 override fun onError(throwable: Throwable?) {
-                    Toast.makeText(applContext, "failed: ${throwable.toString()}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity?.applicationContext, "failed: ${throwable.toString()}", Toast.LENGTH_SHORT).show()
                     songList = getSongList(ableSongDir)
                     activity?.runOnUiThread {
                         songAdapter?.update(songList)

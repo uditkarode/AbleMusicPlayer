@@ -287,12 +287,6 @@ class Player : AppCompatActivity() {
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
 
-    @Subscribe
-    fun getProgressUpdate(progressEvent: GetProgressEvent) {
-        player_seekbar.progress = progressEvent.progress
-        player_current_position.text = getDurationFromMs(progressEvent.progress)
-    }
-
     private fun getDurationFromMs(durtn: Int): String {
         val duration = durtn.toLong()
         val seconds = (TimeUnit.MILLISECONDS.toSeconds(duration) -

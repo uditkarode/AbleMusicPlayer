@@ -131,7 +131,6 @@ class MusicService : Service() {
                     ), true
                 )
                 setPlayPause(SongState.playing)
-                EventBus.getDefault().post(GetPlayPauseEvent(SongState.playing))
             }
             action.equals("ACTION_PAUSE", ignoreCase = true) -> {
                 showNotification(
@@ -142,7 +141,6 @@ class MusicService : Service() {
                     ), false
                 )
                 setPlayPause(SongState.paused)
-                EventBus.getDefault().post(GetPlayPauseEvent(SongState.paused))
             }
             action.equals("ACTION_PREVIOUS", ignoreCase = true) -> {
                 setNextPrevious(next = false)
@@ -165,11 +163,6 @@ class MusicService : Service() {
     fun setQueue(queue: ArrayList<Song>) {
         playQueue = queue
         EventBus.getDefault().post(GetQueueEvent(playQueue))
-    }
-
-    fun setProgress(progress: Int) {
-        seekTo(progress)
-        EventBus.getDefault().post(GetProgressEvent(progress))
     }
 
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
@@ -257,8 +250,6 @@ class MusicService : Service() {
                 )
                 .build()
         )
-
-        EventBus.getDefault().post(GetProgressEvent(position))
     }
 
     private fun songChanged() {

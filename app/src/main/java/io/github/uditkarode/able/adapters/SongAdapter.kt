@@ -94,10 +94,14 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                 }
 
                 thread {
-                    @Suppress("ControlFlowWithEmptyBody")
-                    while(!wr?.get()!!.isBound){}
+                    if(Shared.serviceLinked()){
+                        wr?.get()?.mService = Shared.mService
+                    } else {
+                        @Suppress("ControlFlowWithEmptyBody")
+                        while(!wr?.get()!!.isBound){}
+                    }
 
-                    val mService = wr.get()?.mService!!
+                    val mService = wr?.get()?.mService!!
 
                     if(currentIndex != position){
                         currentIndex = position

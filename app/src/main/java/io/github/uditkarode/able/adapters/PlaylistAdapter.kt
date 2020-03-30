@@ -22,25 +22,20 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Build
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
-import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.fragments.Playlists
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
 import java.io.File
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
@@ -80,8 +75,12 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
             }
 
             thread {
-                @Suppress("ControlFlowWithEmptyBody")
-                while(!wr.get()!!.isBound){}
+                if(Shared.serviceLinked()) {
+                    wr.get()?.mService = Shared.mService
+                } else {
+                    @Suppress("ControlFlowWithEmptyBody")
+                    while(!wr.get()!!.isBound){}
+                }
 
                 val mService = wr.get()?.mService!!
                 mService.setQueue(Shared.getSongsFromPlaylist(current))

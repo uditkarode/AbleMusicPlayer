@@ -207,11 +207,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         )
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun getProgressUpdater(progressEvent: GetProgressEvent){
-        activity_seekbar.progress = progressEvent.progress
-    }
-
     @Subscribe
     fun durationUpdate(durationEvent: GetDurationEvent){
         activity_seekbar.max = durationEvent.duration

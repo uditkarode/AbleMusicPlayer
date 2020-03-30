@@ -38,6 +38,10 @@ class Shared {
     companion object {
         lateinit var mService: MusicService
 
+        fun serviceLinked(): Boolean{
+            return this::mService.isInitialized
+        }
+
         fun getPlaylists(): ArrayList<Playlist> {
             val ret: ArrayList<Playlist> = ArrayList()
             for (f in Constants.playlistFolder.listFiles()?:arrayOf()) {

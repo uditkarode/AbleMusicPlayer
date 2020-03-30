@@ -212,7 +212,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="35dp"
+        android:paddingBottom="40dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true">
 

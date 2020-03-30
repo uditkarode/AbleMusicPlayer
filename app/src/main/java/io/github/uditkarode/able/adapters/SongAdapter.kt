@@ -74,10 +74,12 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
         if(currentIndex > 0 && currentIndex < songList.size && songList.size != 0){
             if(current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
-                if(current.filePath == playingSong.filePath) {
-                    holder.songName.setTextColor(Color.parseColor("#5e92f3"))
+                if(Shared.serviceLinked()){
+                    if(current.filePath == Shared.mService.playQueue[Shared.mService.currentIndex].filePath) {
+                        holder.songName.setTextColor(Color.parseColor("#5e92f3"))
+                    }
+                    else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
                 }
-                else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
             }
         }
 
@@ -94,14 +96,13 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                 }
 
                 thread {
-                    if(Shared.serviceLinked()){
-                        wr?.get()?.mService = Shared.mService
+                    val mService: MusicService = if(Shared.serviceLinked()){
+                        Shared.mService
                     } else {
                         @Suppress("ControlFlowWithEmptyBody")
                         while(!wr?.get()!!.isBound){}
+                        wr.get()!!.mService!!
                     }
-
-                    val mService = wr?.get()?.mService!!
 
                     if(currentIndex != position){
                         currentIndex = position

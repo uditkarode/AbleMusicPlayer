@@ -50,7 +50,7 @@ class MusicService : Service() {
     val mediaPlayer = MediaPlayer()
     var currentIndex = -1
     private var onShuffle = false
-    private var onRepeat = false
+    var onRepeat = false
     var playQueue = ArrayList<Song>()
 
     private val receiver = object : BroadcastReceiver() {

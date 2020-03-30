@@ -26,7 +26,6 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.IBinder
 import android.util.DisplayMetrics
-import android.util.Log
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -42,10 +41,10 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.player.*
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
 import kotlinx.android.synthetic.main.player.next_song
@@ -160,6 +159,19 @@ class Player : AppCompatActivity() {
         })
 
         player_queue?.setOnClickListener {
+            val additive = if(!mService.onRepeat){
+                val ret = arrayListOf<Song>()
+                ret.add(Song(name = "(repeat)", placeholder = true))
+                if(mService.playQueue.size > 3){
+                    ret += mService.playQueue.subList(0, 3)
+                    ret.add(Song(name = "...", placeholder = true))
+                    ret
+                }
+                else ret + mService.playQueue
+            } else {
+                arrayListOf()
+            }
+
             MaterialDialog(this@Player, BottomSheet()).show {
                 customListAdapter(
                     SongAdapter(
@@ -167,10 +179,7 @@ class Player : AppCompatActivity() {
                             mService.playQueue.subList(
                                 mService.currentIndex,
                                 mService.playQueue.size
-                            ) + mService.playQueue.run {
-                                if(this.size > 10) this.subList(0, 10)
-                                else this
-                            }
+                            ) + additive
                         )
                     )
                 )
@@ -216,8 +225,8 @@ class Player : AppCompatActivity() {
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    player_seekbar.progress = mService.mediaPlayer.currentPosition
                     runOnUiThread {
+                        player_seekbar.progress = mService.mediaPlayer.currentPosition
                         player_current_position.text = getDurationFromMs(player_seekbar.progress)
                     }
                 }

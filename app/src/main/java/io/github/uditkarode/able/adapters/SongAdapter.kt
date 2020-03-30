@@ -20,7 +20,6 @@ package io.github.uditkarode.able.adapters
 
 import android.app.Activity
 import android.content.Intent
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Build
 import android.os.Handler
@@ -73,43 +72,48 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
         holder.artistName.text = current.artist
 
         if(currentIndex > 0 && currentIndex < songList.size && songList.size != 0){
-            if(songList[position].filePath == playingSong.filePath) {
-                holder.songName.setTextColor(Color.parseColor("#5e92f3"))
+            if(current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
+            else {
+                if(current.filePath == playingSong.filePath) {
+                    holder.songName.setTextColor(Color.parseColor("#5e92f3"))
+                }
+                else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
             }
-            else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
         }
 
         holder.itemView.setOnClickListener {
-            if(!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)){
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    holder.itemView.context.startForegroundService(Intent(holder.itemView.context, MusicService::class.java))
-                } else {
-                    holder.itemView.context.startService(Intent(holder.itemView.context, MusicService::class.java))
+            if(!current.placeholder){
+                if(!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)){
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        holder.itemView.context.startForegroundService(Intent(holder.itemView.context, MusicService::class.java))
+                    } else {
+                        holder.itemView.context.startService(Intent(holder.itemView.context, MusicService::class.java))
+                    }
+
+                    wr?.get()!!.bindEvent()
                 }
 
-                wr?.get()!!.bindEvent()
-            }
+                thread {
+                    @Suppress("ControlFlowWithEmptyBody")
+                    while(!wr?.get()!!.isBound){}
 
-            thread {
-                @Suppress("ControlFlowWithEmptyBody")
-                while(!wr?.get()!!.isBound){}
+                    val mService = wr.get()?.mService!!
 
-                val mService = wr.get()?.mService!!
+                    if(currentIndex != position){
+                        currentIndex = position
+                        (holder.itemView.context as Activity).runOnUiThread {
+                            if(onShuffle){
+                                mService.addToQueue(current)
+                                mService.setNextPrevious(next = true)
+                            } else {
+                                currentIndex = position
+                                mService.setQueue(songList)
+                                mService.setIndex(position)
+                                mService.setPlayPause(SongState.playing)
+                            }
 
-                if(currentIndex != position){
-                    currentIndex = position
-                    (holder.itemView.context as Activity).runOnUiThread {
-                        if(onShuffle){
-                            mService.addToQueue(current)
-                            mService.setNextPrevious(next = true)
-                        } else {
-                            currentIndex = position
-                            mService.setQueue(songList)
-                            mService.setIndex(position)
-                            mService.setPlayPause(SongState.playing)
+                            notifyDataSetChanged()
                         }
-
-                        notifyDataSetChanged()
                     }
                 }
             }

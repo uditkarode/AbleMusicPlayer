@@ -24,10 +24,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.IBinder
 import android.text.Html
+import android.view.TouchDelegate
 import android.view.View
+import android.view.ViewParent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
@@ -103,6 +106,18 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
                 if(playing) Shared.mService.setPlayPause(SongState.paused)
                 else Shared.mService.setPlayPause(SongState.playing)
             }
+        }
+
+        (bb_icon.parent as View).post {
+            val rect = Rect().also {
+                bb_icon.getHitRect(it)
+                it.top -= 200
+                it.left -= 200
+                it.bottom += 200
+                it.right += 200
+            }
+
+            (bb_icon.parent as View).touchDelegate = TouchDelegate(rect, bb_icon)
         }
 
         mainContent.adapter = ViewPagerAdapter(supportFragmentManager, home)

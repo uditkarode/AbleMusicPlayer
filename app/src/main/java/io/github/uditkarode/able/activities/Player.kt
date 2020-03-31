@@ -23,9 +23,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.IBinder
 import android.util.DisplayMetrics
+import android.view.TouchDelegate
+import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -67,7 +70,7 @@ import kotlin.concurrent.thread
 class Player : AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
-    private var playing = false
+    private var playing = SongState.paused
     private var scheduled = false
 
     private lateinit var timer: Timer
@@ -113,7 +116,7 @@ class Player : AppCompatActivity() {
 
         player_center_icon.setOnClickListener {
             thread {
-                if (playing) mService.setPlayPause(SongState.paused)
+                if (playing == SongState.playing) mService.setPlayPause(SongState.paused)
                 else mService.setPlayPause(SongState.playing)
             }
         }
@@ -157,6 +160,66 @@ class Player : AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
+        (shuffle_button.parent as View).post {
+            val rect = Rect().also {
+                shuffle_button.getHitRect(it)
+                it.top -= 200
+                it.left -= 200
+                it.bottom += 200
+                it.right += 100
+            }
+
+            (shuffle_button.parent as View).touchDelegate = TouchDelegate(rect, shuffle_button)
+        }
+
+        (repeat_button.parent as View).post {
+            val rect = Rect().also {
+                repeat_button.getHitRect(it)
+                it.top -= 200
+                it.left -= 100
+                it.bottom += 200
+                it.right += 200
+            }
+
+            (repeat_button.parent as View).touchDelegate = TouchDelegate(rect, repeat_button)
+        }
+
+        (previous_song.parent as View).post {
+            val rect = Rect().also {
+                previous_song.getHitRect(it)
+                it.top -= 200
+                it.left -= 100
+                it.bottom += 200
+                it.right += 100
+            }
+
+            (previous_song.parent as View).touchDelegate = TouchDelegate(rect, previous_song)
+        }
+
+        (next_song.parent as View).post {
+            val rect = Rect().also {
+                next_song.getHitRect(it)
+                it.top -= 200
+                it.left -= 100
+                it.bottom += 200
+                it.right += 100
+            }
+
+            (next_song.parent as View).touchDelegate = TouchDelegate(rect, next_song)
+        }
+
+        (player_center_icon.parent as View).post {
+            val rect = Rect().also {
+                player_center_icon.getHitRect(it)
+                it.top -= 200
+                it.left -= 150
+                it.bottom += 200
+                it.right += 150
+            }
+
+            (player_center_icon.parent as View).touchDelegate = TouchDelegate(rect, player_center_icon)
+        }
+
         player_queue?.setOnClickListener {
             /* TODO add to settings val additive = if(!mService.onRepeat){
                 val ret = arrayListOf<Song>()
@@ -185,29 +248,32 @@ class Player : AppCompatActivity() {
             }
         }
 
-        if(!mService.mediaPlayer.isPlaying) playPauseEvent(SongState.paused)
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
+                if(!mService.mediaPlayer.isPlaying) playPauseEvent(SongState.paused)
                 songChangeEvent(GetSongChangedEvent())
             }
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
-
-        bindEvent(BindServiceEvent())
     }
 
-    @Subscribe
-    private fun bindEvent(bindServiceEvent: BindServiceEvent) {
-        bindServiceEvent.toString() /* because the IDE doesn't like it unused */
-        if (Shared.serviceRunning(MusicService::class.java, this@Player))
-            bindService(
-                Intent(this@Player, MusicService::class.java),
-                serviceConn,
-                Context.BIND_IMPORTANT
-            )
+    private fun bindEvent() {
+        if(!Shared.serviceLinked()){
+            if (Shared.serviceRunning(MusicService::class.java, this@Player))
+                bindService(
+                    Intent(this@Player, MusicService::class.java),
+                    serviceConn,
+                    Context.BIND_IMPORTANT
+                )
+        } else {
+            mService = Shared.mService
+            if (mService.mediaPlayer.isPlaying) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
+            else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
+            songChangeEvent(GetSongChangedEvent())
+        }
     }
 
     override fun onPause() {
@@ -231,7 +297,7 @@ class Player : AppCompatActivity() {
                         player_current_position.text = getDurationFromMs(player_seekbar.progress)
                     }
                 }
-            }, 0, 1000)
+            }, 0, 100)
         }
     }
 
@@ -241,11 +307,11 @@ class Player : AppCompatActivity() {
     }
 
     private fun playPauseEvent(ss: SongState) {
-        playing = ss == SongState.playing
-        if (playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
+        playing = ss
+        if (playing == SongState.playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
         else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
 
-        if (playing) {
+        if (playing == SongState.playing) {
             startSeekbarUpdates()
         } else {
             if (scheduled) {
@@ -307,16 +373,15 @@ class Player : AppCompatActivity() {
     }
 
     override fun onResume() {
-        super.onResume()
         if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
-        bindEvent(BindServiceEvent())
+        bindEvent()
+        super.onResume()
     }
 
     override fun onStop() {
-        super.onStop()
         if (EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().unregister(this)
-        unbindService(serviceConn)
+        super.onStop()
     }
 }

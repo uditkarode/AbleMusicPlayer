@@ -41,7 +41,6 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
-import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
@@ -159,7 +158,7 @@ class Player : AppCompatActivity() {
         })
 
         player_queue?.setOnClickListener {
-            val additive = if(!mService.onRepeat){
+            /* TODO add to settings val additive = if(!mService.onRepeat){
                 val ret = arrayListOf<Song>()
                 ret.add(Song(name = "(repeat)", placeholder = true))
                 if(mService.playQueue.size > 3){
@@ -170,7 +169,7 @@ class Player : AppCompatActivity() {
                 else ret + mService.playQueue
             } else {
                 arrayListOf()
-            }
+            } */
 
             MaterialDialog(this@Player, BottomSheet()).show {
                 customListAdapter(
@@ -179,7 +178,7 @@ class Player : AppCompatActivity() {
                             mService.playQueue.subList(
                                 mService.currentIndex,
                                 mService.playQueue.size
-                            ) + additive
+                            ) //+ additive
                         )
                     )
                 )

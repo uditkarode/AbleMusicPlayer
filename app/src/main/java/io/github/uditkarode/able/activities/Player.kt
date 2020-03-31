@@ -37,6 +37,7 @@ import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.list.customListAdapter
+import com.bumptech.glide.Glide
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -270,8 +271,8 @@ class Player : AppCompatActivity() {
                 )
         } else {
             mService = Shared.mService
-            if (mService.mediaPlayer.isPlaying) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
-            else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
+            if (mService.mediaPlayer.isPlaying) Glide.with(this).load(R.drawable.pause).into(player_center_icon)
+            else Glide.with(this).load(R.drawable.play).into(player_center_icon)
             songChangeEvent(GetSongChangedEvent())
         }
     }
@@ -297,7 +298,7 @@ class Player : AppCompatActivity() {
                         player_current_position.text = getDurationFromMs(player_seekbar.progress)
                     }
                 }
-            }, 0, 100)
+            }, 0, 1000)
         }
     }
 

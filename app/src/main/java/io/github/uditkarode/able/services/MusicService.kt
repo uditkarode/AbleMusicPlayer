@@ -51,7 +51,6 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     var currentIndex = -1
     private var onShuffle = false
     private var onRepeat = false
-    private lateinit var mediaController: MediaController
     var playQueue = ArrayList<Song>()
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -103,18 +102,15 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
                 super.onSeekTo(pos)
                 seekTo(pos.toInt())
             }
-        })
 
-        mediaController = MediaController(this, mediaSession.sessionToken)
-        mediaController.registerCallback(object: MediaController.Callback() {
-            override fun onPlaybackStateChanged(state: PlaybackState?) {
-                super.onPlaybackStateChanged(state)
-                if(state != null){
-                    when(state.state){
-                        PlaybackState.STATE_PLAYING -> playAudio()
-                        PlaybackState.STATE_PAUSED -> pauseAudio()
-                    }
-                }
+            override fun onPause() {
+                super.onPause()
+                onPause()
+            }
+
+            override fun onPlay() {
+                super.onPlay()
+                playAudio()
             }
         })
 
@@ -358,6 +354,16 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     }
 
     private fun pauseAudio() {
+        val audioManager =
+            getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.abandonAudioFocusRequest(focusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus{}
+        }
+
         if (wakeLock?.isHeld == true)
             wakeLock?.release()
 

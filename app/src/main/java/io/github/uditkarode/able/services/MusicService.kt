@@ -25,9 +25,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.BitmapFactory
-import android.media.AudioManager
-import android.media.MediaMetadata
-import android.media.MediaPlayer
+import android.media.*
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.Binder
@@ -35,6 +33,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import androidx.annotation.RequiresApi
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
@@ -43,15 +42,30 @@ import io.github.uditkarode.able.models.SongState
 import org.greenrobot.eventbus.EventBus
 import kotlin.concurrent.thread
 
-class MusicService : Service() {
+class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
     private val binder = MusicBinder(this@MusicService)
 
     val mediaPlayer = MediaPlayer()
     var currentIndex = -1
     private var onShuffle = false
-    var onRepeat = false
+    private var onRepeat = false
     var playQueue = ArrayList<Song>()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
+        setAudioAttributes(AudioAttributes.Builder().run {
+            setUsage(AudioAttributes.USAGE_MEDIA)
+            setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            build()
+        })
+        setAcceptsDelayedFocusGain(false)
+        setOnAudioFocusChangeListener{
+            if(it == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
+            else if(it == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
+        }
+        build()
+    }
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -268,46 +282,63 @@ class MusicService : Service() {
 
     @SuppressLint("WakelockTimeout") /* user might sleep with songs on, let it jam */
     private fun playAudio() {
-        if (wakeLock?.isHeld != true) {
-            wakeLock =
-                (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
-                    newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AbleMusic::lock").apply {
-                        acquire()
-                    }
-                }
+        val audioManager =
+            getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            audioManager.requestAudioFocus(focusRequest)
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.requestAudioFocus(
+               this, AudioManager.STREAM_MUSIC,
+               AudioManager.AUDIOFOCUS_GAIN
+           )
         }
 
-        mediaSession.setPlaybackState(
-            ps
-                .setActions(actions)
-                .setState(
-                    PlaybackState.STATE_PLAYING,
-                    mediaPlayer.currentPosition.toLong(), 1f
-                )
-                .build()
-        )
-
-        mediaSession.setMetadata(
-            MediaMetadata.Builder()
-                .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
-                .build()
-        )
-
-        showNotification(
-            generateAction(
-                R.drawable.pause,
-                "Pause",
-                "ACTION_PAUSE"
-            ), true
-        )
-        if (!mediaPlayer.isPlaying) {
-            try {
-                thread {
-                    mediaPlayer.start()
-                }
-            } catch (e: Exception) {
-                Log.e("ERR>", "-$e-")
+        if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            if (wakeLock?.isHeld != true) {
+                wakeLock =
+                    (getSystemService(Context.POWER_SERVICE) as PowerManager).run {
+                        newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AbleMusic::lock").apply {
+                            acquire()
+                        }
+                    }
             }
+
+            mediaSession.setPlaybackState(
+                ps
+                    .setActions(actions)
+                    .setState(
+                        PlaybackState.STATE_PLAYING,
+                        mediaPlayer.currentPosition.toLong(), 1f
+                    )
+                    .build()
+            )
+
+            mediaSession.setMetadata(
+                MediaMetadata.Builder()
+                    .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
+                    .build()
+            )
+
+            showNotification(
+                generateAction(
+                    R.drawable.pause,
+                    "Pause",
+                    "ACTION_PAUSE"
+                ), true
+            )
+            if (!mediaPlayer.isPlaying) {
+                try {
+                    thread {
+                        mediaPlayer.start()
+                    }
+                } catch (e: Exception) {
+                    Log.e("ERR>", "-$e-")
+                }
+            }
+        } else {
+            Log.e("ERR>", "Unable to get focus - $result")
         }
     }
 
@@ -444,5 +475,10 @@ class MusicService : Service() {
         }
 
         startForeground(1, notification)
+    }
+
+    override fun onAudioFocusChange(focusChange: Int) {
+        if(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
+        else if(focusChange == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
     }
 }

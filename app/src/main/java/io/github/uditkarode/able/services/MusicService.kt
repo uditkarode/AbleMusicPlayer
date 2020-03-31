@@ -26,6 +26,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.BitmapFactory
 import android.media.*
+import android.media.session.MediaController
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.Binder
@@ -50,6 +51,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     var currentIndex = -1
     private var onShuffle = false
     private var onRepeat = false
+    private lateinit var mediaController: MediaController
     var playQueue = ArrayList<Song>()
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -100,6 +102,19 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             override fun onSeekTo(pos: Long) {
                 super.onSeekTo(pos)
                 seekTo(pos.toInt())
+            }
+        })
+
+        mediaController = MediaController(this, mediaSession.sessionToken)
+        mediaController.registerCallback(object: MediaController.Callback() {
+            override fun onPlaybackStateChanged(state: PlaybackState?) {
+                super.onPlaybackStateChanged(state)
+                if(state != null){
+                    when(state.state){
+                        PlaybackState.STATE_PLAYING -> playAudio()
+                        PlaybackState.STATE_PAUSED -> pauseAudio()
+                    }
+                }
             }
         })
 

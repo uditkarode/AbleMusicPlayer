@@ -185,6 +185,8 @@ class Player : AppCompatActivity() {
             }
         }
 
+        if(!mService.mediaPlayer.isPlaying) playPauseEvent(SongState.paused)
+
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()

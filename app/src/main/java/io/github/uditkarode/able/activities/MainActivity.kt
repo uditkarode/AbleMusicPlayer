@@ -30,10 +30,10 @@ import android.os.IBinder
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
-import android.view.ViewParent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
+import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import io.github.inflationx.calligraphy3.CalligraphyConfig
@@ -159,21 +159,30 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
             override fun onServiceDisconnected(name: ComponentName) { }
         }
-
-        bindEvent(BindServiceEvent())
     }
 
     @Subscribe
     private fun bindEvent(bindServiceEvent: BindServiceEvent){
-        bindServiceEvent.toString() /* because the IDE doesn't like it unused */
-        if(Shared.serviceRunning(MusicService::class.java, this@MainActivity)) bindService(Intent(this@MainActivity, MusicService::class.java), serviceConn, Context.BIND_IMPORTANT)
+        if(!Shared.serviceLinked()){
+            bindServiceEvent.toString() /* because the IDE doesn't like it unused */
+            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+                bindService(Intent(this@MainActivity, MusicService::class.java),
+                    serviceConn, Context.BIND_IMPORTANT)
+        } else {
+            mService = Shared.mService
+            songChange(GetSongChangedEvent())
+            playPauseEvent(GetPlayPauseEvent(mService!!.mediaPlayer.run {
+                if(this.isPlaying) SongState.playing
+                else SongState.paused
+            }))
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun playPauseEvent(playPauseEvent: GetPlayPauseEvent){
         playing = playPauseEvent.state == SongState.playing
-        if(playing) bb_icon.setImageDrawable(getDrawable(R.drawable.pause))
-        else bb_icon.setImageDrawable(getDrawable(R.drawable.play))
+        if(playing) Glide.with(this).load(R.drawable.pause).into(bb_icon)
+        else Glide.with(this).load(R.drawable.play).into(bb_icon)
 
         if(playing) startSeekbarUpdates()
         else {
@@ -243,6 +252,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     override fun onResume() {
         super.onResume()
+        bindEvent(BindServiceEvent())
         if(!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
     }

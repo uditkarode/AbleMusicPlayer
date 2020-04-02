@@ -38,6 +38,8 @@ import androidx.core.graphics.drawable.toBitmap
 import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
+import com.afollestad.materialdialogs.input.getInputLayout
+import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.customListAdapter
 import com.bumptech.glide.Glide
 import io.github.inflationx.calligraphy3.CalligraphyConfig
@@ -168,6 +170,16 @@ class Player : AppCompatActivity() {
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
+
+        img_albart.setOnClickListener {
+            MaterialDialog(this@Player).show {
+                title(text = "Enter the song name")
+                input("e.g. Wake Up Eden"){ _, charSequence ->
+                    updateAlbumArt(charSequence.toString())
+                }
+                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+            }
+        }
 
         (shuffle_button.parent as View).post {
             val rect = Rect().also {
@@ -331,10 +343,7 @@ class Player : AppCompatActivity() {
         }
     }
 
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songChangeEvent(songChangedEvent: GetSongChangedEvent) {
-        songChangedEvent.toString() /* because the IDE doesn't like it unused */
+    private fun updateAlbumArt(customSongName: String? = null){
         thread {
             val current = mService.playQueue[mService.currentIndex]
             val imageName = current.filePath.run {
@@ -348,12 +357,21 @@ class Player : AppCompatActivity() {
                     note_ph.visibility = View.GONE
                 }
             } else {
-                val albumArtRequest = Request.Builder()
-                    .url(Constants.DEEZER_API + current.name)
-                    .get()
-                    .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                    .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                    .build()
+                val albumArtRequest = if(customSongName == null){
+                    Request.Builder()
+                        .url(Constants.DEEZER_API + current.name)
+                        .get()
+                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                        .build()
+                } else {
+                    Request.Builder()
+                        .url(Constants.DEEZER_API + customSongName)
+                        .get()
+                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                        .build()
+                }
 
                 val response = OkHttpClient().newCall(albumArtRequest).execute().body
                 try {
@@ -388,7 +406,7 @@ class Player : AppCompatActivity() {
                                             R.drawable.play,
                                             "Play",
                                             "ACTION_PLAY"
-                                        ), false
+                                        ), false, bmp
                                     )
                                 }
                                 note_ph.visibility = View.GONE
@@ -402,6 +420,12 @@ class Player : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun songChangeEvent(songChangedEvent: GetSongChangedEvent) {
+        songChangedEvent.toString() /* because the IDE doesn't like it unused */
+        updateAlbumArt()
 
         val duration = mService.mediaPlayer.duration
         player_seekbar.max = duration

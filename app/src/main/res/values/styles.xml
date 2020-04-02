@@ -17,5 +17,7 @@
         <item name="android:navigationBarColor">@color/colorPrimaryDark</item>
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">true</item>
+        <item name="md_color_content">@color/white</item>
+        <item name="md_color_title">@color/white</item>
     </style>
 </resources>

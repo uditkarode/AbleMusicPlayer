@@ -20,6 +20,7 @@ package io.github.uditkarode.able.utils
 
 import android.app.ActivityManager
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
@@ -30,9 +31,8 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
 import org.greenrobot.eventbus.EventBus
 import org.json.JSONArray
-import java.io.BufferedReader
-import java.io.File
-import java.io.InputStreamReader
+import java.io.*
+
 
 class Shared {
     companion object {
@@ -40,6 +40,24 @@ class Shared {
 
         fun serviceLinked(): Boolean{
             return this::mService.isInitialized
+        }
+
+        fun saveAlbumArtToDisk(image: Bitmap, imageFileName: String) {
+            val storageDir = File(Constants.ableSongDir.absolutePath + "/album_art")
+            var success = true
+            if (!storageDir.exists()) {
+                success = storageDir.mkdirs()
+            }
+            if (success) {
+                val imageFile = File(storageDir, imageFileName)
+                try {
+                    val fOut: OutputStream = FileOutputStream(imageFile)
+                    image.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+                    fOut.close()
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
 
         fun getPlaylists(): ArrayList<Playlist> {

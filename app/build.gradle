@@ -60,5 +60,6 @@ dependencies {
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'com.github.bumptech.glide:glide:4.11.0'
     implementation 'com.flurry.android:analytics:12.2.0@aar'
+    implementation 'com.makeramen:roundedimageview:2.3.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 }

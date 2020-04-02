@@ -27,12 +27,14 @@ import android.graphics.Rect
 import android.os.Bundle
 import android.os.IBinder
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.DrawableCompat
+import androidx.core.graphics.drawable.toBitmap
 import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
@@ -47,6 +49,7 @@ import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
@@ -60,9 +63,14 @@ import kotlinx.android.synthetic.main.player.repeat_button
 import kotlinx.android.synthetic.main.player.shuffle_button
 import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import org.json.JSONObject
+import java.io.File
+import java.lang.Exception
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -252,13 +260,18 @@ class Player : AppCompatActivity() {
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                mService = (service as MusicService.MusicBinder).getService()
-                if(!mService.mediaPlayer.isPlaying) playPauseEvent(SongState.paused)
-                songChangeEvent(GetSongChangedEvent())
+                onBindDone()
             }
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
+    }
+
+    private fun onBindDone(){
+        mService = Shared.mService
+        if (mService.mediaPlayer.isPlaying) Glide.with(this).load(R.drawable.pause).into(player_center_icon)
+        else Glide.with(this).load(R.drawable.play).into(player_center_icon)
+        songChangeEvent(GetSongChangedEvent())
     }
 
     private fun bindEvent() {
@@ -269,12 +282,7 @@ class Player : AppCompatActivity() {
                     serviceConn,
                     Context.BIND_IMPORTANT
                 )
-        } else {
-            mService = Shared.mService
-            if (mService.mediaPlayer.isPlaying) Glide.with(this).load(R.drawable.pause).into(player_center_icon)
-            else Glide.with(this).load(R.drawable.play).into(player_center_icon)
-            songChangeEvent(GetSongChangedEvent())
-        }
+        } else onBindDone()
     }
 
     override fun onPause() {
@@ -327,6 +335,56 @@ class Player : AppCompatActivity() {
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun songChangeEvent(songChangedEvent: GetSongChangedEvent) {
         songChangedEvent.toString() /* because the IDE doesn't like it unused */
+        thread {
+            val current = mService.playQueue[mService.currentIndex]
+            val imageName = current.filePath.run {
+                this.substring(this.lastIndexOf("/") + 1).substring(0, 11)
+            }
+
+            val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+            if(img.exists()){
+                runOnUiThread {
+                    Glide.with(this@Player).load(img).into(img_albart)
+                    note_ph.visibility = View.GONE
+                }
+            } else {
+                val albumArtRequest = Request.Builder()
+                    .url(Constants.DEEZER_API + current.name)
+                    .get()
+                    .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                    .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                    .build()
+
+                val response = OkHttpClient().newCall(albumArtRequest).execute().body
+                try {
+                    if(response != null){
+                        val imgLink = JSONObject(response.string()).getJSONArray("data")
+                            .getJSONObject(0).getJSONObject("album").getString("cover_big")
+
+                        try {
+                            val bmp = Glide
+                                .with(this@Player)
+                                .load(imgLink)
+                                .skipMemoryCache(true)
+                                .submit()
+                                .get()
+
+                            Shared.saveAlbumArtToDisk(bmp.toBitmap(), imageName)
+
+                            runOnUiThread {
+                                img_albart.setImageDrawable(bmp)
+                                note_ph.visibility = View.GONE
+                            }
+                        } catch (e: Exception){
+                            Log.e("ERR>", e.toString())
+                        }
+                    }
+                } catch (e: Exception){
+                    Log.e("ERR>", e.toString())
+                }
+            }
+        }
+
         val duration = mService.mediaPlayer.duration
         player_seekbar.max = duration
         complete_position.text = getDurationFromMs(duration)
@@ -363,10 +421,8 @@ class Player : AppCompatActivity() {
         val minutes = TimeUnit.MILLISECONDS.toMinutes(duration)
 
         var ret = "${minutes}:"
-        if (seconds < 10) ret += "0${seconds}"
-        else ret += seconds
-
-        return ret
+        if (seconds < 10) ret += "0"
+        return ret + seconds
     }
 
     override fun attachBaseContext(newBase: Context?) {

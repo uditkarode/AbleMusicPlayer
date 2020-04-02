@@ -362,17 +362,35 @@ class Player : AppCompatActivity() {
                             .getJSONObject(0).getJSONObject("album").getString("cover_big")
 
                         try {
-                            val bmp = Glide
+                            val drw = Glide
                                 .with(this@Player)
                                 .load(imgLink)
                                 .skipMemoryCache(true)
                                 .submit()
                                 .get()
 
-                            Shared.saveAlbumArtToDisk(bmp.toBitmap(), imageName)
+                            val bmp = drw.toBitmap()
+
+                            Shared.saveAlbumArtToDisk(bmp, imageName)
 
                             runOnUiThread {
-                                img_albart.setImageDrawable(bmp)
+                                img_albart.setImageDrawable(drw)
+                                if(mService.mediaPlayer.isPlaying){
+                                    mService.showNotification(mService.generateAction(
+                                        R.drawable.pause,
+                                        "Pause",
+                                        "ACTION_PAUSE"
+                                    ), true, bmp
+                                    )
+                                } else {
+                                    mService.showNotification(
+                                        mService.generateAction(
+                                            R.drawable.play,
+                                            "Play",
+                                            "ACTION_PLAY"
+                                        ), false
+                                    )
+                                }
                                 note_ph.visibility = View.GONE
                             }
                         } catch (e: Exception){

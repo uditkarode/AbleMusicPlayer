@@ -44,6 +44,7 @@ import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
 import java.io.File
@@ -57,11 +58,6 @@ class Home: Fragment() {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
-
-    @Suppress("DEPRECATION")
-    val ableSongDir = File(
-        Environment.getExternalStorageDirectory(),
-        "AbleMusic")
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? =
@@ -103,7 +99,7 @@ class Home: Fragment() {
         bindEvent()
 
         thread {
-            songList = getSongList(ableSongDir)
+            songList = getSongList(Constants.ableSongDir)
             songAdapter = SongAdapter(songList, WeakReference(this@Home))
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
@@ -131,7 +127,7 @@ class Home: Fragment() {
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
 
-            video.downloadAsync(downloadFormat, ableSongDir, object: OnYoutubeDownloadListener {
+            video.downloadAsync(downloadFormat, Constants.ableSongDir, object: OnYoutubeDownloadListener {
                 override fun onDownloading(progress: Int) {
                     activity?.runOnUiThread {
                         songAdapter?.temp(Song(song.name,
@@ -170,11 +166,11 @@ class Home: Fragment() {
                                     "\"${target}\" -c copy " +
                                     "-metadata title=\"${name}\" " +
                                     "-metadata artist=\"${song.artist}\"" +
-                                    " ${ableSongDir.absolutePath}/$id.webm"
+                                    " ${Constants.ableSongDir.absolutePath}/$id.webm"
                         )) {
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
-                                songList = getSongList(ableSongDir)
+                                songList = getSongList(Constants.ableSongDir)
                                 activity?.runOnUiThread {
                                     songAdapter?.update(songList)
                                 }
@@ -200,7 +196,7 @@ class Home: Fragment() {
 
                 override fun onError(throwable: Throwable?) {
                     Toast.makeText(activity?.applicationContext, "failed: ${throwable.toString()}", Toast.LENGTH_SHORT).show()
-                    songList = getSongList(ableSongDir)
+                    songList = getSongList(Constants.ableSongDir)
                     activity?.runOnUiThread {
                         songAdapter?.update(songList)
                     }
@@ -215,8 +211,8 @@ class Home: Fragment() {
         var artist = "???"
         for (f in musicFolder.listFiles()?:arrayOf()) {
             if(!f.isDirectory){
-                if(f.name.contains(".tmp")){
-                    f.delete()
+                if(f.name.contains(".tmp") || f.nameWithoutExtension.length != 11){
+                    //f.delete()
                     continue
                 }
 

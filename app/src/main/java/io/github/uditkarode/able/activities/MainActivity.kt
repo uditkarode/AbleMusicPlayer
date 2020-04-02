@@ -48,6 +48,7 @@ import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.OkHttpClient
@@ -83,7 +84,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         super.onCreate(savedInstanceState)
         FlurryAgent.Builder()
             .withLogEnabled(true)
-            .build(this, "INSERT_FLURRY_KEY")
+            .build(this, Constants.FLURRY_KEY)
         home = Home()
         ViewPump.init(
             ViewPump.builder()

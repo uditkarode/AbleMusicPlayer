@@ -24,6 +24,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.*
 import android.media.session.MediaSession
@@ -34,12 +35,16 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.drawable.toBitmap
+import com.bumptech.glide.Glide
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.utils.Constants
 import org.greenrobot.eventbus.EventBus
+import java.io.File
 import kotlin.concurrent.thread
 
 class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
@@ -402,7 +407,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             wakeLock?.release()
     }
 
-    private fun generateAction(
+    fun generateAction(
         icon: Int,
         title: String,
         intentAction: String
@@ -415,7 +420,20 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         return Notification.Action.Builder(icon, title, pendingIntent).build()
     }
 
-    private fun showNotification(action: Notification.Action, playing: Boolean) {
+    fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
+        val current = playQueue[currentIndex]
+        val imageName = current.filePath.run {
+            this.substring(this.lastIndexOf("/") + 1).substring(0, 11)
+        }
+        var largeIcon = BitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
+
+        if(image != null){
+            largeIcon = image
+        } else {
+            val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+            if(img.exists())
+                largeIcon = BitmapFactory.decodeFile(img.absolutePath)
+        }
         val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
         val intent = Intent(this, MusicService::class.java)
         intent.action = "ACTION_STOP"
@@ -431,7 +449,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         builder
             .setSmallIcon(R.drawable.ic_notification)
             .setSubText("Music")
-            .setLargeIcon(BitmapFactory.decodeResource(this.resources, R.drawable.def_albart))
+            .setLargeIcon(largeIcon)
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
             .setContentIntent(

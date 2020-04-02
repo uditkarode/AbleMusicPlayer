@@ -56,9 +56,9 @@
 
                 <RelativeLayout
                     android:id="@+id/album_art"
-                    android:layout_width="match_parent"
-                    android:layout_height="320dp"
-                    android:layout_marginHorizontal="20dp"
+                    android:layout_width="328dp"
+                    android:layout_height="328dp"
+                    android:layout_gravity="center_horizontal"
                     android:layout_marginTop="10dp"
                     android:background="@drawable/rounded_rectangle">
 

@@ -42,6 +42,7 @@ import org.jsoup.Jsoup
 import java.io.IOException
 import java.lang.Integer.min
 import java.lang.ref.WeakReference
+import kotlin.concurrent.thread
 
 
 class Search : Fragment() {
@@ -106,7 +107,7 @@ class Search : Fragment() {
                     .build()
 
                 try {
-                    AsyncTask.execute {
+                    thread {
                         val resultArray = ArrayList<Song>()
                         val response = okClient.newCall(request).execute()
                         val resultHtml = response.body?.string() ?: ""

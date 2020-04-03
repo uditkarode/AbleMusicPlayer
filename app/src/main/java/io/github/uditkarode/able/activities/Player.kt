@@ -507,7 +507,7 @@ class Player : AppCompatActivity() {
         }
     }
 
-    @Subscribe
+    @Subscribe(threadMode = ThreadMode.MAIN)
     fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent){
         mService.playQueue = Shared.getSongList(Constants.ableSongDir)
 
@@ -517,7 +517,25 @@ class Player : AppCompatActivity() {
                 this.indexOf(this.find { it.name == metaDataEvent.name } )
             }
         }
+
         if(metaDataEvent.artist != null) artist_name.text = metaDataEvent.artist
+
+        if(mService.mediaPlayer.isPlaying){
+            mService.showNotification(mService.generateAction(
+                R.drawable.pause,
+                "Pause",
+                "ACTION_PAUSE"
+            ), true
+            )
+        } else {
+            mService.showNotification(
+                mService.generateAction(
+                    R.drawable.play,
+                    "Play",
+                    "ACTION_PLAY"
+                ), false
+            )
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

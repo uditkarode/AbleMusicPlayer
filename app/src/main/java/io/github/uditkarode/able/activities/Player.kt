@@ -108,7 +108,7 @@ class Player : AppCompatActivity() {
             this.ydpi
         }
 
-        if(ydpi >= 405) setContentView(R.layout.player410)
+        if(ydpi > 400) setContentView(R.layout.player410)
         else if(ydpi >= 395) setContentView(R.layout.player400)
         else if(ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
         else setContentView(R.layout.player220)

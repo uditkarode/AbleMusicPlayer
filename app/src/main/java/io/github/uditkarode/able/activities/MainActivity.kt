@@ -19,12 +19,14 @@
 package io.github.uditkarode.able.activities
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.text.Html
@@ -207,6 +209,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun songChange(event: GetSongChangedEvent){
         event.toString() /* because the IDE doesn't like it unused */
@@ -216,20 +219,26 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         startSeekbarUpdates()
         val song = Shared.mService.playQueue[Shared.mService.currentIndex]
 
-        bb_song.text = Html.fromHtml(
-            "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
-            HtmlCompat.FROM_HTML_MODE_LEGACY
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            bb_song.text = Html.fromHtml(
+                "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
+                HtmlCompat.FROM_HTML_MODE_LEGACY
+            )
+        } else {
+            bb_song.text = "${song.name} • ${song.artist}"
+        }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun songSet(songEvent: GetSongEvent){
         activity_seekbar.progress = 0
 
-        bb_song.text = Html.fromHtml(
-            "${songEvent.song.name} <font color=\"#5e92f3\">•</font> ${songEvent.song.artist}",
-            HtmlCompat.FROM_HTML_MODE_LEGACY
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            bb_song.text = Html.fromHtml(
+                "${songEvent.song.name} <font color=\"#5e92f3\">•</font> ${songEvent.song.artist}",
+                HtmlCompat.FROM_HTML_MODE_LEGACY
+            )
+        }
     }
 
     @Subscribe

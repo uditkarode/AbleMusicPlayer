@@ -345,79 +345,83 @@ class Player : AppCompatActivity() {
 
     private fun updateAlbumArt(customSongName: String? = null){
         thread {
-            val current = mService.playQueue[mService.currentIndex]
-            val imageName = current.filePath.run {
-                this.substring(this.lastIndexOf("/") + 1).substring(0, 11)
-            }
-
-            val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
-            if(img.exists()){
-                runOnUiThread {
-                    Glide.with(this@Player).load(img).into(img_albart)
-                    note_ph.visibility = View.GONE
-                }
-            } else {
-                val albumArtRequest = if(customSongName == null){
-                    Request.Builder()
-                        .url(Constants.DEEZER_API + current.name)
-                        .get()
-                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                        .build()
-                } else {
-                    Request.Builder()
-                        .url(Constants.DEEZER_API + customSongName)
-                        .get()
-                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                        .build()
+            try {
+                val current = mService.playQueue[mService.currentIndex]
+                val imageName = current.filePath.run {
+                    this.substring(this.lastIndexOf("/") + 1).substring(0, 11)
                 }
 
-                val response = OkHttpClient().newCall(albumArtRequest).execute().body
-                try {
-                    if(response != null){
-                        val imgLink = JSONObject(response.string()).getJSONArray("data")
-                            .getJSONObject(0).getJSONObject("album").getString("cover_big")
-
-                        try {
-                            val drw = Glide
-                                .with(this@Player)
-                                .load(imgLink)
-                                .skipMemoryCache(true)
-                                .submit()
-                                .get()
-
-                            val bmp = drw.toBitmap()
-
-                            Shared.saveAlbumArtToDisk(bmp, imageName)
-
-                            runOnUiThread {
-                                img_albart.setImageDrawable(drw)
-                                if(mService.mediaPlayer.isPlaying){
-                                    mService.showNotification(mService.generateAction(
-                                        R.drawable.pause,
-                                        "Pause",
-                                        "ACTION_PAUSE"
-                                    ), true, bmp
-                                    )
-                                } else {
-                                    mService.showNotification(
-                                        mService.generateAction(
-                                            R.drawable.play,
-                                            "Play",
-                                            "ACTION_PLAY"
-                                        ), false, bmp
-                                    )
-                                }
-                                note_ph.visibility = View.GONE
-                            }
-                        } catch (e: Exception){
-                            Log.e("ERR>", e.toString())
-                        }
+                val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+                if(img.exists()){
+                    runOnUiThread {
+                        Glide.with(this@Player).load(img).into(img_albart)
+                        note_ph.visibility = View.GONE
                     }
-                } catch (e: Exception){
-                    Log.e("ERR>", e.toString())
+                } else {
+                    val albumArtRequest = if(customSongName == null){
+                        Request.Builder()
+                            .url(Constants.DEEZER_API + current.name)
+                            .get()
+                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                            .build()
+                    } else {
+                        Request.Builder()
+                            .url(Constants.DEEZER_API + customSongName)
+                            .get()
+                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                            .build()
+                    }
+
+                    val response = OkHttpClient().newCall(albumArtRequest).execute().body
+                    try {
+                        if(response != null){
+                            val imgLink = JSONObject(response.string()).getJSONArray("data")
+                                .getJSONObject(0).getJSONObject("album").getString("cover_big")
+
+                            try {
+                                val drw = Glide
+                                    .with(this@Player)
+                                    .load(imgLink)
+                                    .skipMemoryCache(true)
+                                    .submit()
+                                    .get()
+
+                                val bmp = drw.toBitmap()
+
+                                Shared.saveAlbumArtToDisk(bmp, imageName)
+
+                                runOnUiThread {
+                                    img_albart.setImageDrawable(drw)
+                                    if(mService.mediaPlayer.isPlaying){
+                                        mService.showNotification(mService.generateAction(
+                                            R.drawable.pause,
+                                            "Pause",
+                                            "ACTION_PAUSE"
+                                        ), true, bmp
+                                        )
+                                    } else {
+                                        mService.showNotification(
+                                            mService.generateAction(
+                                                R.drawable.play,
+                                                "Play",
+                                                "ACTION_PLAY"
+                                            ), false, bmp
+                                        )
+                                    }
+                                    note_ph.visibility = View.GONE
+                                }
+                            } catch (e: Exception){
+                                Log.e("ERR>", e.toString())
+                            }
+                        }
+                    } catch (e: Exception){
+                        Log.e("ERR>", e.toString())
+                    }
                 }
+            } catch (e: Exception){
+                Log.e("ERR>", e.toString())
             }
         }
     }

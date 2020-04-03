@@ -24,6 +24,7 @@ import android.graphics.Bitmap
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
+import com.arthenica.mobileffmpeg.FFprobe
 import com.google.gson.Gson
 import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
@@ -143,6 +144,41 @@ class Shared {
                 }
             }
             return false
+        }
+
+        fun getSongList(musicFolder: File): ArrayList<Song> {
+            var songs: ArrayList<Song> = ArrayList()
+            var name = "???"
+            var artist = "???"
+            for (f in musicFolder.listFiles()?:arrayOf()) {
+                if(!f.isDirectory){
+                    if(f.name.contains(".tmp") || f.nameWithoutExtension.length != 11){
+                        //f.delete()
+                        continue
+                    }
+
+                    val metadata = FFprobe.getMediaInformation(f.absolutePath).metadataEntries
+                    for(map in metadata){
+                        if(map.key == "title")
+                            name = map.value
+                        else if(map.key == "ARTIST")
+                            artist = map.value
+                    }
+                    if(name != "???"){
+                        songs.add(
+                            Song(
+                                name,
+                                artist,
+                                filePath = f.path
+                            )
+                        )
+                    }
+                }
+            }
+
+            if(songs.isNotEmpty()) songs = ArrayList(songs.sortedBy { it.name })
+
+            return songs
         }
 
         fun createPlaylist(name: String, context: Context) {

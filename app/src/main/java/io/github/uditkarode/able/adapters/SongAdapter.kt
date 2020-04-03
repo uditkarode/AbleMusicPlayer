@@ -40,6 +40,7 @@ import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -202,6 +203,12 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
     @Subscribe
     fun indexUpdate(indexEvent: GetIndexEvent) {
         currentIndex = indexEvent.index
+    }
+
+    @Subscribe
+    fun metadataUpdate(metaDataUpdate: GetMetaDataEvent) {
+        songList = Shared.getSongList(Constants.ableSongDir)
+        notifyDataSetChanged()
     }
 
     @Subscribe

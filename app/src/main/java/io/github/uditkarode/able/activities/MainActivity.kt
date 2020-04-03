@@ -105,9 +105,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
         mainContent = main_content
         bb_icon.setOnClickListener {
-            thread {
-                if(playing) Shared.mService.setPlayPause(SongState.paused)
-                else Shared.mService.setPlayPause(SongState.playing)
+            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
+                thread {
+                    if(playing) Shared.mService.setPlayPause(SongState.paused)
+                    else Shared.mService.setPlayPause(SongState.playing)
+                }
             }
         }
 

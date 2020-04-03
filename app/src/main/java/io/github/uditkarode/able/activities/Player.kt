@@ -38,9 +38,12 @@ import androidx.core.graphics.drawable.toBitmap
 import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
+import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.customListAdapter
+import com.arthenica.mobileffmpeg.Config
+import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
@@ -177,6 +180,84 @@ class Player : AppCompatActivity() {
                 input("e.g. Wake Up Eden"){ _, charSequence ->
                     updateAlbumArt(charSequence.toString())
                 }
+                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+            }
+        }
+
+        song_name.setOnClickListener {
+            val current = mService.playQueue[mService.currentIndex]
+            MaterialDialog(this@Player).show {
+                title(text = "Enter the new song name")
+                input("e.g. Wake Up"){ _, charSequence ->
+                    when (val rc = FFmpeg.execute(
+                        "-i " +
+                                "\"${current.filePath}\" -c copy " +
+                                "-metadata title=\"$charSequence\" " +
+                                "-metadata artist=\"${current.artist}\"" +
+                                " \"${current.filePath}.new.webm\""
+                    )) {
+                        Config.RETURN_CODE_SUCCESS -> {
+                            File(current.filePath).delete()
+                            File(current.filePath + ".new.webm").renameTo(File(current.filePath))
+                            EventBus.getDefault().post(GetMetaDataEvent(name = charSequence.toString()))
+                        }
+                        Config.RETURN_CODE_CANCEL -> {
+                            Log.e(
+                                "ERR>",
+                                "Command execution cancelled by user."
+                            )
+                        }
+                        else -> {
+                            Log.e(
+                                "ERR>",
+                                String.format(
+                                    "Command execution failed with rc=%d and the output below.",
+                                    rc
+                                )
+                            )
+                        }
+                    }
+                }
+                getInputField().setText(current.name)
+                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+            }
+        }
+
+        artist_name.setOnClickListener {
+            val current = mService.playQueue[mService.currentIndex]
+            MaterialDialog(this@Player).show {
+                title(text = "Enter the new song artist")
+                input("e.g. Eden"){ _, charSequence ->
+                    when (val rc = FFmpeg.execute(
+                        "-i " +
+                                "\"${current.filePath}\" -c copy " +
+                                "-metadata title=\"${current.name}\" " +
+                                "-metadata artist=\"$charSequence\"" +
+                                " \"${current.filePath}.new.webm\""
+                    )) {
+                        Config.RETURN_CODE_SUCCESS -> {
+                            File(current.filePath).delete()
+                            File(current.filePath + ".new.webm").renameTo(File(current.filePath))
+                            EventBus.getDefault().post(GetMetaDataEvent(artist = charSequence.toString()))
+                        }
+                        Config.RETURN_CODE_CANCEL -> {
+                            Log.e(
+                                "ERR>",
+                                "Command execution cancelled by user."
+                            )
+                        }
+                        else -> {
+                            Log.e(
+                                "ERR>",
+                                String.format(
+                                    "Command execution failed with rc=%d and the output below.",
+                                    rc
+                                )
+                            )
+                        }
+                    }
+                }
+                getInputField().setText(current.artist)
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
         }
@@ -424,6 +505,19 @@ class Player : AppCompatActivity() {
                 Log.e("ERR>", e.toString())
             }
         }
+    }
+
+    @Subscribe
+    fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent){
+        mService.playQueue = Shared.getSongList(Constants.ableSongDir)
+
+        if(metaDataEvent.name != null){
+            song_name.text = metaDataEvent.name
+            mService.currentIndex = mService.playQueue.run {
+                this.indexOf(this.find { it.name == metaDataEvent.name } )
+            }
+        }
+        if(metaDataEvent.artist != null) artist_name.text = metaDataEvent.artist
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

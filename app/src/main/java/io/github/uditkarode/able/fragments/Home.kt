@@ -36,7 +36,6 @@ import androidx.recyclerview.widget.RecyclerView
 import co.revely.gradient.RevelyGradient
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
-import com.arthenica.mobileffmpeg.FFprobe
 import com.github.kiulian.downloader.OnYoutubeDownloadListener
 import com.github.kiulian.downloader.YoutubeDownloader
 import io.github.uditkarode.able.R
@@ -99,7 +98,7 @@ class Home: Fragment() {
         bindEvent()
 
         thread {
-            songList = getSongList(Constants.ableSongDir)
+            songList = Shared.getSongList(Constants.ableSongDir)
             songAdapter = SongAdapter(songList, WeakReference(this@Home))
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
@@ -166,11 +165,11 @@ class Home: Fragment() {
                                     "\"${target}\" -c copy " +
                                     "-metadata title=\"${name}\" " +
                                     "-metadata artist=\"${song.artist}\"" +
-                                    " ${Constants.ableSongDir.absolutePath}/$id.webm"
+                                    " \"${Constants.ableSongDir.absolutePath}/$id.webm\""
                         )) {
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
-                                songList = getSongList(Constants.ableSongDir)
+                                songList = Shared.getSongList(Constants.ableSongDir)
                                 activity?.runOnUiThread {
                                     songAdapter?.update(songList)
                                 }
@@ -196,47 +195,12 @@ class Home: Fragment() {
 
                 override fun onError(throwable: Throwable?) {
                     Toast.makeText(activity?.applicationContext, "failed: ${throwable.toString()}", Toast.LENGTH_SHORT).show()
-                    songList = getSongList(Constants.ableSongDir)
+                    songList = Shared.getSongList(Constants.ableSongDir)
                     activity?.runOnUiThread {
                         songAdapter?.update(songList)
                     }
                 }
             })
         }
-    }
-
-    private fun getSongList(musicFolder: File): ArrayList<Song> {
-        var songs: ArrayList<Song> = ArrayList()
-        var name = "???"
-        var artist = "???"
-        for (f in musicFolder.listFiles()?:arrayOf()) {
-            if(!f.isDirectory){
-                if(f.name.contains(".tmp") || f.nameWithoutExtension.length != 11){
-                    //f.delete()
-                    continue
-                }
-
-                val metadata = FFprobe.getMediaInformation(f.absolutePath).metadataEntries
-                for(map in metadata){
-                    if(map.key == "title")
-                        name = map.value
-                    else if(map.key == "ARTIST")
-                        artist = map.value
-                }
-                if(name != "???"){
-                    songs.add(
-                        Song(
-                        name,
-                        artist,
-                        filePath = f.path
-                        )
-                    )
-                }
-            }
-        }
-
-        if(songs.isNotEmpty()) songs = ArrayList(songs.sortedBy { it.name })
-
-        return songs
     }
 }

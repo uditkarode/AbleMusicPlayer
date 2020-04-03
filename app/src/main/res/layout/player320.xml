@@ -83,7 +83,8 @@
                 android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:id="@+id/song_info"
+                    android:layout_width="wrap_content"
                     android:layout_marginHorizontal="30dp"
                     android:layout_marginTop="10dp"
                     android:orientation="vertical"

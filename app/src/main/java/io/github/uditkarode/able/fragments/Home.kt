@@ -131,32 +131,26 @@ class Home: Fragment() {
     }
 
     fun streamVideo(song: Song){
+        if(!Shared.serviceRunning(MusicService::class.java, activity as Context)){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                activity!!.startForegroundService(Intent(activity, MusicService::class.java))
+            } else {
+                activity!!.startService(Intent(activity, MusicService::class.java))
+            }
+
+            bindEvent()
+        }
+
         val id = song.youtubeLink.substring(song.youtubeLink.lastIndexOf("=") + 1)
         thread {
+            @Suppress("ControlFlowWithEmptyBody")
+            while(!isBound){}
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
-            val cacheDir = activity!!.cacheDir
-
-            song.filePath = File(cacheDir, id).absolutePath
-            var playing = false
-
-            video.downloadAsync(downloadFormat, cacheDir, "streamTarget", object: OnYoutubeDownloadListener {
-                override fun onDownloading(progress: Int) {
-                    Log.e("INFO>", "$progress")
-                    if(!playing && progress > 10){
-                        mService?.setQueue(arrayListOf(song))
-                        mService?.setIndex(0)
-                        mService?.setPlayPause(SongState.playing)
-                        playing = true
-                    }
-                }
-
-                override fun onFinished(file: File?) {}
-
-                override fun onError(throwable: Throwable?) {
-                    Log.e("ERR>", throwable.toString())
-                }
-            })
+            song.filePath = downloadFormat.url()
+            mService?.playQueue = arrayListOf(song)
+            mService?.setIndex(0)
+            mService?.setPlayPause(SongState.playing)
         }
     }
 

@@ -34,7 +34,9 @@ class Constants {
             "AbleMusic")
 
         const val FLURRY_KEY = "INSERT_FLURRY_KEY"
-        const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
         const val RAPID_API_KEY= "INSERT_RAPID_KEY"
+
+        const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
+        const val SP_NAME = "able"
     }
 }

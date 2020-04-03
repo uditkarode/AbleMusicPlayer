@@ -47,7 +47,7 @@ dependencies {
     implementation 'io.github.inflationx:viewpump:2.0.3'
     implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha01'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
-    implementation 'com.github.sealedtx:java-youtube-downloader:2.1.1'
+    implementation 'com.github.uditkarode:java-youtube-downloader:2.1.5'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
     implementation 'com.squareup.okhttp3:okhttp:4.4.0'
     implementation 'com.arthenica:mobile-ffmpeg-min:4.3.1'

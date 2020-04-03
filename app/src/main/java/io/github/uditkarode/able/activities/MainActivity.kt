@@ -20,10 +20,7 @@ package io.github.uditkarode.able.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.os.Build
@@ -32,6 +29,7 @@ import android.os.IBinder
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
@@ -53,6 +51,7 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.home.*
 import okhttp3.OkHttpClient
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -276,8 +275,13 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     }
 
     override fun sendItem(song: Song) {
-        home.downloadVideo(song)
-        mainContent.currentItem = -1
-        bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+        val sp = getSharedPreferences(Constants.SP_NAME, 0)
+        if(sp.getBoolean("streamMode", false)){
+            home.streamVideo(song)
+        } else {
+            home.downloadVideo(song)
+            mainContent.currentItem = -1
+            bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+        }
     }
 }

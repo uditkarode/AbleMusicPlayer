@@ -410,8 +410,10 @@ class Player : AppCompatActivity() {
 
     private fun playPauseEvent(ss: SongState) {
         playing = ss
-        if (playing == SongState.playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
-        else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
+        runOnUiThread {
+            if (playing == SongState.playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
+            else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
+        }
 
         if (playing == SongState.playing) {
             startSeekbarUpdates()

@@ -42,6 +42,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
@@ -69,6 +70,18 @@ class Home: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val songs = view.findViewById<RecyclerView>(R.id.songs)
+
+        able_header.setOnClickListener {
+            val sp = activity!!.getSharedPreferences(Constants.SP_NAME, 0)
+            if(sp.getBoolean("streamMode", false)) {
+                sp.edit().putBoolean("streamMode", false).apply()
+                Toast.makeText(activity, "mode: Download" ,Toast.LENGTH_SHORT).show()
+            }
+            else {
+                sp.edit().putBoolean("streamMode", true).apply()
+                Toast.makeText(activity, "mode: Stream" ,Toast.LENGTH_SHORT).show()
+            }
+        }
 
         RevelyGradient
             .linear()
@@ -117,6 +130,36 @@ class Home: Fragment() {
         }
     }
 
+    fun streamVideo(song: Song){
+        val id = song.youtubeLink.substring(song.youtubeLink.lastIndexOf("=") + 1)
+        thread {
+            val video = YoutubeDownloader().getVideo(id)
+            val downloadFormat = video.audioFormats().run { this[this.size - 1] }
+            val cacheDir = activity!!.cacheDir
+
+            song.filePath = File(cacheDir, id).absolutePath
+            var playing = false
+
+            video.downloadAsync(downloadFormat, cacheDir, "streamTarget", object: OnYoutubeDownloadListener {
+                override fun onDownloading(progress: Int) {
+                    Log.e("INFO>", "$progress")
+                    if(!playing && progress > 10){
+                        mService?.setQueue(arrayListOf(song))
+                        mService?.setIndex(0)
+                        mService?.setPlayPause(SongState.playing)
+                        playing = true
+                    }
+                }
+
+                override fun onFinished(file: File?) {}
+
+                override fun onError(throwable: Throwable?) {
+                    Log.e("ERR>", throwable.toString())
+                }
+            })
+        }
+    }
+
     /* download to videoId.webm.tmp, add metadata and save to videoId.webm */
     fun downloadVideo(song: Song){
         songAdapter?.temp(Song(song.name, "Initialising download..."))
@@ -126,7 +169,8 @@ class Home: Fragment() {
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
 
-            video.downloadAsync(downloadFormat, Constants.ableSongDir, object: OnYoutubeDownloadListener {
+            /* if the song exists, it will be deleted and re-downloaded (coded in library) */
+            video.downloadAsync(downloadFormat, Constants.ableSongDir, id, object: OnYoutubeDownloadListener {
                 override fun onDownloading(progress: Int) {
                     activity?.runOnUiThread {
                         songAdapter?.temp(Song(song.name,

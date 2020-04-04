@@ -35,12 +35,9 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.core.graphics.drawable.toBitmap
-import com.bumptech.glide.Glide
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
-import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants

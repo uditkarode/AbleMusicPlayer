@@ -287,11 +287,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
             }
 
             MusicMode.stream -> {
-                home.streamVideo(song, false)
+                home.streamAudio(song, false)
             }
 
             MusicMode.both -> {
-                home.streamVideo(song, true)
+                home.streamAudio(song, true)
             }
         }
     }

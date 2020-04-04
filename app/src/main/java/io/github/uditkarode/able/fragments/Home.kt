@@ -28,6 +28,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import com.vincan.medialoader.download.DownloadListener
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -43,6 +44,7 @@ import com.vincan.medialoader.MediaLoaderConfig
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.events.GetMetaDataEvent
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -50,6 +52,7 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
+import org.greenrobot.eventbus.EventBus
 import java.io.File
 import java.lang.Exception
 import java.lang.ref.WeakReference
@@ -63,6 +66,7 @@ class Home: Fragment() {
     private lateinit var serviceConn: ServiceConnection
     private var songId: String = "temp"
     private lateinit var mediaLoaderConfig: MediaLoaderConfig
+    private lateinit var mediaLoader: MediaLoader
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? =
@@ -81,10 +85,13 @@ class Home: Fragment() {
                 Constants.ableSongDir
             )
             .cacheFileNameGenerator {
-                songId
+                "$songId.tmp.webm"
             }
             .downloadThreadPriority(Thread.NORM_PRIORITY)
             .build()
+
+        mediaLoader = MediaLoader.getInstance(activity)
+        mediaLoader.init(mediaLoaderConfig)
 
         able_header.setOnClickListener {
             val sp = activity!!.getSharedPreferences(Constants.SP_NAME, 0)
@@ -153,7 +160,7 @@ class Home: Fragment() {
         }
     }
 
-    fun streamVideo(song: Song, toCache: Boolean){
+    fun streamAudio(song: Song, toCache: Boolean){
         if(!Shared.serviceRunning(MusicService::class.java, activity as Context)){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 activity!!.startForegroundService(Intent(activity, MusicService::class.java))
@@ -176,10 +183,52 @@ class Home: Fragment() {
             mService?.showNotif()
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
-            if(toCache) song.filePath = MediaLoader.getInstance(activity).also {
-                it.init(mediaLoaderConfig)
-            }.getProxyUrl(downloadFormat.url())
-            else song.filePath = downloadFormat.url()
+            val url = downloadFormat.url()
+
+            if(toCache){
+                mediaLoader.addDownloadListener(url, object: DownloadListener{
+                    override fun onProgress(url: String?, file: File?, progress: Int) {
+                        if(progress == 100){
+                            val current = mService!!.playQueue[mService!!.currentIndex]
+                            val tempFile = File(Constants.ableSongDir.absolutePath
+                                        + "/" + songId + ".tmp.webm")
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${tempFile.absolutePath}\" -c copy " +
+                                        "-metadata title=\"${current.name}\" " +
+                                        "-metadata artist=\"${current.artist}\"" +
+                                        " \"${tempFile.absolutePath.replace(".tmp", "")}\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    tempFile.delete()
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onError(e: Throwable?) {
+                        Log.e("ERR>", e.toString())
+                    }
+                })
+
+                song.filePath = mediaLoader.getProxyUrl(url)
+            }
+            else song.filePath = url
             mService?.playQueue = arrayListOf(song)
             mService?.setIndex(0)
             mService?.setPlayPause(SongState.playing)

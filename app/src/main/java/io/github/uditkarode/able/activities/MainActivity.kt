@@ -20,22 +20,27 @@ package io.github.uditkarode.able.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.*
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.text.Html
+import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.vincan.medialoader.DefaultConfigFactory
+import com.vincan.medialoader.MediaLoaderConfig
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -45,20 +50,20 @@ import io.github.uditkarode.able.adapters.ViewPagerAdapter
 import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
+import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.home.*
 import okhttp3.OkHttpClient
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.io.File
 import java.util.*
 import kotlin.concurrent.thread
-
 
 class MainActivity : AppCompatActivity(), Search.SongCallback {
     private lateinit var okClient: OkHttpClient
@@ -101,6 +106,16 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         )
         setContentView(R.layout.activity_main)
         okClient = OkHttpClient()
+
+        Constants.mediaLoaderConfig = MediaLoaderConfig.Builder(this)
+            .cacheRootDir(
+                File(Constants.ableSongDir.absolutePath, "/cache")
+            )
+            .cacheFileNameGenerator {
+                it.substring(it.lastIndexOf("=") + 1)
+            }
+            .downloadThreadPriority(Thread.NORM_PRIORITY)
+            .build()
 
         mainContent = main_content
         bb_icon.setOnClickListener {
@@ -276,12 +291,21 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     override fun sendItem(song: Song) {
         val sp = getSharedPreferences(Constants.SP_NAME, 0)
-        if(sp.getBoolean("streamMode", false)){
-            home.streamVideo(song)
-        } else {
-            home.downloadVideo(song)
-            mainContent.currentItem = -1
-            bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+        Log.e("INFO>", sp.getString("streamMode", MusicMode.download)!!)
+        when(sp.getString("streamMode", MusicMode.download)){
+            MusicMode.download -> {
+                home.downloadVideo(song)
+                mainContent.currentItem = -1
+                bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+            }
+
+            MusicMode.stream -> {
+                home.streamVideo(song, false)
+            }
+
+            MusicMode.both -> {
+                home.streamVideo(song, true)
+            }
         }
     }
 }

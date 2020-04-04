@@ -40,6 +40,7 @@ import com.bumptech.glide.Glide
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
@@ -357,6 +358,16 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         }
     }
 
+    fun showNotif(){
+        showNotification(
+            generateAction(
+                R.drawable.play,
+                "Play",
+                "ACTION_PLAY"
+            ), false
+        )
+    }
+
     private fun pauseAudio() {
         val audioManager =
             getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -423,7 +434,10 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
         val current = playQueue[currentIndex]
         val imageName = current.filePath.run {
-            this.substring(this.lastIndexOf("/") + 1).substring(0, 11)
+            this.substring(this.lastIndexOf("/") + 1).run {
+                if(this.length >= 11) this.substring(0, 11)
+                else this
+            }
         }
         var largeIcon = BitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
 

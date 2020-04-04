@@ -19,7 +19,11 @@
 package io.github.uditkarode.able.utils
 
 import android.os.Environment
+import com.vincan.medialoader.DefaultConfigFactory
+import com.vincan.medialoader.MediaLoaderConfig
+import com.vincan.medialoader.data.file.naming.HashCodeFileNameCreator
 import java.io.File
+
 
 class Constants {
     companion object {
@@ -38,5 +42,7 @@ class Constants {
 
         const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
         const val SP_NAME = "able"
+
+        lateinit var mediaLoaderConfig: MediaLoaderConfig
     }
 }

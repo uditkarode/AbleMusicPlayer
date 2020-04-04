@@ -42,7 +42,5 @@ class Constants {
 
         const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
         const val SP_NAME = "able"
-
-        lateinit var mediaLoaderConfig: MediaLoaderConfig
     }
 }

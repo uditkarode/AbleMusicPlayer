@@ -38,9 +38,11 @@ import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.github.kiulian.downloader.OnYoutubeDownloadListener
 import com.github.kiulian.downloader.YoutubeDownloader
+import com.vincan.medialoader.MediaLoader
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
@@ -73,13 +75,21 @@ class Home: Fragment() {
 
         able_header.setOnClickListener {
             val sp = activity!!.getSharedPreferences(Constants.SP_NAME, 0)
-            if(sp.getBoolean("streamMode", false)) {
-                sp.edit().putBoolean("streamMode", false).apply()
-                Toast.makeText(activity, "mode: Download" ,Toast.LENGTH_SHORT).show()
-            }
-            else {
-                sp.edit().putBoolean("streamMode", true).apply()
-                Toast.makeText(activity, "mode: Stream" ,Toast.LENGTH_SHORT).show()
+            when(sp.getString("streamMode", MusicMode.download)){
+                MusicMode.download -> {
+                    sp.edit().putString("streamMode", MusicMode.stream).apply()
+                    Toast.makeText(activity, "mode: Stream" ,Toast.LENGTH_SHORT).show()
+                }
+
+                MusicMode.stream -> {
+                    sp.edit().putString("streamMode", MusicMode.both).apply()
+                    Toast.makeText(activity, "mode: Both" ,Toast.LENGTH_SHORT).show()
+                }
+
+                MusicMode.both -> {
+                    sp.edit().putString("streamMode", MusicMode.download).apply()
+                    Toast.makeText(activity, "mode: Download" ,Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
@@ -130,7 +140,7 @@ class Home: Fragment() {
         }
     }
 
-    fun streamVideo(song: Song){
+    fun streamVideo(song: Song, toCache: Boolean){
         if(!Shared.serviceRunning(MusicService::class.java, activity as Context)){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 activity!!.startForegroundService(Intent(activity, MusicService::class.java))
@@ -145,9 +155,15 @@ class Home: Fragment() {
         thread {
             @Suppress("ControlFlowWithEmptyBody")
             while(!isBound){}
+            mService?.playQueue = arrayListOf(song)
+            mService?.currentIndex = 0
+            mService?.showNotif()
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
-            song.filePath = downloadFormat.url()
+            if(toCache) song.filePath = MediaLoader.getInstance(activity).also {
+                it.init(Constants.mediaLoaderConfig)
+            }.getProxyUrl(downloadFormat.url())
+            else song.filePath = downloadFormat.url()
             mService?.playQueue = arrayListOf(song)
             mService?.setIndex(0)
             mService?.setPlayPause(SongState.playing)

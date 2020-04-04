@@ -39,8 +39,6 @@ import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.vincan.medialoader.DefaultConfigFactory
-import com.vincan.medialoader.MediaLoaderConfig
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -61,7 +59,6 @@ import okhttp3.OkHttpClient
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
-import java.io.File
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -106,16 +103,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         )
         setContentView(R.layout.activity_main)
         okClient = OkHttpClient()
-
-        Constants.mediaLoaderConfig = MediaLoaderConfig.Builder(this)
-            .cacheRootDir(
-                File(Constants.ableSongDir.absolutePath, "/cache")
-            )
-            .cacheFileNameGenerator {
-                it.substring(it.lastIndexOf("=") + 1)
-            }
-            .downloadThreadPriority(Thread.NORM_PRIORITY)
-            .build()
 
         mainContent = main_content
         bb_icon.setOnClickListener {

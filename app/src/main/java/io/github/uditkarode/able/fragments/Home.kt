@@ -39,6 +39,7 @@ import com.arthenica.mobileffmpeg.FFmpeg
 import com.github.kiulian.downloader.OnYoutubeDownloadListener
 import com.github.kiulian.downloader.YoutubeDownloader
 import com.vincan.medialoader.MediaLoader
+import com.vincan.medialoader.MediaLoaderConfig
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
@@ -60,6 +61,8 @@ class Home: Fragment() {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
+    private var songId: String = "temp"
+    private lateinit var mediaLoaderConfig: MediaLoaderConfig
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? =
@@ -72,6 +75,16 @@ class Home: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val songs = view.findViewById<RecyclerView>(R.id.songs)
+
+        mediaLoaderConfig = MediaLoaderConfig.Builder(activity)
+            .cacheRootDir(
+                Constants.ableSongDir
+            )
+            .cacheFileNameGenerator {
+                songId
+            }
+            .downloadThreadPriority(Thread.NORM_PRIORITY)
+            .build()
 
         able_header.setOnClickListener {
             val sp = activity!!.getSharedPreferences(Constants.SP_NAME, 0)
@@ -151,7 +164,10 @@ class Home: Fragment() {
             bindEvent()
         }
 
-        val id = song.youtubeLink.substring(song.youtubeLink.lastIndexOf("=") + 1)
+        val id = song.youtubeLink.substring(song.youtubeLink.lastIndexOf("=") + 1).also {
+            songId = it
+        }
+
         thread {
             @Suppress("ControlFlowWithEmptyBody")
             while(!isBound){}
@@ -161,7 +177,7 @@ class Home: Fragment() {
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
             if(toCache) song.filePath = MediaLoader.getInstance(activity).also {
-                it.init(Constants.mediaLoaderConfig)
+                it.init(mediaLoaderConfig)
             }.getProxyUrl(downloadFormat.url())
             else song.filePath = downloadFormat.url()
             mService?.playQueue = arrayListOf(song)

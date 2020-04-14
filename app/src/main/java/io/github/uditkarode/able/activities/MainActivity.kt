@@ -35,8 +35,6 @@ import android.view.TouchDelegate
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
-import androidx.preference.Preference
-import androidx.preference.PreferenceManager
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
@@ -287,7 +285,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     override fun sendItem(song: Song) {
         val sp = getSharedPreferences(Constants.SP_NAME, 0)
-        Log.e("INFO>", sp.getString("streamMode", MusicMode.download)!!)
         when(sp.getString("streamMode", MusicMode.download)){
             MusicMode.download -> {
                 home.downloadVideo(song)

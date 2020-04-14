@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ListPreference
+        android:defaultValue="webm"
+        android:entries="@array/categories"
+        android:entryValues="@array/categories"
+        android:summary="Select the audio format to save songs in."
+        app:iconSpaceReserved="false"
+        android:title="Format"
+        android:key="format_key"
+        />
+
+    <Preference
+        android:title="About"
+        app:iconSpaceReserved="false"
+        android:summary="Check out the people behind Able!">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.uditkarode.able"
+            android:targetClass="io.github.uditkarode.able.activities.About"
+            />
+    </Preference>
+</PreferenceScreen>

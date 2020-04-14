@@ -9,6 +9,15 @@
         <item name="android:navigationBarColor">#1b1b1b</item>
     </style>
 
+    <style name="SettingsTheme" parent="Theme.AppCompat.DayNight.DarkActionBar"/>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <item name="android:textColorPrimary">#fbfbfb</item>
+        <item name="android:textColorSecondary">#80fbfbfb</item>
+    </style>
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
     <style name="PlayerTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>

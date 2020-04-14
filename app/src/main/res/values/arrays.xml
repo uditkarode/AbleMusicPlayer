@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="categories">
+        <item>webm</item>
+        <item>mp3</item>
+    </string-array>
+</resources>

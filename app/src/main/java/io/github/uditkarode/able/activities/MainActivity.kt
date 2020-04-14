@@ -35,6 +35,8 @@ import android.view.TouchDelegate
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
+import androidx.preference.Preference
+import androidx.preference.PreferenceManager
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
@@ -77,7 +79,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     private lateinit var home: Home
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        if(!Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
+        if(!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
+            && Shared.isFirstRun) {
             if(checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED){
                 startActivity(Intent(this@MainActivity, Welcome::class.java))

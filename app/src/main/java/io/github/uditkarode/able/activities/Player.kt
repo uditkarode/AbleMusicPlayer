@@ -189,16 +189,19 @@ class Player : AppCompatActivity() {
             MaterialDialog(this@Player).show {
                 title(text = "Enter the new song name")
                 input("e.g. Wake Up"){ _, charSequence ->
+                    val ext = current.filePath.run {
+                        this.substring(this.lastIndexOf(".") + 1)
+                    }
                     when (val rc = FFmpeg.execute(
                         "-i " +
                                 "\"${current.filePath}\" -c copy " +
                                 "-metadata title=\"$charSequence\" " +
                                 "-metadata artist=\"${current.artist}\"" +
-                                " \"${current.filePath}.new.webm\""
+                                " \"${current.filePath}.new.$ext\""
                     )) {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(current.filePath).delete()
-                            File(current.filePath + ".new.webm").renameTo(File(current.filePath))
+                            File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
                             EventBus.getDefault().post(GetMetaDataEvent(name = charSequence.toString()))
                         }
                         Config.RETURN_CODE_CANCEL -> {
@@ -228,16 +231,19 @@ class Player : AppCompatActivity() {
             MaterialDialog(this@Player).show {
                 title(text = "Enter the new song artist")
                 input("e.g. Eden"){ _, charSequence ->
+                    val ext = current.filePath.run {
+                        this.substring(this.lastIndexOf(".") + 1)
+                    }
                     when (val rc = FFmpeg.execute(
                         "-i " +
                                 "\"${current.filePath}\" -c copy " +
                                 "-metadata title=\"${current.name}\" " +
                                 "-metadata artist=\"$charSequence\"" +
-                                " \"${current.filePath}.new.webm\""
+                                " \"${current.filePath}.new.$ext\""
                     )) {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(current.filePath).delete()
-                            File(current.filePath + ".new.webm").renameTo(File(current.filePath))
+                            File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
                             EventBus.getDefault().post(GetMetaDataEvent(artist = charSequence.toString()))
                         }
                         Config.RETURN_CODE_CANCEL -> {
@@ -435,7 +441,7 @@ class Player : AppCompatActivity() {
                 }
 
                 val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
-                if(img.exists()){
+                if(img.exists() && customSongName == null){
                     runOnUiThread {
                         Glide.with(this@Player).load(img).into(img_albart)
                         note_ph.visibility = View.GONE
@@ -473,6 +479,7 @@ class Player : AppCompatActivity() {
 
                                 val bmp = drw.toBitmap()
 
+                                if(img.exists()) img.delete()
                                 Shared.saveAlbumArtToDisk(bmp, imageName)
 
                                 runOnUiThread {

@@ -33,9 +33,9 @@ import org.greenrobot.eventbus.EventBus
 import org.json.JSONArray
 import java.io.*
 
-
 class Shared {
     companion object {
+        var isFirstRun = true
         lateinit var mService: MusicService
 
         fun serviceLinked(): Boolean{
@@ -151,16 +151,18 @@ class Shared {
             var artist = "???"
             for (f in musicFolder.listFiles()?:arrayOf()) {
                 if(!f.isDirectory){
-                    if(f.name.contains(".tmp") || f.nameWithoutExtension.length != 11){
+                    if(f.extension == "tmp" || f.nameWithoutExtension.length != 11
+                        || (f.extension != "webm" && f.extension != "mp3")){
                         //f.delete()
                         continue
                     }
 
                     val metadata = FFprobe.getMediaInformation(f.absolutePath).metadataEntries
+                    Log.e("msss", metadata.toString())
                     for(map in metadata){
                         if(map.key == "title")
                             name = map.value
-                        else if(map.key == "ARTIST")
+                        else if(map.key == "ARTIST" || map.key == "artist")
                             artist = map.value
                     }
                     if(name != "???"){

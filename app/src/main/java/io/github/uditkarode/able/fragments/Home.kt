@@ -32,6 +32,7 @@ import com.vincan.medialoader.download.DownloadListener
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import co.revely.gradient.RevelyGradient
@@ -44,7 +45,7 @@ import com.vincan.medialoader.MediaLoaderConfig
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.events.GetMetaDataEvent
+import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -52,7 +53,6 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
-import org.greenrobot.eventbus.EventBus
 import java.io.File
 import java.lang.Exception
 import java.lang.ref.WeakReference
@@ -186,7 +186,7 @@ class Home: Fragment() {
             val url = downloadFormat.url()
 
             if(toCache){
-                mediaLoader.addDownloadListener(url, object: DownloadListener{
+                mediaLoader.addDownloadListener(url, object: DownloadListener {
                     override fun onProgress(url: String?, file: File?, progress: Int) {
                         if(progress == 100){
                             val current = mService!!.playQueue[mService!!.currentIndex]
@@ -244,7 +244,7 @@ class Home: Fragment() {
             val video = YoutubeDownloader().getVideo(id)
             val downloadFormat = video.audioFormats().run { this[this.size - 1] }
 
-            /* if the song exists, it will be deleted and re-downloaded (coded in library) */
+            /* if the song exists, it will be deleted and re-downloaded (check the library) */
             video.downloadAsync(downloadFormat, Constants.ableSongDir, id, object: OnYoutubeDownloadListener {
                 override fun onDownloading(progress: Int) {
                     activity?.runOnUiThread {
@@ -258,20 +258,20 @@ class Home: Fragment() {
                     thread {
                         var name = song.name
                         name = name.replace(
-                            Regex("${song.artist}\\s*[-,:]*\\s*"),
+                            Regex("${song.artist}\\s[-,:]?\\s"),
                             ""
                         )
                         name = name.replace(
-                            Regex("\\(([Oo]]fficial)?\\s*([Mm]usic)?\\s*([Vv]ideo)?\\s*\\)"),
+                            Regex("\\(([Oo]]fficial)?\\s([Mm]usic)?\\s([Vv]ideo)?\\s\\)"),
                             ""
                         )
                         name = name.replace(
-                            Regex("\\s?\\(\\[?[Ll]yrics?\\)]?\\s*([Vv]ideo)?\\)?"),
+                            Regex("\\(\\[?[Ll]yrics?\\)]?\\s?([Vv]ideo)?\\)?"),
                             ""
                         )
                         name =
-                            name.replace(Regex("\\s?\\(?[aA]udio\\)?\\s*"), "")
-                        name = name.replace(Regex("\\[Lyrics]"), "")
+                            name.replace(Regex("\\(?[aA]udio\\)?\\s"), "")
+                        name = name.replace(Regex("\\[Lyrics?]"), "")
                         name = name.replace(
                             Regex("\\(Official\\sMusic\\sVideo\\)"),
                             ""
@@ -279,13 +279,24 @@ class Home: Fragment() {
                         name = name.replace(Regex("\\[HD\\s&\\sHQ]"), "")
                         val target = downloadedFile!!.absolutePath.toString()
 
-                        when (val rc = FFmpeg.execute(
-                            "-i " +
-                                    "\"${target}\" -c copy " +
-                                    "-metadata title=\"${name}\" " +
-                                    "-metadata artist=\"${song.artist}\"" +
-                                    " \"${Constants.ableSongDir.absolutePath}/$id.webm\""
-                        )) {
+                        var command = "-i " +
+                                "\"${target}\" -c copy " +
+                                "-metadata title=\"${name}\" " +
+                                "-metadata artist=\"${song.artist}\" "
+
+                        val format = if(PreferenceManager(activity)
+                                .sharedPreferences
+                                .getString("format_key", "webm") == "mp3") Format.MODE_MP3
+                        else Format.MODE_WEBM
+
+                        if(format == Format.MODE_MP3)
+                            command += "-vn -ab ${downloadFormat.averageBitrate() / 1024}k -c:a mp3 -ar 44100 -y "
+
+                        command += "\"${Constants.ableSongDir.absolutePath}/$id."
+
+                        command += if(format == Format.MODE_MP3) "mp3\"" else "webm\""
+
+                        when (val rc = FFmpeg.execute(command)) {
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
                                 songList = Shared.getSongList(Constants.ableSongDir)

@@ -3,6 +3,9 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
+    lintOptions {
+        disable 'RestrictedApi'
+    }
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
     defaultConfig {
@@ -45,12 +48,12 @@ dependencies {
     implementation 'com.google.android.material:material:1.1.0'
     implementation 'io.github.inflationx:calligraphy3:3.1.1'
     implementation 'io.github.inflationx:viewpump:2.0.3'
-    implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha01'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha02'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.github.uditkarode:java-youtube-downloader:2.1.5'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
     implementation 'com.squareup.okhttp3:okhttp:4.4.0'
-    implementation 'com.arthenica:mobile-ffmpeg-min:4.3.1'
+    implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1'
     implementation 'org.jsoup:jsoup:1.10.3'
     implementation 'io.github.dreierf:material-intro-screen:0.0.6'
     implementation 'com.airbnb.android:lottie:3.4.0'
@@ -62,5 +65,9 @@ dependencies {
     implementation 'com.flurry.android:analytics:12.2.0@aar'
     implementation 'com.makeramen:roundedimageview:2.3.0'
     implementation 'com.vincan:medialoader:1.0.0'
+    implementation 'androidx.preference:preference:1.1.0'
+    implementation 'com.takisoft.preferencex:preferencex:1.1.0'
+    implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.0.0-beta4'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 }

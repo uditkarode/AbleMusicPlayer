@@ -151,7 +151,13 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         activity_seekbar.thumb.alpha = 0
 
         bb_song.isSelected = true
+
         bb_song.setOnClickListener {
+            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+                startActivity(Intent(this@MainActivity, Player::class.java))
+        }
+
+        bb_expand.setOnClickListener {
             if(Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }

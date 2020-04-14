@@ -597,6 +597,8 @@ class Player : AppCompatActivity() {
     }
 
     override fun onResume() {
+        if(!Shared.serviceRunning(MusicService::class.java, this@Player))
+            finish()
         if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
         bindEvent()

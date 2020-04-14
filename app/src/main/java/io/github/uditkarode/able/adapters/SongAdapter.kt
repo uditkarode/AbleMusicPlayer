@@ -233,7 +233,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
 
     fun temp(song: Song){
         if(originalLength == songList.size){
-            songList.add(song)
+            songList.add(song.also { it.placeholder = true })
         } else {
             songList[originalLength] = song
         }

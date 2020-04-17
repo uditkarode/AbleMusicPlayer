@@ -39,7 +39,6 @@ import io.github.uditkarode.able.utils.Shared.Companion.ytSearcher
 import kotlinx.android.synthetic.main.search.*
 import okhttp3.OkHttpClient
 import java.io.IOException
-import java.lang.Integer.min
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
@@ -103,7 +102,10 @@ class Search : Fragment() {
 
                         val (videos, channels) = ytSearcher(okClient, request)
 
-                        for (i in 0 until min(resultArray.size, channels.size)) {
+                        /* this is pathetic */
+                        val compatMin = fun(a: Int, b: Int) = if(a <= b) a else b
+
+                        for (i in 0 until compatMin(videos.size, channels.size)) {
                             val element = videos[i]
                             val finalLink = "https://www.youtube.com" + element.attr("href")
                             resultArray.add(
@@ -114,7 +116,7 @@ class Search : Fragment() {
                             )
                         }
 
-                        for (i in 0 until min(resultArray.size, channels.size)) {
+                        for (i in 0 until compatMin(resultArray.size, channels.size)) {
                             resultArray[i].artist = channels[i].text()
                         }
 

@@ -446,8 +446,8 @@ class Player : AppCompatActivity() {
                 if(img.exists() && customSongName == null){
                     runOnUiThread {
                         img_albart.visibility = View.VISIBLE
-                        Glide.with(this@Player).load(img).into(img_albart)
                         note_ph.visibility = View.GONE
+                        Glide.with(this@Player).load(img).into(img_albart)
                     }
                 } else {
                     if(img.exists()) img.delete()
@@ -488,6 +488,8 @@ class Player : AppCompatActivity() {
 
                                 runOnUiThread {
                                     img_albart.setImageDrawable(drw)
+                                    img_albart.visibility = View.VISIBLE
+                                    note_ph.visibility = View.GONE
                                     if(mService.mediaPlayer.isPlaying){
                                         mService.showNotification(mService.generateAction(
                                             R.drawable.pause,
@@ -504,7 +506,6 @@ class Player : AppCompatActivity() {
                                             ), false, bmp
                                         )
                                     }
-                                    note_ph.visibility = View.GONE
                                 }
                             } catch (e: Exception){
                                 Log.e("ERR>", e.toString())

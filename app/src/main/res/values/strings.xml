@@ -4,4 +4,7 @@
     <string name="up_txt">Uploader:</string>
     <string name="t_txt">Title:</string>
     <string name="search">Search</string>
+    <string name="spot_adding">Please wait! Importing Playlist</string>
+    <string name="spot_title">Import Spotify Playlist</string>
+    <string name="pos">Submit</string>
 </resources>

@@ -110,7 +110,8 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
     }
 
     fun update(newPlaylists: ArrayList<Playlist>){
-        playlists = newPlaylists
+        playlists.clear()
+        playlists.addAll(newPlaylists)
         notifyDataSetChanged()
     }
 

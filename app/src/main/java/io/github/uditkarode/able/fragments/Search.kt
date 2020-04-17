@@ -34,10 +34,10 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ResultAdapter
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.utils.Shared.Companion.ytSearchRequestBuilder
+import io.github.uditkarode.able.utils.Shared.Companion.ytSearcher
 import kotlinx.android.synthetic.main.search.*
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.jsoup.Jsoup
 import java.io.IOException
 import java.lang.Integer.min
 import java.lang.ref.WeakReference
@@ -95,30 +95,15 @@ class Search : Fragment() {
                 }
 
                 hideKeyboard(activity as Activity)
-                val request = Request.Builder()
-                    .url(
-                        "https://m.youtube.com/results?search_query=${text.replace(
-                            Regex(" "),
-                            "+"
-                        )}"
-                    )
-                    .removeHeader("User-Agent")
-                    .build()
+                val request = ytSearchRequestBuilder(text.toString())
 
                 try {
                     thread {
                         val resultArray = ArrayList<Song>()
-                        val response = okClient.newCall(request).execute()
-                        val resultHtml = response.body?.string() ?: ""
 
-                        val doc = Jsoup.parse(resultHtml)
-                        val videos = doc.select("h3.yt-lockup-title a")
-                        val channels = doc.getElementsByClass(
-                            "yt-uix-sessionlink" +
-                                    "       spf-link "
-                        )
+                        val (videos, channels) = ytSearcher(okClient, request)
 
-                        for (i in 0 until min(videos.size, channels.size)) {
+                        for (i in 0 until min(resultArray.size, channels.size)) {
                             val element = videos[i]
                             val finalLink = "https://www.youtube.com" + element.attr("href")
                             resultArray.add(

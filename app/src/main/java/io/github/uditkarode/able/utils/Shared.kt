@@ -29,8 +29,12 @@ import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.greenrobot.eventbus.EventBus
 import org.json.JSONArray
+import org.jsoup.Jsoup
+import org.jsoup.select.Elements
 import java.io.*
 
 class Shared {
@@ -87,6 +91,32 @@ class Shared {
             return ret
         }
 
+        fun ytSearchRequestBuilder(searchTerm: String): Request {
+            return Request.Builder()
+                .url(
+                    "https://m.youtube.com/results?search_query=${searchTerm.replace(
+                        Regex(" "),
+                        "+"
+                    )}"
+                )
+                .removeHeader("User-Agent")
+                .build()
+        }
+
+        fun ytSearcher(okClient: OkHttpClient, searchReq: Request): Pair<Elements, Elements> {
+            val response = okClient.newCall(searchReq).execute()
+            val resultHtml = response.body?.string() ?: ""
+
+            val doc = Jsoup.parse(resultHtml)
+            val videos = doc.select("h3.yt-lockup-title a")
+            val channels = doc.getElementsByClass(
+                "yt-uix-sessionlink" +
+                        "       spf-link "
+            )
+
+            return Pair(videos, channels)
+        }
+
         fun getSongsFromPlaylist(playlist: Playlist): ArrayList<Song> {
             val songs = ArrayList<Song>()
             val gson = Gson()
@@ -117,7 +147,7 @@ class Shared {
             EventBus.getDefault().post(PlaylistEvent(getPlaylists()))
         }
 
-        private fun modifyPlaylist(name: String, songs: ArrayList<Song>? = null){
+        fun modifyPlaylist(name: String, songs: ArrayList<Song>? = null){
             try {
                 if(name.isNotBlank()){
                     val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name)
@@ -182,13 +212,17 @@ class Shared {
             return songs
         }
 
+        fun createPlayListSimp(name: String) {
+            val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name + ".json")
+            @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+            if(!playlistFile.parentFile.exists()) playlistFile.parentFile.mkdirs()
+            playlistFile.writeText("[]")
+        }
+
         fun createPlaylist(name: String, context: Context) {
             try {
                 if(name.isNotBlank()){
-                    val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name + ".json")
-                    @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-                    if(!playlistFile.parentFile.exists()) playlistFile.parentFile.mkdirs()
-                    playlistFile.writeText("[]")
+                    createPlayListSimp(name)
 
                     Toast.makeText(context, "Playlist created", Toast.LENGTH_SHORT).show()
                 } else {

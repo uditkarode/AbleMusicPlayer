@@ -285,6 +285,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             if (mediaPlayer.isPlaying) mediaPlayer.stop()
             mediaPlayer.reset()
         }
+
         mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
         mediaPlayer.prepare()
 

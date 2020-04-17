@@ -433,6 +433,8 @@ class Player : AppCompatActivity() {
     }
 
     private fun updateAlbumArt(customSongName: String? = null){
+        img_albart.visibility = View.GONE
+        note_ph.visibility = View.VISIBLE
         thread {
             try {
                 val current = mService.playQueue[mService.currentIndex]
@@ -443,10 +445,13 @@ class Player : AppCompatActivity() {
                 val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
                 if(img.exists() && customSongName == null){
                     runOnUiThread {
+                        img_albart.visibility = View.VISIBLE
                         Glide.with(this@Player).load(img).into(img_albart)
                         note_ph.visibility = View.GONE
                     }
                 } else {
+                    if(img.exists()) img.delete()
+
                     val albumArtRequest = if(customSongName == null){
                         Request.Builder()
                             .url(Constants.DEEZER_API + current.name)
@@ -479,8 +484,7 @@ class Player : AppCompatActivity() {
 
                                 val bmp = drw.toBitmap()
 
-                                if(img.exists()) img.delete()
-                                Shared.saveAlbumArtToDisk(bmp, imageName)
+                                Shared.saveAlbumArtToDisk(bmp, img)
 
                                 runOnUiThread {
                                     img_albart.setImageDrawable(drw)
@@ -549,7 +553,6 @@ class Player : AppCompatActivity() {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun songChangeEvent(songChangedEvent: GetSongChangedEvent) {
-        songChangedEvent.toString() /* because the IDE doesn't like it unused */
         updateAlbumArt()
 
         val duration = mService.mediaPlayer.duration

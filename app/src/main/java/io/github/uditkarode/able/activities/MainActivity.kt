@@ -20,6 +20,7 @@ package io.github.uditkarode.able.activities
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.IntentService
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -51,6 +52,7 @@ import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
@@ -61,6 +63,9 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 import kotlin.concurrent.thread
+//DownloadService Class Import
+import io.github.uditkarode.able.services.DownloadService.Companion.enqueueDownload
+import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), Search.SongCallback {
     private lateinit var okClient: OkHttpClient
@@ -287,7 +292,16 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         val sp = getSharedPreferences(Constants.SP_NAME, 0)
         when(sp.getString("streamMode", MusicMode.download)){
             MusicMode.download -> {
-                home.downloadVideo(song)
+             //home.downloadVideo(song)
+                //Edited Code
+                Log.d("CalledSendItem","CalledSendItem")
+                val songL = java.util.ArrayList<String>()
+                songL.add(song.name);
+                songL.add(song.youtubeLink);
+                songL.add(song.artist);
+                val serviceIntentService = Intent(applicationContext,DownloadService::class.java)
+                    .putStringArrayListExtra("song",songL)
+                enqueueDownload(this,serviceIntentService);
                 mainContent.currentItem = -1
                 bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
             }

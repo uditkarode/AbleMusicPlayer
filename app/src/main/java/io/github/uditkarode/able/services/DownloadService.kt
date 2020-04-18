@@ -1,3 +1,21 @@
+/*
+    Copyright 2020 Udit Karode <udit.karode@gmail.com>
+
+    This file is part of AbleMusicPlayer.
+
+    AbleMusicPlayer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, version 3 of the License.
+
+    AbleMusicPlayer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 package io.github.uditkarode.able.services
 
 import android.app.Notification
@@ -24,20 +42,20 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.*
 
-
 class DownloadService : JobIntentService() {
     companion object {
         private const val JOB_ID = 1000
         fun enqueueDownload(context: Context, intent: Intent) {
             enqueueWork(context, DownloadService::class.java, JOB_ID, intent)
-            queuesize += 1
+            queueSize += 1
         }
-        const val CHANNEL_ID = "AbleMusicDownload"
-        private var queuesize = 0
+
+        private var queueSize = 0
 
     }
+
     private var currentQueue = 0
-    private lateinit var mResultReceiver: ResultReceiver;
+    private lateinit var mResultReceiver: ResultReceiver
     private lateinit var builder: Notification.Builder
     private lateinit var notification: Notification
 
@@ -47,14 +65,13 @@ class DownloadService : JobIntentService() {
     }
 
     override fun onHandleWork(p0: Intent) {
-        Log.d("Download Service", "Service Started")
         currentQueue = +1
-        val song: java.util.ArrayList<String> = p0.getStringArrayListExtra("song")
-        mResultReceiver = p0.getParcelableExtra("receiver");
-        val bundle = Bundle();
+        val song: java.util.ArrayList<String> = p0.getStringArrayListExtra("song") ?: arrayListOf()
+        mResultReceiver = p0.getParcelableExtra("receiver")!!
+        val bundle = Bundle()
         val id = song[1].substring(song[1].lastIndexOf("=") + 1)
         NotificationManagerCompat.from(applicationContext).apply {
-            builder.setSubText("$currentQueue of $queuesize ")
+            builder.setSubText("$currentQueue of $queueSize ")
             builder.setContentText("${song[0]} Starting to  Download")
             builder.setOngoing(true)
             notify(2, builder.build())
@@ -69,11 +86,12 @@ class DownloadService : JobIntentService() {
             notify(2, builder.build())
         }
 
-        val call: Call = OkHttpClient().newCall(Request.Builder().url( downloadFormat.url()).get().build())
+        val call: Call =
+            OkHttpClient().newCall(Request.Builder().url(downloadFormat.url()).get().build())
         try {
             val response: Response = call.execute()
             if (response.code == 200 || response.code == 201) {
-                var inputStream: InputStream? = null
+                val inputStream: InputStream?
                 try {
                     inputStream = response.body?.byteStream()
                     val buff = ByteArray(1024 * 4)
@@ -82,11 +100,10 @@ class DownloadService : JobIntentService() {
                     val output: OutputStream = FileOutputStream(mediaFile)
 
                     while (true) {
-                        val readed: Int = inputStream!!.read(buff)
-                        if (readed == -1) break
-                        output.write(buff, 0, readed)
-                        //write buff
-                        downloaded += readed.toLong()
+                        val read: Int = inputStream!!.read(buff)
+                        if (read == -1) break
+                        output.write(buff, 0, read)
+                        downloaded += read.toLong()
                         NotificationManagerCompat.from(applicationContext).apply {
                             builder.setProgress(targetMax.toInt(), downloaded.toInt(), false)
                             builder.setOngoing(true)
@@ -165,7 +182,7 @@ class DownloadService : JobIntentService() {
                         builder.setOngoing(false)
                         notify(2, builder.build())
                     }
-                    mResultReceiver.send(123,bundle);
+                    mResultReceiver.send(123, bundle)
                 } catch (e: IOException) {
                     print(e)
                 }
@@ -187,7 +204,7 @@ class DownloadService : JobIntentService() {
 
     private fun createNotificationChannel() {
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, CHANNEL_ID)
+            Notification.Builder(this, Constants.CHANNEL_ID)
         } else {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
@@ -202,7 +219,7 @@ class DownloadService : JobIntentService() {
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
-                CHANNEL_ID,
+                Constants.CHANNEL_ID,
                 "AbleMusicDownload",
                 NotificationManager.IMPORTANCE_LOW
             )
@@ -211,11 +228,10 @@ class DownloadService : JobIntentService() {
             notificationManager.createNotificationChannel(notificationChannel)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notification = builder.setChannelId(CHANNEL_ID).build()
+            notification = builder.setChannelId(Constants.CHANNEL_ID).build()
         } else {
             notification = builder.build()
             notificationManager.notify(2, notification)
         }
-        //startForeground(2,notification)
     }
 }

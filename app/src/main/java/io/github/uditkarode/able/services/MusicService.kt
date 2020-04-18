@@ -46,9 +46,7 @@ import java.io.File
 import kotlin.concurrent.thread
 
 class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
-
     private val binder = MusicBinder(this@MusicService)
-
     val mediaPlayer = MediaPlayer()
     var currentIndex = -1
     private var onShuffle = false
@@ -507,7 +505,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                 "10002",
-                "MUSIC",
+                "Music",
                 NotificationManager.IMPORTANCE_LOW
             )
             notificationChannel.enableLights(false)

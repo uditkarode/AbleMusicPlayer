@@ -28,8 +28,21 @@ jobs:
               sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
               sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
               sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
+              git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds
+              cd GitBuilds
+              git reset --hard 1798529c23bb57742e544e75b030aa2ce16baebb
+              git reflog expire --all --expire=now
+              git gc --prune=now --aggressive
+              cd ..
               ./gradlew assembleRelease
-              bash pushbuild.sh "arm64-v8a"
+              bash movebuild.sh "arm64-v8a"
               sed -i s/armeabi-v7a/arm64-v8a/ app/build.gradle
               ./gradlew assembleRelease
-              bash pushbuild.sh "armeabi-v7a"
+              bash movebuild.sh "armeabi-v7a"
+              cd GitBuilds
+              git add .
+              git config --global user.name 'Bob The Builder'
+              git config --global user.email 'bob@the.builder'
+              git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}"
+              git commit -m "bot: build installables <$(echo $GITHUB_SHA | cut -c1-8)>"
+              git push -u origin builds -f

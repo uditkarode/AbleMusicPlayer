@@ -107,16 +107,14 @@ class Search : Fragment() {
                         for (i in 0 until compatMin(videos.size, channels.size)) {
                             val element = videos[i]
                             val finalLink = "https://www.youtube.com" + element.attr("href")
-                            resultArray.add(
-                                Song(
-                                    name = element.text(),
-                                    youtubeLink = finalLink
+                            if(element.text() != channels[i].text())
+                                resultArray.add(
+                                    Song(
+                                        name = element.text(),
+                                        youtubeLink = finalLink,
+                                        artist = channels[i].text()
+                                    )
                                 )
-                            )
-                        }
-
-                        for (i in 0 until compatMin(videos.size, channels.size)) {
-                            resultArray[i].artist = channels[i].text()
                         }
 
                         activity?.runOnUiThread {

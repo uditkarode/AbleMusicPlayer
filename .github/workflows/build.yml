@@ -1,59 +1,60 @@
-name: Bob The Builder
-
-on:
+name: "Bob The Builder"
+true:
   push:
-    branches: [ master ]
+    branches:
+      - master
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Fetching Materials
-      uses: actions/setup-java@v1
-      with:
-        java-version: 1.8
-    - name: Construction
-      env:
-        GH_TOKEN:       ${{ secrets.token }}
-        GH_REPO:        ${{ github.repository }}
-        STORE_PASS:     ${{ secrets.STORE_PASS }}
-        KEY_ALIAS:      ${{ secrets.KEY_ALIAS }}
-        KEY_PASS:       ${{ secrets.KEY_PASS }}
-        FLURRY_KEY:     ${{ secrets.FLURRY_KEY }}
-        RAPID_KEY:      ${{ secrets.RAPID_KEY }}
-        TG_BOT_KEY:     ${{ secrets.TG_BOT_KEY }}
-      run: |
-              curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
-                -d "disable_web_page_preview=true" \
-                -d "parse_mode=markdown" \
-                -d text="🤖 building with HEAD as [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) 🤖"
-              sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
-              sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
-              sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
-              git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds
-              cd GitBuilds
-              git reset --hard 1798529c23bb57742e544e75b030aa2ce16baebb
-              git reflog expire --all --expire=now
-              git gc --prune=now --aggressive
-              cd ..
-              ./gradlew assembleRelease
-              bash movebuild.sh "arm64-v8a"
-              sed -i s/armeabi-v7a/arm64-v8a/ app/build.gradle
-              ./gradlew assembleRelease
-              bash movebuild.sh "armeabi-v7a"
-              cd GitBuilds
-              git add .
-              git config --global user.name 'Bob The Builder'
-              git config --global user.email 'bob@the.builder'
-              git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}"
-              git commit -m "bot: build installables <$(echo $GITHUB_SHA | cut -c1-8)>"
-              git push -u origin builds -f
-              curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
-                -d "disable_web_page_preview=true" \
-                -d "parse_mode=markdown" \
-                -d text="🤖 workflow for [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) finished 🤖"
-             curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendSticker" -d chat_id="-1001415196670" \
-               -d "sticker=CAACAgUAAxkBAAJccV6a5_5ngvwYEC1BGe64fqQkzY7kAAI1AAMtO2YjAAGKjgWcCrOMGAQ"
+      -
+        uses: actions/checkout@v2
+      -
+        name: "Fetching Materials"
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      -
+        env:
+          FLURRY_KEY: "${{ secrets.FLURRY_KEY }}"
+          GH_REPO: "${{ github.repository }}"
+          GH_TOKEN: "${{ secrets.token }}"
+          KEY_ALIAS: "${{ secrets.KEY_ALIAS }}"
+          KEY_PASS: "${{ secrets.KEY_PASS }}"
+          RAPID_KEY: "${{ secrets.RAPID_KEY }}"
+          STORE_PASS: "${{ secrets.STORE_PASS }}"
+          TG_BOT_KEY: "${{ secrets.TG_BOT_KEY }}"
+        name: Construction
+        run: |
+            curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
+              -d "disable_web_page_preview=true" \
+              -d "parse_mode=markdown" \
+              -d text="🤖 building with HEAD as [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) 🤖"
+            sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
+            sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
+            sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
+            git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds
+            cd GitBuilds
+            git reset --hard 1798529c23bb57742e544e75b030aa2ce16baebb
+            git reflog expire --all --expire=now
+            git gc --prune=now --aggressive
+            cd ..
+            ./gradlew assembleRelease
+            bash movebuild.sh "arm64-v8a"
+            sed -i s/armeabi-v7a/arm64-v8a/ app/build.gradle
+            ./gradlew assembleRelease
+            bash movebuild.sh "armeabi-v7a"
+            cd GitBuilds
+            git add .
+            git config --global user.name 'Bob The Builder'
+            git config --global user.email 'bob@the.builder'
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}"
+            git commit -m "bot: build installables <$(echo $GITHUB_SHA | cut -c1-8)>"
+            git push -u origin builds -f
+            curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
+              -d "disable_web_page_preview=true" \
+              -d "parse_mode=markdown" \
+              -d text="🤖 workflow for [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) finished 🤖"
+            curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendSticker" -d chat_id="-1001415196670" \
+             -d "sticker=CAACAgUAAxkBAAJccV6a5_5ngvwYEC1BGe64fqQkzY7kAAI1AAMtO2YjAAGKjgWcCrOMGAQ"

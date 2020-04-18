@@ -410,7 +410,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         mediaPlayer.stop()
         mediaSession.release()
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-            it.cancelAll()
+            it.cancel(1)
         }
         if (wakeLock?.isHeld == true)
             wakeLock?.release()

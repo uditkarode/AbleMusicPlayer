@@ -236,103 +236,10 @@ class Home: Fragment() {
     }
 
     /* download to videoId.webm.tmp, add metadata and save to videoId.webm */
-    fun downloadVideo(song: Song){
-        songAdapter?.temp(Song(song.name, "Initialising download..."))
-        val id = song.youtubeLink.substring(song.youtubeLink.lastIndexOf("=") + 1)
-
-        thread {
-            val video = YoutubeDownloader().getVideo(id)
-            val downloadFormat = video.audioFormats().run { this[this.size - 1] }
-
-            /* if the song exists, it will be deleted and re-downloaded (check the library) */
-            activity!!.runOnUiThread {
-                video.downloadAsync(downloadFormat, Constants.ableSongDir, id, object: OnYoutubeDownloadListener {
-                    override fun onDownloading(progress: Int) {
-                        activity?.runOnUiThread {
-                            songAdapter?.temp(Song(song.name,
-                                "${progress}% ~ bitrate ${downloadFormat.averageBitrate() / 1024}k")
-                            )
-                        }
-                    }
-
-                    override fun onFinished(downloadedFile: File?) {
-                        thread {
-                            var name = song.name
-                            name = name.replace(
-                                Regex("${song.artist}\\s[-,:]?\\s"),
-                                ""
-                            )
-                            name = name.replace(
-                                Regex("\\(([Oo]]fficial)?\\s([Mm]usic)?\\s([Vv]ideo)?\\s\\)"),
-                                ""
-                            )
-                            name = name.replace(
-                                Regex("\\(\\[?[Ll]yrics?\\)]?\\s?([Vv]ideo)?\\)?"),
-                                ""
-                            )
-                            name =
-                                name.replace(Regex("\\(?[aA]udio\\)?\\s"), "")
-                            name = name.replace(Regex("\\[Lyrics?]"), "")
-                            name = name.replace(
-                                Regex("\\(Official\\sMusic\\sVideo\\)"),
-                                ""
-                            )
-                            name = name.replace(Regex("\\[HD\\s&\\sHQ]"), "")
-                            val target = downloadedFile!!.absolutePath.toString()
-
-                            var command = "-i " +
-                                    "\"${target}\" -c copy " +
-                                    "-metadata title=\"${name}\" " +
-                                    "-metadata artist=\"${song.artist}\" "
-
-                            val format = if(PreferenceManager(activity)
-                                    .sharedPreferences
-                                    .getString("format_key", "webm") == "mp3") Format.MODE_MP3
-                            else Format.MODE_WEBM
-
-                            if(format == Format.MODE_MP3)
-                                command += "-vn -ab ${downloadFormat.averageBitrate() / 1024}k -c:a mp3 -ar 44100 -y "
-
-                            command += "\"${Constants.ableSongDir.absolutePath}/$id."
-
-                            command += if(format == Format.MODE_MP3) "mp3\"" else "webm\""
-
-                            when (val rc = FFmpeg.execute(command)) {
-                                Config.RETURN_CODE_SUCCESS -> {
-                                    File(target).delete()
-                                    songList = Shared.getSongList(Constants.ableSongDir)
-                                    activity?.runOnUiThread {
-                                        songAdapter?.update(songList)
-                                    }
-                                }
-                                Config.RETURN_CODE_CANCEL -> {
-                                    Log.e(
-                                        "ERR>",
-                                        "Command execution cancelled by user."
-                                    )
-                                }
-                                else -> {
-                                    Log.e(
-                                        "ERR>",
-                                        String.format(
-                                            "Command execution failed with rc=%d and the output below.",
-                                            rc
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    override fun onError(throwable: Throwable?) {
-                        Toast.makeText(activity?.applicationContext, "failed: ${throwable.toString()}", Toast.LENGTH_SHORT).show()
-                        songList = Shared.getSongList(Constants.ableSongDir)
-                        activity?.runOnUiThread {
-                            songAdapter?.update(songList)
-                        }
-                    }
-                })
-            }
+    fun downloadVideo(){
+        songList = Shared.getSongList(Constants.ableSongDir)
+        activity?.runOnUiThread {
+            songAdapter?.update(songList)
         }
     }
 }

@@ -24,7 +24,12 @@ jobs:
         KEY_PASS:       ${{ secrets.KEY_PASS }}
         FLURRY_KEY:     ${{ secrets.FLURRY_KEY }}
         RAPID_KEY:      ${{ secrets.RAPID_KEY }}
+        TG_BOT_KEY:     ${{ secrets.TG_BOT_KEY }}
       run: |
+              curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
+                -d "disable_web_page_preview=true" \
+                -d "parse_mode=markdown" \
+                -d text="🤖 building with HEAD as [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) 🤖"
               sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
               sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
               sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
@@ -46,3 +51,7 @@ jobs:
               git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}"
               git commit -m "bot: build installables <$(echo $GITHUB_SHA | cut -c1-8)>"
               git push -u origin builds -f
+              curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
+                -d "disable_web_page_preview=true" \
+                -d "parse_mode=markdown" \
+                -d text="🤖 workflow for [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) finished 🤖"

@@ -45,6 +45,7 @@ import com.afollestad.materialdialogs.list.customListAdapter
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -68,6 +69,7 @@ import kotlinx.android.synthetic.main.player.repeat_button
 import kotlinx.android.synthetic.main.player.shuffle_button
 import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.greenrobot.eventbus.EventBus
@@ -443,21 +445,25 @@ class Player : AppCompatActivity() {
                 }
 
                 val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+
                 if(img.exists() && customSongName == null){
                     runOnUiThread {
                         img_albart.visibility = View.VISIBLE
                         note_ph.visibility = View.GONE
-                        Glide.with(this@Player).load(img).into(img_albart)
+                        Glide.with(this@Player)
+                            .load(img)
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .into(img_albart)
                     }
                 } else {
-                    if(img.exists()) img.delete()
-
                     val albumArtRequest = if(customSongName == null){
                         Request.Builder()
                             .url(Constants.DEEZER_API + current.name)
                             .get()
                             .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
                             .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                            .cacheControl(CacheControl.FORCE_NETWORK)
                             .build()
                     } else {
                         Request.Builder()
@@ -478,12 +484,14 @@ class Player : AppCompatActivity() {
                                 val drw = Glide
                                     .with(this@Player)
                                     .load(imgLink)
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
                                     .skipMemoryCache(true)
                                     .submit()
                                     .get()
 
                                 val bmp = drw.toBitmap()
 
+                                if(img.exists()) img.delete()
                                 Shared.saveAlbumArtToDisk(bmp, img)
 
                                 runOnUiThread {

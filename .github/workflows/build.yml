@@ -55,3 +55,6 @@ jobs:
                 -d "disable_web_page_preview=true" \
                 -d "parse_mode=markdown" \
                 -d text="🤖 workflow for [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) finished 🤖"
+                https://api.telegram.org/bot<token>/sendSticker?chat_id=<id>&sticker=CAADAgADOQADfyesDlKEqOOd72VKAg
+             curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendSticker" -d chat_id="-1001415196670" \
+               -d "sticker=CAACAgUAAxkBAAJccV6a5_5ngvwYEC1BGe64fqQkzY7kAAI1AAMtO2YjAAGKjgWcCrOMGAQ"

@@ -1,8 +1,8 @@
 name: "Bob The Builder"
-true:
+
+on:
   push:
-    branches:
-      - master
+    branches: [ master ]
 
 jobs:
   build:

@@ -78,7 +78,10 @@ class DownloadService : JobIntentService() {
         val video = YoutubeDownloader().getVideo(id)
         val downloadFormat = video.audioFormats().run { this[this.size - 1] }
         val mediaFile = File(Constants.ableSongDir, id)
-
+        if (!Constants.ableSongDir.exists()) {
+            val mkdirs = Constants.ableSongDir.mkdirs()
+            if (!mkdirs) throw IOException("Could not create output directory: ${Constants.ableSongDir}")
+        }
         NotificationManagerCompat.from(applicationContext).apply {
             builder.setContentTitle(song[0])
             builder.setOngoing(true)

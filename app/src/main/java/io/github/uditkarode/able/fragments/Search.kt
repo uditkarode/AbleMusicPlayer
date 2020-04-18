@@ -42,7 +42,6 @@ import java.io.IOException
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
-
 class Search : Fragment() {
     private lateinit var itemPressed: SongCallback
     private var okClient = OkHttpClient()
@@ -116,7 +115,7 @@ class Search : Fragment() {
                             )
                         }
 
-                        for (i in 0 until compatMin(resultArray.size, channels.size)) {
+                        for (i in 0 until compatMin(videos.size, channels.size)) {
                             resultArray[i].artist = channels[i].text()
                         }
 

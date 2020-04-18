@@ -16,28 +16,23 @@
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package io.github.uditkarode.able.utils
+package io.github.uditkarode.able.services
 
-import android.os.Environment
-import java.io.File
+import android.os.Bundle
+import android.os.Handler
+import android.os.ResultReceiver
 
-class Constants {
-    companion object {
-        @Suppress("DEPRECATION")
-        val playlistFolder = File(
-            Environment.getExternalStorageDirectory(),
-            "AbleMusic/playlists")
+class ServiceResultReceiver(handler: Handler?) : ResultReceiver(handler) {
+    private var mReceiver: Receiver? = null
+    fun setReceiver(receiver: Receiver?) {
+        mReceiver = receiver
+    }
 
-        @Suppress("DEPRECATION")
-        val ableSongDir = File(
-            Environment.getExternalStorageDirectory(),
-            "AbleMusic")
+    override fun onReceiveResult(resultCode: Int, resultData: Bundle?) {
+        mReceiver?.onReceiveResult(resultCode)
+    }
 
-        const val FLURRY_KEY = "INSERT_FLURRY_KEY"
-        const val RAPID_API_KEY= "INSERT_RAPID_KEY"
-
-        const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
-        const val SP_NAME = "able"
-        const val CHANNEL_ID = "AbleMusicDownload"
+    interface Receiver {
+        fun onReceiveResult(resultCode: Int)
     }
 }

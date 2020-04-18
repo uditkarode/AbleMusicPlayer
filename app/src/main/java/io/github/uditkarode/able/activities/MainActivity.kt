@@ -18,7 +18,6 @@
 
 package io.github.uditkarode.able.activities
 
-//DownloadService Class Import
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ComponentName
@@ -32,7 +31,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.text.Html
-import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
@@ -187,7 +185,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     @Subscribe
     private fun bindEvent(bindServiceEvent: BindServiceEvent) {
         if (!Shared.serviceLinked()) {
-            bindServiceEvent.toString() /* because the IDE doesn't like it unused */
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 bindService(
                     Intent(this@MainActivity, MusicService::class.java),
@@ -234,7 +231,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun songChange(event: GetSongChangedEvent) {
-        event.toString() /* because the IDE doesn't like it unused */
         activity_seekbar.progress = 0
         activity_seekbar.max = Shared.mService.mediaPlayer.duration
 
@@ -299,15 +295,13 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         val sp = getSharedPreferences(Constants.SP_NAME, 0)
         when (sp.getString("streamMode", MusicMode.download)) {
             MusicMode.download -> {
-                //Edited Code
-                Log.d("CalledSendItem", "CalledSendItem")
-                val songL = java.util.ArrayList<String>()
+                val songL = ArrayList<String>()
                 songL.add(song.name)
                 songL.add(song.youtubeLink)
                 songL.add(song.artist)
                 val serviceIntentService = Intent(applicationContext, DownloadService::class.java)
                     .putStringArrayListExtra("song", songL)
-                    .putExtra("receiver", mServiceResultReceiver);
+                    .putExtra("receiver", mServiceResultReceiver)
                 enqueueDownload(this, serviceIntentService)
                 Toast.makeText(applicationContext, "${song.name} is added to Download Queue", Toast.LENGTH_SHORT).show()
                 mainContent.currentItem = -1
@@ -324,8 +318,5 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         }
     }
 
-    override fun onReceiveResult(resultCode: Int) {
-            Log.d("OnReceiveResult","ReceiveCalled");
-            home.downloadVideo();
-        }
+    override fun onReceiveResult(resultCode: Int) { home.downloadVideo() }
 }

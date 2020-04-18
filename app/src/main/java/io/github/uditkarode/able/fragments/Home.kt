@@ -23,29 +23,28 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Color
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.vincan.medialoader.download.DownloadListener
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import co.revely.gradient.RevelyGradient
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
-import com.github.kiulian.downloader.OnYoutubeDownloadListener
 import com.github.kiulian.downloader.YoutubeDownloader
 import com.vincan.medialoader.MediaLoader
 import com.vincan.medialoader.MediaLoaderConfig
+import com.vincan.medialoader.download.DownloadListener
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -54,13 +53,12 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
 import java.io.File
-import java.lang.Exception
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
 class Home: Fragment() {
     private var songList = ArrayList<Song>()
-    var songAdapter: SongAdapter? = null
+    private var songAdapter: SongAdapter? = null
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection

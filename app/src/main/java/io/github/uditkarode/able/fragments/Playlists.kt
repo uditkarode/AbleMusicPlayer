@@ -52,7 +52,6 @@ import kotlinx.android.synthetic.main.playlists.*
 import org.greenrobot.eventbus.EventBus
 import java.lang.ref.WeakReference
 
-
 class Playlists: Fragment() {
     var mService: MusicService? = null
     var isBound = false

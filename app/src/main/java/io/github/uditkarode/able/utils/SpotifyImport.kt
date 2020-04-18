@@ -32,11 +32,10 @@ import io.github.uditkarode.able.utils.Shared.Companion.getPlaylists
 import io.github.uditkarode.able.utils.Shared.Companion.modifyPlaylist
 import io.github.uditkarode.able.utils.Shared.Companion.ytSearchRequestBuilder
 import io.github.uditkarode.able.utils.Shared.Companion.ytSearcher
-import io.github.uditkarode.able.utils.spotifyplaylist.SpotifyPlaylist
+import io.github.uditkarode.able.models.spotifyplaylist.SpotifyPlaylist
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import kotlin.concurrent.thread
-
 
 object SpotifyImport {
     private const val auth = "https://open.spotify.com/get_access_token?reason=transport&productType=web_player"
@@ -98,13 +97,13 @@ object SpotifyImport {
                 } else {
                     activity.runOnUiThread {
                         dialog.dismiss()
-                        Toast.makeText(activity, "Couldn't find any songs on youtube :( sorry!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, "Couldn't find any songs on YouTube :( sorry!", Toast.LENGTH_LONG).show()
                     }
                 }
 
             } else {
                 activity.runOnUiThread {
-                    Toast.makeText(activity, "Something went wrong! Please report!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, "Something went wrong. Please report this to us!", Toast.LENGTH_LONG).show()
                 }
             }
         }

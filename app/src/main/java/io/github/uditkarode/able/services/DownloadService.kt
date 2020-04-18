@@ -6,8 +6,8 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
+import android.os.Bundle
+import android.os.ResultReceiver
 import android.util.Log
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationManagerCompat
@@ -16,60 +16,63 @@ import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.github.kiulian.downloader.YoutubeDownloader
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.models.Format
-import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.utils.Constants
-import io.github.uditkarode.able.utils.Shared
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.*
 
+
 class DownloadService : JobIntentService() {
     companion object {
-        const val JOB_ID = 1000
+        private const val JOB_ID = 1000
         fun enqueueDownload(context: Context, intent: Intent) {
             enqueueWork(context, DownloadService::class.java, JOB_ID, intent)
-            queuesize = queuesize + 1
+            queuesize += 1
         }
         const val CHANNEL_ID = "AbleMusicDownload"
         private var queuesize = 0
-        var currentQueue = 0
-    }
 
-    lateinit var builder: Notification.Builder
+    }
+    private var currentQueue = 0
+    private lateinit var mResultReceiver: ResultReceiver;
+    private lateinit var builder: Notification.Builder
     private lateinit var notification: Notification
-    var songAdapter: SongAdapter? = null
 
     override fun onCreate() {
         createNotificationChannel()
         super.onCreate()
     }
 
-
-
     override fun onHandleWork(p0: Intent) {
         Log.d("Download Service", "Service Started")
         currentQueue = +1
         val song: java.util.ArrayList<String> = p0.getStringArrayListExtra("song")
+        mResultReceiver = p0.getParcelableExtra("receiver");
+        val bundle = Bundle();
+        val id = song[1].substring(song[1].lastIndexOf("=") + 1)
         NotificationManagerCompat.from(applicationContext).apply {
-            builder.setContentText("$currentQueue of $queuesize is  ${song[0]} is Downloading")
+            builder.setSubText("$currentQueue of $queuesize ")
+            builder.setContentText("${song[0]} Starting to  Download")
             builder.setOngoing(true)
             notify(2, builder.build())
         }
-        songAdapter?.temp(Song(song[0], "Initialising download..."))
-        val id = song[1].substring(song[1].lastIndexOf("=") + 1)
         val video = YoutubeDownloader().getVideo(id)
         val downloadFormat = video.audioFormats().run { this[this.size - 1] }
-        val url = downloadFormat.url();
         val mediaFile = File(Constants.ableSongDir, id)
-        val client = OkHttpClient()
-        val call: Call = client.newCall(Request.Builder().url(url).get().build())
+
+        NotificationManagerCompat.from(applicationContext).apply {
+            builder.setContentText("${song[0]} is Downloading")
+            builder.setOngoing(true)
+            notify(2, builder.build())
+        }
+
+        val call: Call = OkHttpClient().newCall(Request.Builder().url( downloadFormat.url()).get().build())
         try {
             val response: Response = call.execute()
-            if (response.code === 200 || response.code === 201) {
+            if (response.code == 200 || response.code == 201) {
                 var inputStream: InputStream? = null
                 try {
                     inputStream = response.body?.byteStream()
@@ -77,11 +80,7 @@ class DownloadService : JobIntentService() {
                     var downloaded: Long = 0
                     val targetMax: Long = response.body?.contentLength()!!
                     val output: OutputStream = FileOutputStream(mediaFile)
-                    NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setProgress(targetMax.toInt(), 0, false)
-                        builder.setOngoing(true)
-                        notify(2, builder.build())
-                    }
+
                     while (true) {
                         val readed: Int = inputStream!!.read(buff)
                         if (readed == -1) break
@@ -143,10 +142,6 @@ class DownloadService : JobIntentService() {
                     when (val rc = FFmpeg.execute(command)) {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(target).delete()
-                            val songList = Shared.getSongList(Constants.ableSongDir)
-                            Handler(Looper.getMainLooper()).post {
-                                songAdapter?.update(songList)
-                            }
                         }
                         Config.RETURN_CODE_CANCEL -> {
                             Log.e(
@@ -170,6 +165,7 @@ class DownloadService : JobIntentService() {
                         builder.setOngoing(false)
                         notify(2, builder.build())
                     }
+                    mResultReceiver.send(123,bundle);
                 } catch (e: IOException) {
                     print(e)
                 }
@@ -184,7 +180,7 @@ class DownloadService : JobIntentService() {
     }
 
     override fun onStopCurrentWork(): Boolean {
-        Log.d("Stoping Work", "Wdkfsdjksdkhfksdhfkdshfjdshf")
+        Log.d("Stoping Work", "Something went wrong")
         return super.onStopCurrentWork()
     }
 

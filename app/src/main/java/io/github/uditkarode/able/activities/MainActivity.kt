@@ -18,6 +18,7 @@
 
 package io.github.uditkarode.able.activities
 
+//DownloadService Class Import
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ComponentName
@@ -28,11 +29,13 @@ import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
 import android.text.Html
 import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
 import androidx.viewpager.widget.ViewPager
@@ -51,7 +54,10 @@ import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.services.DownloadService
+import io.github.uditkarode.able.services.DownloadService.Companion.enqueueDownload
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.services.ServiceResultReceiver
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
@@ -62,12 +68,13 @@ import org.greenrobot.eventbus.ThreadMode
 import java.util.*
 import kotlin.concurrent.thread
 
-class MainActivity : AppCompatActivity(), Search.SongCallback {
+class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultReceiver.Receiver {
     private lateinit var okClient: OkHttpClient
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var mainContent: ViewPager
     private var mService: MusicService? = null
     private lateinit var serviceConn: ServiceConnection
+    private lateinit var mServiceResultReceiver: ServiceResultReceiver
 
     private var playing = false
 
@@ -77,14 +84,17 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     private lateinit var home: Home
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        if(!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
-            && Shared.isFirstRun) {
-            if(checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED){
+        if (!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
+            && Shared.isFirstRun
+        ) {
+            if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
                 startActivity(Intent(this@MainActivity, Welcome::class.java))
             } else startActivity(Intent(this@MainActivity, Splash::class.java))
         }
-
+        mServiceResultReceiver = ServiceResultReceiver(Handler())
+        mServiceResultReceiver.setReceiver(this)
         super.onCreate(savedInstanceState)
         FlurryAgent.Builder()
             .withLogEnabled(true)
@@ -100,16 +110,16 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
                             .build()
                     )
                 )
-            .build()
+                .build()
         )
         setContentView(R.layout.activity_main)
         okClient = OkHttpClient()
 
         mainContent = main_content
         bb_icon.setOnClickListener {
-            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
                 thread {
-                    if(playing) Shared.mService.setPlayPause(SongState.paused)
+                    if (playing) Shared.mService.setPlayPause(SongState.paused)
                     else Shared.mService.setPlayPause(SongState.playing)
                 }
             }
@@ -151,12 +161,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         bb_song.isSelected = true
 
         bb_song.setOnClickListener {
-            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
         bb_expand.setOnClickListener {
-            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
@@ -165,41 +175,43 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
                 mService = (service as MusicService.MusicBinder).getService()
                 songChange(GetSongChangedEvent())
                 playPauseEvent(GetPlayPauseEvent(service.getService().mediaPlayer.run {
-                    if(this.isPlaying) SongState.playing
+                    if (this.isPlaying) SongState.playing
                     else SongState.paused
                 }))
             }
 
-            override fun onServiceDisconnected(name: ComponentName) { }
+            override fun onServiceDisconnected(name: ComponentName) {}
         }
     }
 
     @Subscribe
-    private fun bindEvent(bindServiceEvent: BindServiceEvent){
-        if(!Shared.serviceLinked()){
+    private fun bindEvent(bindServiceEvent: BindServiceEvent) {
+        if (!Shared.serviceLinked()) {
             bindServiceEvent.toString() /* because the IDE doesn't like it unused */
-            if(Shared.serviceRunning(MusicService::class.java, this@MainActivity))
-                bindService(Intent(this@MainActivity, MusicService::class.java),
-                    serviceConn, Context.BIND_IMPORTANT)
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+                bindService(
+                    Intent(this@MainActivity, MusicService::class.java),
+                    serviceConn, Context.BIND_IMPORTANT
+                )
         } else {
             mService = Shared.mService
             songChange(GetSongChangedEvent())
             playPauseEvent(GetPlayPauseEvent(mService!!.mediaPlayer.run {
-                if(this.isPlaying) SongState.playing
+                if (this.isPlaying) SongState.playing
                 else SongState.paused
             }))
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun playPauseEvent(playPauseEvent: GetPlayPauseEvent){
+    fun playPauseEvent(playPauseEvent: GetPlayPauseEvent) {
         playing = playPauseEvent.state == SongState.playing
-        if(playing) Glide.with(this).load(R.drawable.pause).into(bb_icon)
+        if (playing) Glide.with(this).load(R.drawable.pause).into(bb_icon)
         else Glide.with(this).load(R.drawable.play).into(bb_icon)
 
-        if(playing) startSeekbarUpdates()
+        if (playing) startSeekbarUpdates()
         else {
-            if(scheduled){
+            if (scheduled) {
                 scheduled = false
                 timer.cancel()
                 timer.purge()
@@ -207,11 +219,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
         }
     }
 
-    private fun startSeekbarUpdates(){
-        if(!scheduled){
+    private fun startSeekbarUpdates() {
+        if (!scheduled) {
             scheduled = true
             timer = Timer()
-            timer.schedule(object: TimerTask() {
+            timer.schedule(object : TimerTask() {
                 override fun run() {
                     activity_seekbar.progress = Shared.mService.mediaPlayer.currentPosition
                 }
@@ -221,7 +233,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun songChange(event: GetSongChangedEvent){
+    fun songChange(event: GetSongChangedEvent) {
         event.toString() /* because the IDE doesn't like it unused */
         activity_seekbar.progress = 0
         activity_seekbar.max = Shared.mService.mediaPlayer.duration
@@ -240,7 +252,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songSet(songEvent: GetSongEvent){
+    fun songSet(songEvent: GetSongEvent) {
         activity_seekbar.progress = 0
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -252,7 +264,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     }
 
     @Subscribe
-    fun durationUpdate(durationEvent: GetDurationEvent){
+    fun durationUpdate(durationEvent: GetDurationEvent) {
         activity_seekbar.max = durationEvent.duration
     }
 
@@ -262,7 +274,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
 
     override fun onPause() {
         super.onPause()
-        if(scheduled){
+        if (scheduled) {
             scheduled = false
             timer.cancel()
             timer.purge()
@@ -273,21 +285,31 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
     override fun onResume() {
         super.onResume()
         bindEvent(BindServiceEvent())
-        if(!EventBus.getDefault().isRegistered(this))
+        if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
     }
 
     override fun onStop() {
         super.onStop()
-        if(EventBus.getDefault().isRegistered(this))
+        if (EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().unregister(this)
     }
 
     override fun sendItem(song: Song) {
         val sp = getSharedPreferences(Constants.SP_NAME, 0)
-        when(sp.getString("streamMode", MusicMode.download)){
+        when (sp.getString("streamMode", MusicMode.download)) {
             MusicMode.download -> {
-                home.downloadVideo(song)
+                //Edited Code
+                Log.d("CalledSendItem", "CalledSendItem")
+                val songL = java.util.ArrayList<String>()
+                songL.add(song.name)
+                songL.add(song.youtubeLink)
+                songL.add(song.artist)
+                val serviceIntentService = Intent(applicationContext, DownloadService::class.java)
+                    .putStringArrayListExtra("song", songL)
+                    .putExtra("receiver", mServiceResultReceiver);
+                enqueueDownload(this, serviceIntentService)
+                Toast.makeText(applicationContext, "${song.name} is added to Download Queue", Toast.LENGTH_SHORT).show()
                 mainContent.currentItem = -1
                 bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
             }
@@ -301,4 +323,9 @@ class MainActivity : AppCompatActivity(), Search.SongCallback {
             }
         }
     }
+
+    override fun onReceiveResult(resultCode: Int) {
+            Log.d("OnReceiveResult","ReceiveCalled");
+            home.downloadVideo();
+        }
 }

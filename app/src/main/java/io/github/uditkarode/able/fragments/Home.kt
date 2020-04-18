@@ -176,7 +176,7 @@ class Home: Fragment() {
         thread {
             @Suppress("ControlFlowWithEmptyBody")
             while(!isBound){}
-            mService?.playQueue = arrayListOf(song)
+            mService?.playQueue = arrayListOf(Song(name = "Loading...", artist = ""))
             mService?.currentIndex = 0
             mService?.showNotif()
             val video = YoutubeDownloader().getVideo(id)

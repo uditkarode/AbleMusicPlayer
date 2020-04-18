@@ -187,7 +187,6 @@ class Shared {
                     }
 
                     val metadata = FFprobe.getMediaInformation(f.absolutePath).metadataEntries
-                    Log.e("msss", metadata.toString())
                     for(map in metadata){
                         if(map.key == "title")
                             name = map.value
@@ -211,17 +210,13 @@ class Shared {
             return songs
         }
 
-        fun createPlayListSimp(name: String) {
-            val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name + ".json")
-            @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-            if(!playlistFile.parentFile.exists()) playlistFile.parentFile.mkdirs()
-            playlistFile.writeText("[]")
-        }
-
         fun createPlaylist(name: String, context: Context) {
             try {
                 if(name.isNotBlank()){
-                    createPlayListSimp(name)
+                    val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name + ".json")
+                    @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+                    if(!playlistFile.parentFile.exists()) playlistFile.parentFile.mkdirs()
+                    playlistFile.writeText("[]")
 
                     Toast.makeText(context, "Playlist created", Toast.LENGTH_SHORT).show()
                 } else {

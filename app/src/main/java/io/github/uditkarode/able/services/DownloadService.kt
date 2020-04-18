@@ -44,14 +44,13 @@ import java.io.*
 
 class DownloadService : JobIntentService() {
     companion object {
+        private var queueSize = 0
         private const val JOB_ID = 1000
+
         fun enqueueDownload(context: Context, intent: Intent) {
             enqueueWork(context, DownloadService::class.java, JOB_ID, intent)
             queueSize += 1
         }
-
-        private var queueSize = 0
-
     }
 
     private var currentQueue = 0
@@ -81,7 +80,7 @@ class DownloadService : JobIntentService() {
         val mediaFile = File(Constants.ableSongDir, id)
 
         NotificationManagerCompat.from(applicationContext).apply {
-            builder.setContentText("${song[0]} is Downloading")
+            builder.setContentTitle(song[0])
             builder.setOngoing(true)
             notify(2, builder.build())
         }
@@ -110,10 +109,9 @@ class DownloadService : JobIntentService() {
                             notify(2, builder.build())
                         }
                     }
-                    output.flush()
-                    output.close()
+                    output.run { this.flush() ; this.close() }
                     NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentText("Download complete MP3 Conversion in progress")
+                        builder.setContentText("Saving")
                             .setProgress(targetMax.toInt(), downloaded.toInt(), true)
                         builder.setOngoing(true)
                         notify(2, builder.build())
@@ -159,6 +157,10 @@ class DownloadService : JobIntentService() {
                     when (val rc = FFmpeg.execute(command)) {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(target).delete()
+                            if(currentQueue == queueSize)
+                                (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                                    it.cancel(2)
+                                }
                         }
                         Config.RETURN_CODE_CANCEL -> {
                             Log.e(
@@ -196,12 +198,6 @@ class DownloadService : JobIntentService() {
         }
     }
 
-    override fun onStopCurrentWork(): Boolean {
-        Log.d("Stoping Work", "Something went wrong")
-        return super.onStopCurrentWork()
-    }
-
-
     private fun createNotificationChannel() {
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, Constants.CHANNEL_ID)
@@ -221,7 +217,7 @@ class DownloadService : JobIntentService() {
             val notificationChannel = NotificationChannel(
                 Constants.CHANNEL_ID,
                 "AbleMusicDownload",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             )
             notificationChannel.enableLights(false)
             notificationChannel.enableVibration(false)

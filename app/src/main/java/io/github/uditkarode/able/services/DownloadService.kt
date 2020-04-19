@@ -33,19 +33,20 @@ import androidx.preference.PreferenceManager
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.github.kiulian.downloader.YoutubeDownloader
+import com.tonyodev.fetch2.*
+import com.tonyodev.fetch2.Fetch.Impl.getInstance
+import com.tonyodev.fetch2core.DownloadBlock
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.utils.Constants
-import okhttp3.Call
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.*
+import java.io.File
+import java.io.IOException
 
 class DownloadService : JobIntentService() {
     companion object {
         private var queueSize = 0
         private const val JOB_ID = 1000
+        private var fetch: Fetch? = null
 
         fun enqueueDownload(context: Context, intent: Intent) {
             enqueueWork(context, DownloadService::class.java, JOB_ID, intent)
@@ -61,6 +62,13 @@ class DownloadService : JobIntentService() {
     override fun onCreate() {
         createNotificationChannel()
         super.onCreate()
+        if(fetch == null){
+            fetch = getInstance(
+                FetchConfiguration.Builder(this)
+                    .setDownloadConcurrentLimit(1)
+                    .build()
+            )
+        }
     }
 
     override fun onHandleWork(p0: Intent) {
@@ -71,54 +79,43 @@ class DownloadService : JobIntentService() {
         val id = song[1].substring(song[1].lastIndexOf("=") + 1)
         NotificationManagerCompat.from(applicationContext).apply {
             builder.setSubText("$currentQueue of $queueSize ")
-            builder.setContentText("${song[0]} Starting to  Download")
+            builder.setContentText("${song[0]} starting...")
             builder.setOngoing(true)
             notify(2, builder.build())
         }
         val video = YoutubeDownloader().getVideo(id)
         val downloadFormat = video.audioFormats().run { this[this.size - 1] }
         val mediaFile = File(Constants.ableSongDir, id)
+
         if (!Constants.ableSongDir.exists()) {
             val mkdirs = Constants.ableSongDir.mkdirs()
             if (!mkdirs) throw IOException("Could not create output directory: ${Constants.ableSongDir}")
         }
+
         NotificationManagerCompat.from(applicationContext).apply {
             builder.setContentTitle(song[0])
             builder.setOngoing(true)
             notify(2, builder.build())
         }
-
-        val call: Call =
-            OkHttpClient().newCall(Request.Builder().url(downloadFormat.url()).get().build())
         try {
-            val response: Response = call.execute()
-            if (response.code == 200 || response.code == 201) {
-                val inputStream: InputStream?
-                try {
-                    inputStream = response.body?.byteStream()
-                    val buff = ByteArray(1024 * 4)
-                    var downloaded: Long = 0
-                    val targetMax: Long = response.body?.contentLength()!!
-                    val output: OutputStream = FileOutputStream(mediaFile)
+            val request = Request(downloadFormat.url(), mediaFile.absolutePath).also {
+                it.priority = Priority.HIGH
+                it.networkType = NetworkType.ALL
+            }
 
-                    while (true) {
-                        val read: Int = inputStream!!.read(buff)
-                        if (read == -1) break
-                        output.write(buff, 0, read)
-                        downloaded += read.toLong()
-                        NotificationManagerCompat.from(applicationContext).apply {
-                            builder.setProgress(targetMax.toInt(), downloaded.toInt(), false)
-                            builder.setOngoing(true)
-                            notify(2, builder.build())
-                        }
-                    }
-                    output.run { this.flush() ; this.close() }
+            fetch?.addListener(object : FetchListener {
+                override fun onAdded(download: Download) {}
+
+                override fun onCancelled(download: Download) {}
+
+                override fun onCompleted(download: Download) {
                     NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentText("Saving")
-                            .setProgress(targetMax.toInt(), downloaded.toInt(), true)
+                        builder.setContentText("Saving...")
+                            .setProgress(100, 100, true)
                         builder.setOngoing(true)
                         notify(2, builder.build())
                     }
+
                     var name = song[0]
                     name = name.replace(
                         Regex("${song[2]}\\s[-,:]?\\s"),
@@ -160,10 +157,9 @@ class DownloadService : JobIntentService() {
                     when (val rc = FFmpeg.execute(command)) {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(target).delete()
-                            if(currentQueue == queueSize)
-                                (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-                                    it.cancel(2)
-                                }
+                            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                                it.cancel(2)
+                            }
                         }
                         Config.RETURN_CODE_CANCEL -> {
                             Log.e(
@@ -181,23 +177,69 @@ class DownloadService : JobIntentService() {
                             )
                         }
                     }
+                    mResultReceiver.send(123, bundle)
+                    fetch?.removeListener(this)
+                }
+
+                override fun onDeleted(download: Download) {}
+
+                override fun onDownloadBlockUpdated(
+                    download: Download,
+                    downloadBlock: DownloadBlock,
+                    totalBlocks: Int
+                ) {
+
+                }
+
+                override fun onError(download: Download, error: Error, throwable: Throwable?) {
+
+                }
+
+                override fun onPaused(download: Download) {
+
+                }
+
+                override fun onProgress(
+                    download: Download,
+                    etaInMilliSeconds: Long,
+                    downloadedBytesPerSecond: Long
+                ) {
                     NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentText("Download complete")
-                            .setProgress(0, 0, false)
-                        builder.setOngoing(false)
+                        builder.setProgress(100, download.progress, false)
+                        builder.setOngoing(true)
+                        builder.setContentText("${etaInMilliSeconds/1000}s left")
                         notify(2, builder.build())
                     }
-                    mResultReceiver.send(123, bundle)
-                } catch (e: IOException) {
-                    print(e)
                 }
-            }
+
+                override fun onQueued(download: Download, waitingOnNetwork: Boolean) {
+
+                }
+
+                override fun onRemoved(download: Download) {
+
+                }
+
+                override fun onResumed(download: Download) {
+
+                }
+
+                override fun onStarted(
+                    download: Download,
+                    downloadBlocks: List<DownloadBlock>,
+                    totalBlocks: Int
+                ) {
+
+                }
+
+                override fun onWaitingNetwork(download: Download) {
+
+                }
+            })
+
+            fetch?.enqueue(request)
         } catch (e: IOException) {
-            NotificationManagerCompat.from(applicationContext).apply {
-                builder.setContentText("Failed to download  ${song[0]} is Downloading")
-                builder.setOngoing(false)
-                notify(2, builder.build())
-            }
+            print(e)
         }
     }
 
@@ -220,7 +262,7 @@ class DownloadService : JobIntentService() {
             val notificationChannel = NotificationChannel(
                 Constants.CHANNEL_ID,
                 "AbleMusicDownload",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_LOW
             )
             notificationChannel.enableLights(false)
             notificationChannel.enableVibration(false)

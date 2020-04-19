@@ -31,7 +31,8 @@ jobs:
               -d "disable_web_page_preview=true" \
               -d "parse_mode=markdown" \
               -d text="🤖 building with HEAD as [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) 🤖"
-            sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
+            # just checking if it works without this  
+            # sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
             sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
             sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
             git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds
@@ -57,4 +58,4 @@ jobs:
               -d "parse_mode=markdown" \
               -d text="🤖 workflow for [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) finished 🤖"
             curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendSticker" -d chat_id="-1001415196670" \
-             -d "sticker=CAACAgUAAxkBAAJccV6a5_5ngvwYEC1BGe64fqQkzY7kAAI1AAMtO2YjAAGKjgWcCrOMGAQ"
+             -d "sticker=CAACAgUAAxkBAAJc416cRVy18acXP6HgtZSnxuuoJi01AAK9AAMtO2YjehthhceJ__sYBA"

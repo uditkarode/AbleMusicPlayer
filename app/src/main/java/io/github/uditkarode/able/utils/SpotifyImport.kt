@@ -63,8 +63,8 @@ object SpotifyImport {
                 for (i in respPlayList.tracks.items.indices) {
                     val item = respPlayList.tracks.items[i]
                     activity.runOnUiThread {
-                        dialog.message(text = "importing song $i of ${respPlayList.tracks.items.size} - " +
-                                item.track.name + " by " + item.track.artists[0].name)
+                        dialog.message(text = "($i/${respPlayList.tracks.items.size}) " +
+                                item.track.name + " - " + item.track.artists[0].name)
                     }
                     val (videos, channels) = ytSearcher(okClient, ytSearchRequestBuilder("${item.track.name} - ${item.track.artists[0].name}"))
                     if (videos.size > 0) {

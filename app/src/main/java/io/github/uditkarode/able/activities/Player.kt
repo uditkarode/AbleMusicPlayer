@@ -500,7 +500,7 @@ class Player : AppCompatActivity() {
                                     note_ph.visibility = View.GONE
                                     if(mService.mediaPlayer.isPlaying){
                                         mService.showNotification(mService.generateAction(
-                                            R.drawable.pause,
+                                            R.drawable.notif_pause,
                                             "Pause",
                                             "ACTION_PAUSE"
                                         ), true, bmp
@@ -508,7 +508,7 @@ class Player : AppCompatActivity() {
                                     } else {
                                         mService.showNotification(
                                             mService.generateAction(
-                                                R.drawable.play,
+                                                R.drawable.notif_play,
                                                 "Play",
                                                 "ACTION_PLAY"
                                             ), false, bmp

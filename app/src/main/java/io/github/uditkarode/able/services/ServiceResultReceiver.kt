@@ -24,6 +24,7 @@ import android.os.ResultReceiver
 
 class ServiceResultReceiver(handler: Handler?) : ResultReceiver(handler) {
     private var mReceiver: Receiver? = null
+
     fun setReceiver(receiver: Receiver?) {
         mReceiver = receiver
     }

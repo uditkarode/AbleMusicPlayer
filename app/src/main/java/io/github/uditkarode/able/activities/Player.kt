@@ -176,7 +176,7 @@ class Player : AppCompatActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
-        img_albart.setOnClickListener {
+        album_art.setOnClickListener {
             MaterialDialog(this@Player).show {
                 title(text = "Enter the song name")
                 input("e.g. Wake Up Eden"){ _, charSequence ->

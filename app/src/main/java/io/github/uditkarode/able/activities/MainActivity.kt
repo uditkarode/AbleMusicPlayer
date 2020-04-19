@@ -82,14 +82,14 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     private lateinit var home: Home
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        if (!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
+        if (!Shared.serviceRunning(MusicService::class.java, applicationContext)
             && Shared.isFirstRun
         ) {
             if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED
             ) {
-                startActivity(Intent(this@MainActivity, Welcome::class.java))
-            } else startActivity(Intent(this@MainActivity, Splash::class.java))
+                startActivity(Intent(applicationContext, Welcome::class.java))
+            } else startActivity(Intent(applicationContext, Splash::class.java))
         }
         mServiceResultReceiver = ServiceResultReceiver(Handler())
         mServiceResultReceiver.setReceiver(this)
@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
         mainContent = main_content
         bb_icon.setOnClickListener {
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
+            if (Shared.serviceRunning(MusicService::class.java, applicationContext)) {
                 thread {
                     if (playing) Shared.mService.setPlayPause(SongState.paused)
                     else Shared.mService.setPlayPause(SongState.playing)
@@ -159,13 +159,13 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         bb_song.isSelected = true
 
         bb_song.setOnClickListener {
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
-                startActivity(Intent(this@MainActivity, Player::class.java))
+            if (Shared.serviceRunning(MusicService::class.java, applicationContext))
+                startActivity(Intent(applicationContext, Player::class.java))
         }
 
         bb_expand.setOnClickListener {
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
-                startActivity(Intent(this@MainActivity, Player::class.java))
+            if (Shared.serviceRunning(MusicService::class.java, applicationContext))
+                startActivity(Intent(applicationContext, Player::class.java))
         }
 
         serviceConn = object : ServiceConnection {
@@ -185,9 +185,9 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     @Subscribe
     private fun bindEvent(bindServiceEvent: BindServiceEvent) {
         if (!Shared.serviceLinked()) {
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+            if (Shared.serviceRunning(MusicService::class.java, applicationContext))
                 bindService(
-                    Intent(this@MainActivity, MusicService::class.java),
+                    Intent(applicationContext, MusicService::class.java),
                     serviceConn, Context.BIND_IMPORTANT
                 )
         } else {

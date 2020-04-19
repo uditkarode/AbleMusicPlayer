@@ -79,7 +79,8 @@ class Playlists: Fragment() {
             customView(R.layout.spotify_progress)
 
             onShow {
-                Toast.makeText(activity as Context, "Sit back and relax! We will import the songs in backgroudn!", Toast.LENGTH_LONG).show()
+                Toast.makeText(activity as Context, "Sit back and relax! We're importing the" +
+                        "songs right now.", Toast.LENGTH_LONG).show()
             }
             positiveButton(text = "")
             negativeButton(text = "Cancel") {
@@ -129,7 +130,7 @@ class Playlists: Fragment() {
     fun bindEvent(){
         if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
             try {
-                (activity!!.applicationContext).also {
+                (requireActivity().applicationContext).also {
                     it.bindService(Intent(it, MusicService::class.java), serviceConn, 0)
                 }
             } catch(e: Exception){

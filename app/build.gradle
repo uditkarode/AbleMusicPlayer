@@ -69,7 +69,7 @@ dependencies {
     implementation 'com.flurry.android:analytics:12.2.0@aar'
     implementation 'com.makeramen:roundedimageview:2.3.0'
     implementation 'com.vincan:medialoader:1.0.0'
-    implementation 'androidx.preference:preference:1.1.0'
+    implementation 'androidx.preference:preference:1.1.1'
     implementation 'com.takisoft.preferencex:preferencex:1.1.0'
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.0-beta4'

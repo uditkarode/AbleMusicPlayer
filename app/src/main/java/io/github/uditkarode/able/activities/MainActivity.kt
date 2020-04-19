@@ -304,8 +304,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                     .putExtra("receiver", mServiceResultReceiver)
                 enqueueDownload(this, serviceIntentService)
                 Toast.makeText(applicationContext, "${song.name} is added to Download Queue", Toast.LENGTH_SHORT).show()
-                mainContent.currentItem = -1
-                bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+                //mainContent.currentItem = -1
+                //bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
             }
 
             MusicMode.stream -> {

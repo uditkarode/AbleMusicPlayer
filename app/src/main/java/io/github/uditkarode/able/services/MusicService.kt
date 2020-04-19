@@ -150,7 +150,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             action.equals("ACTION_PLAY", ignoreCase = true) -> {
                 showNotification(
                     generateAction(
-                        R.drawable.pause,
+                        R.drawable.notif_pause,
                         "Pause",
                         "ACTION_PAUSE"
                     ), true
@@ -160,7 +160,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             action.equals("ACTION_PAUSE", ignoreCase = true) -> {
                 showNotification(
                     generateAction(
-                        R.drawable.play,
+                        R.drawable.notif_play,
                         "Play",
                         "ACTION_PLAY"
                     ), false
@@ -335,7 +335,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
             showNotification(
                 generateAction(
-                    R.drawable.pause,
+                    R.drawable.notif_pause,
                     "Pause",
                     "ACTION_PAUSE"
                 ), true
@@ -357,7 +357,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     fun showNotif(){
         showNotification(
             generateAction(
-                R.drawable.play,
+                R.drawable.notif_play,
                 "Play",
                 "ACTION_PLAY"
             ), false
@@ -380,7 +380,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
         showNotification(
             generateAction(
-                R.drawable.play,
+                R.drawable.notif_play,
                 "Play",
                 "ACTION_PLAY"
             ), false
@@ -474,7 +474,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
         builder.addAction(
             generateAction(
-                R.drawable.skip_previous,
+                R.drawable.notif_previous,
                 "Previous",
                 "ACTION_PREVIOUS"
             )
@@ -484,7 +484,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
         builder.addAction(
             generateAction(
-                R.drawable.skip_next,
+                R.drawable.notif_next,
                 "Next",
                 "ACTION_NEXT"
             )

@@ -1,5 +1,6 @@
 /*
     Copyright 2020 Rupansh Sekar <rupanshsekar@hotmail.com>
+    Copyright 2020 Udit Karode <udit.karode@gmail.com>
 
     This file is part of AbleMusicPlayer.
 
@@ -59,7 +60,10 @@ object SpotifyImport {
                 val resp2 = okClient.newCall(playR).execute()
                 val respPlayList = gson.fromJson(resp2.body?.string(), SpotifyPlaylist::class.java)
                 val songArr: ArrayList<Song> = ArrayList()
-                for (item in respPlayList.tracks.items) {
+                for (i in respPlayList.tracks.items.indices) {
+                    val item = respPlayList.tracks.items[i]
+                    dialog.message(text = "importing song $i of ${respPlayList.tracks.items.size} - " +
+                            item.track.name + " by " + item.track.artists[0].name)
                     val (videos, channels) = ytSearcher(okClient, ytSearchRequestBuilder("${item.track.name} - ${item.track.artists[0].name}"))
                     if (videos.size > 0) {
                         try {

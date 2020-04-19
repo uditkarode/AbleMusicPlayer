@@ -11,4 +11,5 @@
         android:indeterminateTint="@android:color/white"
         android:layout_gravity="center_horizontal"
         android:indeterminate="true" />
+
 </LinearLayout>

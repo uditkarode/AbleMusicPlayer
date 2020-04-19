@@ -31,8 +31,6 @@ jobs:
               -d "disable_web_page_preview=true" \
               -d "parse_mode=markdown" \
               -d text="🤖 building with HEAD as [$(echo $GITHUB_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${GITHUB_SHA}) 🤖"
-            # just checking if it works without this  
-            # sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;20.0.5594570" --sdk_root=${ANDROID_SDK_ROOT} > /dev/null
             sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
             sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
             git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds

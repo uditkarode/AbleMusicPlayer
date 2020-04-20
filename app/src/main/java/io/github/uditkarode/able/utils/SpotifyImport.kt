@@ -91,9 +91,9 @@ object SpotifyImport {
                     modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
                     activity.runOnUiThread {
                         dialog.dismiss()
-                        val playlistAdapter: PlaylistAdapter =
-                            activity.findViewById<RecyclerView>(R.id.playlists_rv).adapter as PlaylistAdapter
-                        playlistAdapter.update(getPlaylists())
+                        (activity.findViewById<RecyclerView>(R.id.playlists_rv).adapter as PlaylistAdapter).also {
+                            it.update(getPlaylists())
+                        }
                         Toast.makeText(
                             activity,
                             "Done! Enjoy your spotify songs!",

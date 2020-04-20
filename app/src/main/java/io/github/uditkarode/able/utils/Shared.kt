@@ -150,6 +150,7 @@ class Shared {
             try {
                 if(name.isNotBlank()){
                     val playlistFile = File(Constants.playlistFolder.absolutePath + "/" + name)
+                    playlistFile.parentFile!!.also { if(!it.exists()) it.mkdirs() }
                     playlistFile.writeText("[]")
                     if(!songs.isNullOrEmpty()){
                         playlistFile.writeText(

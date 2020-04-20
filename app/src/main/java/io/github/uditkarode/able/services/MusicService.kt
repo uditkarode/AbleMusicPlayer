@@ -462,6 +462,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             .setLargeIcon(largeIcon)
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
+            .setOngoing(playing)
             .setContentIntent(
                 PendingIntent.getActivity(
                     this,
@@ -512,8 +513,6 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             notificationChannel.enableVibration(false)
             notificationManager.createNotificationChannel(notificationChannel)
         }
-
-        builder.setOngoing(playing)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification = builder.setChannelId("10002").build()

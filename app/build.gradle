@@ -3,9 +3,8 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    lintOptions {
-        disable 'RestrictedApi'
-    }
+    lintOptions { disable 'RestrictedApi' }
+    ndkVersion "21.0.6113669"
     compileSdkVersion 29
     buildToolsVersion "29.0.3"
     defaultConfig {
@@ -13,7 +12,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
-        versionName "Beta"
+        versionName "EagerLion"
     }
 
     signingConfigs {

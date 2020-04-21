@@ -406,6 +406,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     }
 
     private fun cleanUp() {
+        EventBus.getDefault().post(ExitEvent())
         EventBus.getDefault().unregister(this)
         mediaPlayer.stop()
         mediaSession.release()

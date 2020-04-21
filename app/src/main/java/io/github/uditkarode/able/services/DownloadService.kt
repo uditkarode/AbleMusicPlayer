@@ -105,8 +105,10 @@ class DownloadService : JobIntentService() {
                 if (!mkdirs) throw IOException("Could not create output directory: ${Constants.ableSongDir}")
             }
 
+            val notifName = if(song.name.length > 20) song.name.substring(0, 20) + "..." else song.name
+
             NotificationManagerCompat.from(applicationContext).apply {
-                builder.setContentTitle(song.name)
+                builder.setContentTitle(notifName)
                 builder.setOngoing(true)
                 notify(2, builder.build())
             }
@@ -155,7 +157,7 @@ class DownloadService : JobIntentService() {
                         var command = "-i " +
                                 "\"${target}\" -c copy " +
                                 "-metadata title=\"${name}\" " +
-                                "-metadata artist=\"${song.artist}\" "
+                                "-metadata artist=\"${song.artist}\" -y "
                         val format =
                             if (PreferenceManager.getDefaultSharedPreferences(applicationContext)
                                     .getString("format_key", "webm") == "mp3"
@@ -263,8 +265,8 @@ class DownloadService : JobIntentService() {
                 })
 
                 fetch?.enqueue(request)
-            } catch (e: IOException) {
-                print(e)
+            } catch (e: Exception) {
+                Log.e("ERR>", e.toString())
             }
         }
     }

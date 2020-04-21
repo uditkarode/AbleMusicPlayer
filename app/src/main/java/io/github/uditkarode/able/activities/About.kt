@@ -30,7 +30,7 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Constants
-import kotlinx.android.synthetic.main.settings.*
+import kotlinx.android.synthetic.main.about.*
 
 class About: AppCompatActivity() {
 
@@ -48,7 +48,7 @@ class About: AppCompatActivity() {
                 )
                 .build()
         )
-        setContentView(R.layout.settings)
+        setContentView(R.layout.about)
 
         version_string.text = Constants.VERSION
 

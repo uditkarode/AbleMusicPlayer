@@ -285,6 +285,9 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             EventBus.getDefault().register(this)
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    fun exitEvent(exitEvent: ExitEvent) { finish() }
+
     override fun onStop() {
         super.onStop()
         if (EventBus.getDefault().isRegistered(this))

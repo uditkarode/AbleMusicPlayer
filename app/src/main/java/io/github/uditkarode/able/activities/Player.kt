@@ -592,6 +592,9 @@ class Player : AppCompatActivity() {
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    fun exitEvent(exitEvent: ExitEvent) { finish() }
+
     private fun getDurationFromMs(durtn: Int): String {
         val duration = durtn.toLong()
         val seconds = (TimeUnit.MILLISECONDS.toSeconds(duration) -

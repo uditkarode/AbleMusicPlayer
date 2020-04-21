@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         mServiceResultReceiver.setReceiver(this)
         super.onCreate(savedInstanceState)
         FlurryAgent.Builder()
-            .withLogEnabled(true)
+            .withLogEnabled(false)
             .build(this, Constants.FLURRY_KEY)
         home = Home()
         ViewPump.init(

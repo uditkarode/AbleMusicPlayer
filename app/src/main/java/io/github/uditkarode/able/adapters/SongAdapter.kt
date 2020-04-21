@@ -161,7 +161,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
         holder.deleteFromDisk.setOnClickListener {
             MaterialDialog(holder.itemView.context).show {
                 title(text = "Confirmation")
-                message(text = "Are you sure you want to delete ${current.name} (${current.filePath} " +
+                message(text = "Are you sure you want to delete ${current.name} (${current.filePath}) " +
                         "from disk?")
                 positiveButton(text = "Delete"){
                     File(current.filePath).delete()

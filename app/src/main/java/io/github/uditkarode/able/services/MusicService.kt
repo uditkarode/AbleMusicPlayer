@@ -175,6 +175,8 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             }
             action.equals("ACTION_KILL", ignoreCase = true) -> {
                 cleanUp()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    stopForeground(true)
                 stopSelf()
             }
         }
@@ -516,12 +518,11 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notification = builder.setChannelId("10002").build()
+            startForeground(1, notification)
         } else {
             notification = builder.build()
             notificationManager.notify(1, notification)
         }
-
-        startForeground(1, notification)
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

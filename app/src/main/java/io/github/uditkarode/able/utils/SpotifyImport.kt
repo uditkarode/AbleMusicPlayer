@@ -87,9 +87,7 @@ object SpotifyImport {
                                 ) {
                                     val audioFormats = ArrayList<YtFile>()
                                     ytFiles!!.forEach { _, value ->
-                                        if (value!!.format.audioBitrate != -1) audioFormats.add(
-                                            value
-                                        )
+                                        if (value!!.format.audioBitrate != -1) audioFormats.add(value)
                                     }
 
                                     song.filePath = audioFormats[audioFormats.size - 1].url

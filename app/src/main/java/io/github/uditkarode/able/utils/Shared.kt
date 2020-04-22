@@ -187,21 +187,24 @@ class Shared {
                         continue
                     }
 
-                    val metadata = FFprobe.getMediaInformation(f.absolutePath).metadataEntries
-                    for(map in metadata){
-                        if(map.key == "title")
-                            name = map.value
-                        else if(map.key == "ARTIST" || map.key == "artist")
-                            artist = map.value
-                    }
-                    if(name != "???"){
-                        songs.add(
-                            Song(
-                                name,
-                                artist,
-                                filePath = f.path
+                    val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
+                    if(mediaInfo != null){
+                        val metadata = mediaInfo.metadataEntries
+                        for(map in metadata){
+                            if(map.key == "title")
+                                name = map.value
+                            else if(map.key == "ARTIST" || map.key == "artist")
+                                artist = map.value
+                        }
+                        if(name != "???"){
+                            songs.add(
+                                Song(
+                                    name,
+                                    artist,
+                                    filePath = f.path
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }

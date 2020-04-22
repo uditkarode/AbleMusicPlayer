@@ -192,15 +192,17 @@ class Home: Fragment() {
                         if(value!!.format.audioBitrate != -1) audioFormats.add(value)
                     }
 
-                    val url = audioFormats[audioFormats.size-1].url
+                    val url = audioFormats.run { this[this.size-1].url }
+                    val ext = audioFormats.run { this[this.size-1].format.ext }
 
                     if(toCache){
+                        // TODO add mp3 support here
                         mediaLoader.addDownloadListener(url, object: DownloadListener {
                             override fun onProgress(url: String?, file: File?, progress: Int) {
                                 if(progress == 100){
                                     val current = mService!!.playQueue[mService!!.currentIndex]
                                     val tempFile = File(Constants.ableSongDir.absolutePath
-                                            + "/" + songId + ".tmp.webm")
+                                            + "/" + songId + ".tmp.$ext")
                                     when (val rc = FFmpeg.execute(
                                         "-i " +
                                                 "\"${tempFile.absolutePath}\" -c copy " +

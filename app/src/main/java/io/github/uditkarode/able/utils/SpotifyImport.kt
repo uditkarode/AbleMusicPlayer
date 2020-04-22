@@ -19,11 +19,16 @@
 
 package io.github.uditkarode.able.utils
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.util.SparseArray
 import android.widget.Toast
+import androidx.core.util.forEach
 import androidx.recyclerview.widget.RecyclerView
+import at.huber.youtubeExtractor.VideoMeta
+import at.huber.youtubeExtractor.YouTubeExtractor
+import at.huber.youtubeExtractor.YtFile
 import com.afollestad.materialdialogs.MaterialDialog
-import com.github.kiulian.downloader.YoutubeDownloader
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.github.uditkarode.able.R
@@ -44,6 +49,7 @@ object SpotifyImport {
     private val okClient = OkHttpClient()
     private val gson = Gson()
 
+    @SuppressLint("StaticFieldLeak")
     fun importList(playId: String, activity: Activity, dialog: MaterialDialog) {
         val authR = Request.Builder().url(auth).removeHeader("User-Agent").addHeader("Accept", "application/json").addHeader("Accept-Language", "en").build()
         thread {
@@ -74,13 +80,22 @@ object SpotifyImport {
                                 youtubeLink = "https://www.youtube.com" + videos[0].attr("href")
                             )
                             song.artist = channels[0].text()
-                            val video = YoutubeDownloader().getVideo(
-                                song.youtubeLink.substring(
-                                    song.youtubeLink.lastIndexOf("=") + 1
-                                )
-                            )
-                            song.filePath = (video.audioFormats().run { this[this.size - 1] }).url()
-                            songArr.add(song)
+                            object : YouTubeExtractor(activity) {
+                                override fun onExtractionComplete(
+                                    ytFiles: SparseArray<YtFile?>?,
+                                    vMeta: VideoMeta?
+                                ) {
+                                    val audioFormats = ArrayList<YtFile>()
+                                    ytFiles!!.forEach { _, value ->
+                                        if (value!!.format.audioBitrate != -1) audioFormats.add(
+                                            value
+                                        )
+                                    }
+
+                                    song.filePath = audioFormats[audioFormats.size - 1].url
+                                    songArr.add(song)
+                                }
+                            }.extract(song.youtubeLink, true, true)
                         } catch (e: Exception) {
                             continue
                         }

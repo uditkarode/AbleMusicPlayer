@@ -15,6 +15,15 @@ android {
         versionName "EagerLion"
     }
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
+    }
+
     signingConfigs {
         release {
             storeFile file("release.keystore")
@@ -53,7 +62,6 @@ dependencies {
     implementation 'io.github.inflationx:viewpump:2.0.3'
     implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha02'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
-    implementation 'com.github.uditkarode:java-youtube-downloader:2.1.6'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
     implementation 'com.squareup.okhttp3:okhttp:4.4.0'
     implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1'
@@ -73,5 +81,6 @@ dependencies {
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.0-beta4'
     implementation "androidx.tonyodev.fetch2:xfetch2:3.1.4"
+    implementation 'com.github.HaarigerHarald:android-youtubeExtractor:master-SNAPSHOT'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 }

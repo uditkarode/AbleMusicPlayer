@@ -65,6 +65,7 @@
                         tools:ignore="MissingPrefix,RtlSymmetry" />
 
                     <!--suppress AndroidUnknownAttribute -->
+
                     <TextView
                         android:id="@+id/artist_name"
                         fontPath="fonts/interbold.otf"
@@ -77,6 +78,13 @@
                         android:textColor="#80fbfbfb"
                         android:textSize="20sp"
                         tools:ignore="MissingPrefix" />
+
+                    <ProgressBar
+                        android:id="@+id/youtubeProgressbar"
+                        android:indeterminate="true"
+                        style="?android:attr/progressBarStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
                 </LinearLayout>
 
                 <SeekBar

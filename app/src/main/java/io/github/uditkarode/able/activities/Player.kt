@@ -57,6 +57,7 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.android.synthetic.main.player.*
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
 import kotlinx.android.synthetic.main.player.next_song
@@ -69,6 +70,8 @@ import kotlinx.android.synthetic.main.player.repeat_button
 import kotlinx.android.synthetic.main.player.shuffle_button
 import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
+import kotlinx.android.synthetic.main.player410.img_albart
+import kotlinx.android.synthetic.main.player410.note_ph
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -77,7 +80,6 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.json.JSONObject
 import java.io.File
-import java.lang.Exception
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -113,9 +115,9 @@ class Player : AppCompatActivity() {
             this.ydpi
         }
 
-        if(ydpi > 400) setContentView(R.layout.player410)
-        else if(ydpi >= 395) setContentView(R.layout.player400)
-        else if(ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
+        if (ydpi > 400) setContentView(R.layout.player410)
+        else if (ydpi >= 395) setContentView(R.layout.player400)
+        else if (ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
         else setContentView(R.layout.player220)
 
         player_down_arrow?.setOnClickListener {
@@ -179,7 +181,7 @@ class Player : AppCompatActivity() {
         album_art.setOnClickListener {
             MaterialDialog(this@Player).show {
                 title(text = "Enter the song name")
-                input("e.g. Wake Up Eden"){ _, charSequence ->
+                input("e.g. Wake Up Eden") { _, charSequence ->
                     updateAlbumArt(charSequence.toString())
                 }
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
@@ -190,7 +192,7 @@ class Player : AppCompatActivity() {
             val current = mService.playQueue[mService.currentIndex]
             MaterialDialog(this@Player).show {
                 title(text = "Enter the new song name")
-                input("e.g. Wake Up"){ _, charSequence ->
+                input("e.g. Wake Up") { _, charSequence ->
                     val ext = current.filePath.run {
                         this.substring(this.lastIndexOf(".") + 1)
                     }
@@ -204,7 +206,8 @@ class Player : AppCompatActivity() {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(current.filePath).delete()
                             File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            EventBus.getDefault().post(GetMetaDataEvent(name = charSequence.toString()))
+                            EventBus.getDefault()
+                                .post(GetMetaDataEvent(name = charSequence.toString()))
                         }
                         Config.RETURN_CODE_CANCEL -> {
                             Log.e(
@@ -232,7 +235,7 @@ class Player : AppCompatActivity() {
             val current = mService.playQueue[mService.currentIndex]
             MaterialDialog(this@Player).show {
                 title(text = "Enter the new song artist")
-                input("e.g. Eden"){ _, charSequence ->
+                input("e.g. Eden") { _, charSequence ->
                     val ext = current.filePath.run {
                         this.substring(this.lastIndexOf(".") + 1)
                     }
@@ -246,7 +249,8 @@ class Player : AppCompatActivity() {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(current.filePath).delete()
                             File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            EventBus.getDefault().post(GetMetaDataEvent(artist = charSequence.toString()))
+                            EventBus.getDefault()
+                                .post(GetMetaDataEvent(artist = charSequence.toString()))
                         }
                         Config.RETURN_CODE_CANCEL -> {
                             Log.e(
@@ -327,7 +331,8 @@ class Player : AppCompatActivity() {
                 it.right += 150
             }
 
-            (player_center_icon.parent as View).touchDelegate = TouchDelegate(rect, player_center_icon)
+            (player_center_icon.parent as View).touchDelegate =
+                TouchDelegate(rect, player_center_icon)
         }
 
         player_queue?.setOnClickListener {
@@ -368,15 +373,17 @@ class Player : AppCompatActivity() {
         }
     }
 
-    private fun onBindDone(){
+    private fun onBindDone() {
         mService = Shared.mService
-        if (mService.mediaPlayer.isPlaying) Glide.with(this).load(R.drawable.pause).into(player_center_icon)
+        if (mService.mediaPlayer.isPlaying) Glide.with(this).load(R.drawable.pause).into(
+            player_center_icon
+        )
         else Glide.with(this).load(R.drawable.play).into(player_center_icon)
         songChangeEvent(GetSongChangedEvent())
     }
 
     private fun bindEvent() {
-        if(!Shared.serviceLinked()){
+        if (!Shared.serviceLinked()) {
             if (Shared.serviceRunning(MusicService::class.java, this@Player))
                 bindService(
                     Intent(this@Player, MusicService::class.java),
@@ -434,7 +441,7 @@ class Player : AppCompatActivity() {
         }
     }
 
-    private fun updateAlbumArt(customSongName: String? = null){
+    private fun updateAlbumArt(customSongName: String? = null) {
         img_albart.visibility = View.GONE
         note_ph.visibility = View.VISIBLE
         thread {
@@ -446,7 +453,7 @@ class Player : AppCompatActivity() {
 
                 val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
 
-                if(img.exists() && customSongName == null){
+                if (img.exists() && customSongName == null) {
                     runOnUiThread {
                         img_albart.visibility = View.VISIBLE
                         note_ph.visibility = View.GONE
@@ -457,7 +464,7 @@ class Player : AppCompatActivity() {
                             .into(img_albart)
                     }
                 } else {
-                    val albumArtRequest = if(customSongName == null){
+                    val albumArtRequest = if (customSongName == null) {
                         Request.Builder()
                             .url(Constants.DEEZER_API + current.name)
                             .get()
@@ -476,7 +483,7 @@ class Player : AppCompatActivity() {
 
                     val response = OkHttpClient().newCall(albumArtRequest).execute().body
                     try {
-                        if(response != null){
+                        if (response != null) {
                             val imgLink = JSONObject(response.string()).getJSONArray("data")
                                 .getJSONObject(0).getJSONObject("album").getString("cover_big")
 
@@ -491,19 +498,20 @@ class Player : AppCompatActivity() {
 
                                 val bmp = drw.toBitmap()
 
-                                if(img.exists()) img.delete()
+                                if (img.exists()) img.delete()
                                 Shared.saveAlbumArtToDisk(bmp, img)
 
                                 runOnUiThread {
                                     img_albart.setImageDrawable(drw)
                                     img_albart.visibility = View.VISIBLE
                                     note_ph.visibility = View.GONE
-                                    if(mService.mediaPlayer.isPlaying){
-                                        mService.showNotification(mService.generateAction(
-                                            R.drawable.notif_pause,
-                                            "Pause",
-                                            "ACTION_PAUSE"
-                                        ), true, bmp
+                                    if (mService.mediaPlayer.isPlaying) {
+                                        mService.showNotification(
+                                            mService.generateAction(
+                                                R.drawable.notif_pause,
+                                                "Pause",
+                                                "ACTION_PAUSE"
+                                            ), true, bmp
                                         )
                                     } else {
                                         mService.showNotification(
@@ -515,39 +523,40 @@ class Player : AppCompatActivity() {
                                         )
                                     }
                                 }
-                            } catch (e: Exception){
+                            } catch (e: Exception) {
                                 Log.e("ERR>", e.toString())
                             }
                         }
-                    } catch (e: Exception){
+                    } catch (e: Exception) {
                         Log.e("ERR>", e.toString())
                     }
                 }
-            } catch (e: Exception){
+            } catch (e: Exception) {
                 Log.e("ERR>", e.toString())
             }
         }
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent){
+    fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent) {
         mService.playQueue = Shared.getSongList(Constants.ableSongDir)
 
-        if(metaDataEvent.name != null){
+        if (metaDataEvent.name != null) {
             song_name.text = metaDataEvent.name
             mService.currentIndex = mService.playQueue.run {
-                this.indexOf(this.find { it.name == metaDataEvent.name } )
+                this.indexOf(this.find { it.name == metaDataEvent.name })
             }
         }
 
-        if(metaDataEvent.artist != null) artist_name.text = metaDataEvent.artist
+        if (metaDataEvent.artist != null) artist_name.text = metaDataEvent.artist
 
-        if(mService.mediaPlayer.isPlaying){
-            mService.showNotification(mService.generateAction(
-                R.drawable.pause,
-                "Pause",
-                "ACTION_PAUSE"
-            ), true
+        if (mService.mediaPlayer.isPlaying) {
+            mService.showNotification(
+                mService.generateAction(
+                    R.drawable.pause,
+                    "Pause",
+                    "ACTION_PAUSE"
+                ), true
             )
         } else {
             mService.showNotification(
@@ -591,10 +600,20 @@ class Player : AppCompatActivity() {
         player_seekbar.max = durationEvent.duration
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
-
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun exitEvent(exitEvent: ExitEvent) { finish() }
-
+    fun youtubeLenkEvent(youtubeLenkEvent: YoutubeLenkEvent) {
+        Log.d("YOutubeLenkEvent","Event ${youtubeLenkEvent.isGettingFromYoutube}")
+        youtubeProgressbar?.visibility = if (youtubeLenkEvent.isGettingFromYoutube) {
+            View.VISIBLE
+        } else {
+            View.INVISIBLE
+        }
+    }
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    fun exitEvent(exitEvent: ExitEvent) {
+        finish()
+    }
+    
     private fun getDurationFromMs(durtn: Int): String {
         val duration = durtn.toLong()
         val seconds = (TimeUnit.MILLISECONDS.toSeconds(duration) -
@@ -612,7 +631,7 @@ class Player : AppCompatActivity() {
     }
 
     override fun onResume() {
-        if(!Shared.serviceRunning(MusicService::class.java, this@Player))
+        if (!Shared.serviceRunning(MusicService::class.java, this@Player))
             finish()
         if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)

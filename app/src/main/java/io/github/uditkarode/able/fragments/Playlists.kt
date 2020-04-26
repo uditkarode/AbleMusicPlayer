@@ -23,6 +23,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -30,35 +32,38 @@ import android.view.LayoutInflater
 import android.view.SoundEffectConstants
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.work.*
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
-import com.afollestad.materialdialogs.callbacks.onCancel
-import com.afollestad.materialdialogs.callbacks.onShow
-import com.afollestad.materialdialogs.customview.customView
 import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaylistAdapter
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.services.SpotifyImportService
 import io.github.uditkarode.able.utils.Shared
-import io.github.uditkarode.able.utils.SpotifyImport
 import kotlinx.android.synthetic.main.playlists.*
 import org.greenrobot.eventbus.EventBus
 import java.lang.ref.WeakReference
+import java.util.concurrent.TimeUnit
 
-class Playlists: Fragment() {
+class Playlists : Fragment() {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? {
+    private lateinit var spotProgressBar: ProgressBar
+    private var isImporting = false
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
@@ -73,67 +78,95 @@ class Playlists: Fragment() {
         return inflater.inflate(R.layout.playlists, container, false)
     }
 
-    private fun progDialog(playId: String) {
-        val dialog = MaterialDialog(activity as Context).noAutoDismiss().show {
-            message(R.string.spot_adding)
-            customView(R.layout.spotify_progress)
-
-            onShow {
-                Toast.makeText(activity as Context, "Sit back and relax! We're importing the" +
-                        "songs right now.", Toast.LENGTH_LONG).show()
-            }
-            positiveButton(text = "")
-            negativeButton(text = "Cancel") {
-                this.cancel()
-            }
-            cancelable(false)
-            onCancel {
-                Toast.makeText(activity as Context, "Cancelled import!", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        SpotifyImport.importList(playId, activity as FragmentActivity, dialog)
-    }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        spotProgressBar = view.findViewById(R.id.spot_prog)
+        spotProgressBar.visibility = View.INVISIBLE
+        WorkManager.getInstance().getWorkInfosForUniqueWorkLiveData("SpotifyImport")
+            .observeForever { itt ->
+                if (itt.isNotEmpty()) {
+                    when (itt.first().state) {
+                        WorkInfo.State.RUNNING -> {
+                            spotProgressBar.visibility = View.VISIBLE
+                            isImporting = true
+                        }
+                        WorkInfo.State.SUCCEEDED -> {
+                            isImporting = false
+                            (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
+                                spotProgressBar.visibility = View.INVISIBLE
+                                playlistAdapter.update(Shared.getPlaylists())
+                                spotbut.setImageResource(R.drawable.ic_spot)
+                            }
+                        }
+                        WorkInfo.State.ENQUEUED -> {
+                            isImporting = true
+                            spotProgressBar.visibility = View.VISIBLE
+                            spotbut.setImageResource(R.drawable.ic_cancle_action)
+                        }
+                        WorkInfo.State.CANCELLED -> {
+                            spotProgressBar.visibility = View.INVISIBLE
+                            isImporting = false
+                            spotbut.setImageResource(R.drawable.ic_spot)
+                        }
+                    }
+                }
+            }
         playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists(), WeakReference(this@Playlists))
         playlists_rv.layoutManager = LinearLayoutManager(activity as Context)
         var inputId = ""
         spotbut.setOnClickListener {
             spotbut.playSoundEffect(SoundEffectConstants.CLICK)
-            MaterialDialog(activity as Context).show {
-                title(R.string.spot_title)
-                input(waitForPositiveButton = false) {dialog, textInp ->
-                    val inputField = dialog.getInputField()
-                    val validUrl = textInp.toString().replace("https://", "").split("/").toMutableList()
-                    var isValid = true
-                    if (validUrl.size <= 2 || validUrl[0] != "open.spotify.com" || validUrl[1] != "playlist") {
-                        isValid = false
-                    } else if (validUrl[2].contains("?")) {
-                        inputId = validUrl[2].split("?")[0]
-                    } else {
-                        inputId = validUrl[2]
-                    }
+            if (!isImporting) {
+                MaterialDialog(activity as Context).show {
+                    title(R.string.spot_title)
+                    input(waitForPositiveButton = false) { dialog, textInp ->
+                        val inputField = dialog.getInputField()
+                        val validUrl =
+                            textInp.toString().replace("https://", "").split("/").toMutableList()
+                        var isValid = true
+                        if (validUrl.size <= 2 || validUrl[0] != "open.spotify.com" || validUrl[1] != "playlist") {
+                            isValid = false
+                        } else if (validUrl[2].contains("?")) {
+                            inputId = validUrl[2].split("?")[0]
+                        } else {
+                            inputId = validUrl[2]
+                        }
 
-                    inputField.error = if (isValid) null else "Invalid Playlist URL!"
-                    dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+                        inputField.error = if (isValid) null else "Invalid Playlist URL!"
+                        dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
+                    }
+                    getInputLayout().boxBackgroundColor = Color.parseColor("#212121")
+                    positiveButton(R.string.pos) {
+                        val builder = Data.Builder()
+                        builder.put("inputId", inputId)
+                        WorkManager.getInstance()
+                            .beginUniqueWork(
+                                "SpotifyImport",
+                                ExistingWorkPolicy.KEEP,
+                                OneTimeWorkRequest.Builder(SpotifyImportService::class.java)
+                                    .setInputData(builder.build())
+                                    .setInitialDelay(0, TimeUnit.SECONDS)
+                                    .build()
+                            ).enqueue()
+                        Toast.makeText(
+                            activity as Context, "Sit back and relax! We're importing the" +
+                                    "songs right now.", Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
-                getInputLayout().boxBackgroundColor = Color.parseColor("#212121")
-                positiveButton(R.string.pos) {
-                    progDialog(inputId)
-                }
+            } else {
+                WorkManager.getInstance().cancelUniqueWork("SpotifyImport")
             }
         }
     }
 
-    fun bindEvent(){
-        if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
+    fun bindEvent() {
+        if (Shared.serviceRunning(MusicService::class.java, activity as Context)) {
             try {
                 (requireActivity().applicationContext).also {
                     it.bindService(Intent(it, MusicService::class.java), serviceConn, 0)
                 }
-            } catch(e: Exception){
+            } catch (e: Exception) {
                 Log.e("ERR>", e.toString())
             }
         }
@@ -141,7 +174,7 @@ class Playlists: Fragment() {
 
     override fun onStop() {
         super.onStop()
-        if(EventBus.getDefault().isRegistered(this))
+        if (EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().unregister(this)
     }
 }

@@ -83,4 +83,5 @@ dependencies {
     implementation "androidx.tonyodev.fetch2:xfetch2:3.1.4"
     implementation 'com.github.HaarigerHarald:android-youtubeExtractor:master-SNAPSHOT'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+    implementation 'androidx.work:work-runtime:2.1.0'
 }

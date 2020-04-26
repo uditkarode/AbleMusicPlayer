@@ -34,7 +34,17 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import android.util.SparseArray
 import androidx.annotation.RequiresApi
+import androidx.core.util.forEach
+import at.huber.youtubeExtractor.VideoMeta
+import at.huber.youtubeExtractor.YouTubeExtractor
+import at.huber.youtubeExtractor.YtFile
+import com.arthenica.mobileffmpeg.Config
+import com.arthenica.mobileffmpeg.FFmpeg
+import com.vincan.medialoader.MediaLoader
+import com.vincan.medialoader.MediaLoaderConfig
+import com.vincan.medialoader.download.DownloadListener
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
@@ -42,10 +52,13 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import java.io.File
 import kotlin.concurrent.thread
+import kotlin.system.exitProcess
 
-class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
+class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     private val binder = MusicBinder(this@MusicService)
     val mediaPlayer = MediaPlayer()
     var currentIndex = -1
@@ -61,9 +74,9 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             build()
         })
         setAcceptsDelayedFocusGain(false)
-        setOnAudioFocusChangeListener{
-            if(it == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
-            else if(it == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
+        setOnAudioFocusChangeListener {
+            if (it == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
+            else if (it == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
         }
         build()
     }
@@ -81,6 +94,8 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     private lateinit var builder: Notification.Builder
     private var wakeLock: PowerManager.WakeLock? = null
     private lateinit var mediaSession: MediaSession
+    private lateinit var mediaLoaderConfig: MediaLoaderConfig
+    private lateinit var mediaLoader: MediaLoader
 
     private val actions: Long = (PlaybackState.ACTION_PLAY
             or PlaybackState.ACTION_PAUSE
@@ -125,7 +140,10 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        EventBus.getDefault().post(ExitEvent())
+        EventBus.getDefault().unregister(this)
         unregisterReceiver(receiver)
+        exitProcess(0)
     }
 
     class MusicBinder(private val service: MusicService) : Binder() {
@@ -285,16 +303,24 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             if (mediaPlayer.isPlaying) mediaPlayer.stop()
             mediaPlayer.reset()
         }
-
-        mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
-        mediaPlayer.prepare()
-
-        EventBus.getDefault().postSticky(GetSongChangedEvent())
-        EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-        EventBus.getDefault().postSticky(GetIndexEvent(currentIndex))
+        if (playQueue[currentIndex].filePath == "") {
+            EventBus.getDefault().postSticky(YoutubeLenkEvent(true))
+            thread(start = true, isDaemon = true) {
+                streamAudio()
+            }
+        } else {
+            mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
+            mediaPlayer.prepare()
+            EventBus.getDefault().postSticky(GetSongChangedEvent())
+            EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
+            EventBus.getDefault().postSticky(GetIndexEvent(currentIndex))
+            setPlayPause(SongState.playing)
+            EventBus.getDefault().postSticky(YoutubeLenkEvent(false))
+        }
     }
 
-    @SuppressLint("WakelockTimeout") /* user might sleep with songs on, let it jam */
+    @SuppressLint("WakelockTimeout")
+    /* user might sleep with songs on, let it jam */
     private fun playAudio() {
         val audioManager =
             getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -304,9 +330,9 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         } else {
             @Suppress("DEPRECATION")
             audioManager.requestAudioFocus(
-               this, AudioManager.STREAM_MUSIC,
-               AudioManager.AUDIOFOCUS_GAIN
-           )
+                this, AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
         }
 
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -356,7 +382,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         }
     }
 
-    fun showNotif(){
+    fun showNotif() {
         showNotification(
             generateAction(
                 R.drawable.notif_play,
@@ -374,7 +400,7 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
             audioManager.abandonAudioFocusRequest(focusRequest)
         } else {
             @Suppress("DEPRECATION")
-            audioManager.abandonAudioFocus{}
+            audioManager.abandonAudioFocus {}
         }
 
         if (wakeLock?.isHeld == true)
@@ -434,17 +460,17 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
         val current = playQueue[currentIndex]
         val imageName = current.filePath.run {
             this.substring(this.lastIndexOf("/") + 1).run {
-                if(this.length >= 11) this.substring(0, 11)
+                if (this.length >= 11) this.substring(0, 11)
                 else this
             }
         }
         var largeIcon = BitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
 
-        if(image != null){
+        if (image != null) {
             largeIcon = image
         } else {
             val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
-            if(img.exists())
+            if (img.exists())
                 largeIcon = BitmapFactory.decodeFile(img.absolutePath)
         }
         val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
@@ -527,7 +553,93 @@ class MusicService: Service(),  AudioManager.OnAudioFocusChangeListener {
     }
 
     override fun onAudioFocusChange(focusChange: Int) {
-        if(focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
-        else if(focusChange == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
+        if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
+        else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
+    }
+
+    @SuppressLint("StaticFieldLeak")
+    fun streamAudio() {
+        try {
+            object : YouTubeExtractor(applicationContext) {
+                override fun onExtractionComplete(
+                    ytFiles: SparseArray<YtFile?>?,
+                    vMeta: VideoMeta?
+                ) {
+                    val toCache = true
+                    val audioFormats = ArrayList<YtFile>()
+                    ytFiles!!.forEach { _, value ->
+                        if (value!!.format.audioBitrate != -1) audioFormats.add(value)
+                    }
+                    val url = audioFormats.run { this[this.size - 1].url }
+                    val ext = audioFormats.run { this[this.size - 1].format.ext }
+                    if (toCache) {
+                        initMediaLoader()
+                        // TODO add mp3 support here
+                        mediaLoader.addDownloadListener(url, object : DownloadListener {
+                            override fun onProgress(url: String?, file: File?, progress: Int) {
+                                if (progress == 100) {
+                                    val current = playQueue[currentIndex]
+                                    val tempFile = File(
+                                        Constants.ableSongDir.absolutePath
+                                                + "/" + playQueue[currentIndex].youtubeLink.split("v=")[1] + ".tmp.$ext"
+                                    )
+                                    when (val rc = FFmpeg.execute(
+                                        "-i " +
+                                                "\"${tempFile.absolutePath}\" -c copy " +
+                                                "-metadata title=\"${current.name}\" " +
+                                                "-metadata artist=\"${current.artist}\"" +
+                                                " \"${tempFile.absolutePath.replace(".tmp", "")}\""
+                                    )) {
+                                        Config.RETURN_CODE_SUCCESS -> {
+                                            tempFile.delete()
+                                        }
+                                        Config.RETURN_CODE_CANCEL -> {
+                                            Log.e(
+                                                "ERR>",
+                                                "Command execution cancelled by user."
+                                            )
+                                        }
+                                        else -> {
+                                            Log.e(
+                                                "ERR>",
+                                                String.format(
+                                                    "Command execution failed with rc=%d and the output below.",
+                                                    rc
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            override fun onError(e: Throwable?) {
+                                Log.e("ERR>", e.toString())
+                            }
+                        })
+                        playQueue[currentIndex].filePath = mediaLoader.getProxyUrl(url)
+                    } else playQueue[currentIndex].filePath = url
+                    songChanged()
+                }
+            }.extract(playQueue[currentIndex].youtubeLink, true, true)
+        } catch (e: java.lang.Exception) {
+            nextSong()
+        }
+    }
+
+    private fun initMediaLoader() {
+        mediaLoaderConfig = MediaLoaderConfig.Builder(applicationContext)
+            .cacheRootDir(
+                Constants.ableSongDir
+            )
+            .cacheFileNameGenerator {
+                "${playQueue[currentIndex].youtubeLink.split("v=")[1]}.tmp.webm"
+            }
+            .downloadThreadPriority(Thread.NORM_PRIORITY)
+            .build()
+
+        mediaLoader = MediaLoader.getInstance(applicationContext)
+        mediaLoader.init(mediaLoaderConfig)
     }
 }
+
+////EventBus.getDefault().postSticky(YoutubeLenkEvent(true))

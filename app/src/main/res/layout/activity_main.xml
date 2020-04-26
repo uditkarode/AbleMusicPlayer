@@ -28,14 +28,21 @@
         <SeekBar
             android:id="@+id/activity_seekbar"
             android:layout_width="match_parent"
-            android:focusable="false"
             android:layout_height="1dp"
             android:background="#80fbfbfb"
+            android:focusable="false"
             android:paddingStart="0dp"
             android:paddingEnd="0dp"
-            android:splitTrack="false"
             android:progressTint="@color/white"
-            />
+            android:splitTrack="false" />
+
+        <ProgressBar
+            android:id="@+id/bb_ProgressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:indeterminate="true" />
 
         <LinearLayout
             android:layout_width="match_parent"

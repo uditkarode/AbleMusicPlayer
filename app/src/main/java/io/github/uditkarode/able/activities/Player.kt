@@ -371,6 +371,7 @@ class Player : AppCompatActivity() {
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
+        youtubeProgressbar?.visibility = View.INVISIBLE
     }
 
     private fun onBindDone() {
@@ -600,9 +601,8 @@ class Player : AppCompatActivity() {
         player_seekbar.max = durationEvent.duration
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED, sticky = true)
     fun youtubeLenkEvent(youtubeLenkEvent: YoutubeLenkEvent) {
-        Log.d("YOutubeLenkEvent","Event ${youtubeLenkEvent.isGettingFromYoutube}")
         youtubeProgressbar?.visibility = if (youtubeLenkEvent.isGettingFromYoutube) {
             View.VISIBLE
         } else {

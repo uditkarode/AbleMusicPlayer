@@ -85,7 +85,7 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
                 val mService = wr.get()?.mService!!
                 mService.setQueue(Shared.getSongsFromPlaylist(current))
                 mService.setIndex(0)
-//                mService.setPlayPause(SongState.playing)
+                mService.setPlayPause(SongState.playing)
             }
         }
 

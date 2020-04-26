@@ -122,7 +122,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 }
             }
         }
-
         (bb_icon.parent as View).post {
             val rect = Rect().also {
                 bb_icon.getHitRect(it)
@@ -180,6 +179,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
+        bb_ProgressBar?.visibility = View.INVISIBLE
     }
 
     @Subscribe
@@ -263,7 +263,16 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     fun durationUpdate(durationEvent: GetDurationEvent) {
         activity_seekbar.max = durationEvent.duration
     }
-
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED, sticky = true)
+    fun youtubeLenkEvent(youtubeLenkEvent: YoutubeLenkEvent) {
+      if ( youtubeLenkEvent.isGettingFromYoutube) {
+          bb_ProgressBar?.visibility =    View.VISIBLE
+          activity_seekbar.visibility = View.INVISIBLE
+      } else {
+          bb_ProgressBar?.visibility =    View.INVISIBLE
+          activity_seekbar.visibility =View.VISIBLE
+      }
+    }
     override fun attachBaseContext(newBase: Context?) {
         super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!))
     }

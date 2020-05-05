@@ -3,7 +3,7 @@ name: default
 
 steps:
   - name: Construction
-    pull: always
+    pull: if-not-exists
     image: uditkarode/android-sdk-arch:latest
     trigger:
       branch:

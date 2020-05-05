@@ -2,7 +2,7 @@ export TRIGGERING_SHA="$(git rev-parse HEAD)"
 curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
   -d "disable_web_page_preview=true" \
   -d "parse_mode=markdown" \
-  -d text="🤖 building with HEAD as [$(echo $TRIGGERING_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${TRIGGERING_SHA}) <DroneCI> 🤖"
+  -d text="🤖 \`building with HEAD as\` [$(echo $TRIGGERING_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${TRIGGERING_SHA}) 🤖"
 sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
 sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
 sed -i s/Debug/$(echo $TRIGGERING_SHA | cut -c1-8)/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
@@ -27,6 +27,6 @@ git push -u origin builds -f
 curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \
   -d "disable_web_page_preview=true" \
   -d "parse_mode=markdown" \
-  -d text="🤖 workflow for [$(echo $TRIGGERING_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${TRIGGERING_SHA}) finished 🤖"
+  -d text="🤖 \`workflow for\` [$(echo $TRIGGERING_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${TRIGGERING_SHA}) \`finished\` 🤖"
 curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendSticker" -d chat_id="-1001415196670" \
  -d "sticker=CAACAgUAAxkBAAJc416cRVy18acXP6HgtZSnxuuoJi01AAK9AAMtO2YjehthhceJ__sYBA"

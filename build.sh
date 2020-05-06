@@ -21,7 +21,7 @@ cd GitBuilds
 git add .
 git config --global user.name 'Bob The Builder'
 git config --global user.email 'bob@the.builder'
-git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}"
+git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/uditkarode/AbleMusicPlayer"
 git commit -m "bot: build installables <$(echo $TRIGGERING_SHA | cut -c1-8)>"
 git push -u origin builds -f
 curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \

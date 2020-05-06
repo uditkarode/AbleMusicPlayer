@@ -9,7 +9,7 @@ android {
     buildToolsVersion "29.0.3"
     defaultConfig {
         applicationId "io.github.uditkarode.able"
-        minSdkVersion 21
+        minSdkVersion 22
         targetSdkVersion 29
         versionCode 1
         versionName "EagerLion"
@@ -60,7 +60,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.1.0'
     implementation 'io.github.inflationx:calligraphy3:3.1.1'
     implementation 'io.github.inflationx:viewpump:2.0.3'
-    implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha02'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha03'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
     implementation 'com.squareup.okhttp3:okhttp:4.4.0'
@@ -83,5 +83,5 @@ dependencies {
     implementation "androidx.tonyodev.fetch2:xfetch2:3.1.4"
     implementation 'com.github.HaarigerHarald:android-youtubeExtractor:master-SNAPSHOT'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
-    implementation 'androidx.work:work-runtime:2.1.0'
+    implementation 'androidx.work:work-runtime:2.3.4'
 }

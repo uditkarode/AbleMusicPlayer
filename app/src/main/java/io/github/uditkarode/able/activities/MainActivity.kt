@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     @Subscribe
-    private fun bindEvent(bindServiceEvent: BindServiceEvent) {
+    private fun bindEvent(@Suppress("UNUSED_PARAMETER") bindServiceEvent: BindServiceEvent) {
         if (!Shared.serviceLinked()) {
             if (Shared.serviceRunning(MusicService::class.java, applicationContext))
                 bindService(
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun songChange(event: GetSongChangedEvent) {
+    fun songChange(@Suppress("UNUSED_PARAMETER") event: GetSongChangedEvent) {
         activity_seekbar.progress = 0
         activity_seekbar.max = Shared.mService.mediaPlayer.duration
 
@@ -295,7 +295,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun exitEvent(exitEvent: ExitEvent) { finish() }
+    fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) { finish() }
 
     override fun onStop() {
         super.onStop()

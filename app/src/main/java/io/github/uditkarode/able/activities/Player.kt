@@ -571,7 +571,7 @@ class Player : AppCompatActivity() {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songChangeEvent(songChangedEvent: GetSongChangedEvent) {
+    fun songChangeEvent(@Suppress("UNUSED_PARAMETER") songChangedEvent: GetSongChangedEvent) {
         updateAlbumArt()
 
         val duration = mService.mediaPlayer.duration
@@ -610,7 +610,7 @@ class Player : AppCompatActivity() {
         }
     }
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun exitEvent(exitEvent: ExitEvent) {
+    fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) {
         finish()
     }
     

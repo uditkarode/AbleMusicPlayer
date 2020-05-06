@@ -206,14 +206,13 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
     }
 
     @Subscribe
-    fun metadataUpdate(metaDataUpdate: GetMetaDataEvent) {
+    fun metadataUpdate(@Suppress("UNUSED_PARAMETER") metaDataUpdate: GetMetaDataEvent) {
         songList = Shared.getSongList(Constants.ableSongDir)
         notifyDataSetChanged()
     }
 
     @Subscribe
-    fun indexUpdate(sce: GetSongChangedEvent) {
-        sce.toString() /* because the IDE doesn't like it unused */
+    fun indexUpdate(@Suppress("UNUSED_PARAMETER") sce: GetSongChangedEvent) {
         playingSong = wr?.get()?.mService.run {
             this!!.playQueue[this.currentIndex]
         }

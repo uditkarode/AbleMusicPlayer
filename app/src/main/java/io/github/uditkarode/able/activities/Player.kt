@@ -57,7 +57,6 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.player.*
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
 import kotlinx.android.synthetic.main.player.next_song
@@ -371,7 +370,7 @@ class Player : AppCompatActivity() {
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
-        youtubeProgressbar?.visibility = View.INVISIBLE
+        youtubeProgressbar?.visibility = View.GONE
     }
 
     private fun onBindDone() {
@@ -602,11 +601,11 @@ class Player : AppCompatActivity() {
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED, sticky = true)
-    fun youtubeLenkEvent(youtubeLenkEvent: YoutubeLenkEvent) {
-        youtubeProgressbar?.visibility = if (youtubeLenkEvent.isGettingFromYoutube) {
+    fun youtubeLinkEvent(youtubeLinkEvent: YoutubeLinkEvent) {
+        youtubeProgressbar?.visibility = if (youtubeLinkEvent.isGettingFromYoutube) {
             View.VISIBLE
         } else {
-            View.INVISIBLE
+            View.GONE
         }
     }
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)

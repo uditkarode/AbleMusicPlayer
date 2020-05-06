@@ -31,17 +31,4 @@
         android:padding="15dp">
 
     </androidx.recyclerview.widget.RecyclerView>
-
-    <ProgressBar
-        android:id="@+id/spot_prog"
-        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-        android:layout_width="348dp"
-        android:layout_height="45dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginStart="0dp"
-        android:layout_marginBottom="11dp"
-        android:indeterminate="true"
-        android:indeterminateTint="@android:color/white" />
 </RelativeLayout>

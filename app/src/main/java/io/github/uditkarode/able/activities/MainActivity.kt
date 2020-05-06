@@ -179,7 +179,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
-        bb_ProgressBar?.visibility = View.INVISIBLE
+        bb_ProgressBar?.visibility = View.GONE
     }
 
     @Subscribe
@@ -264,12 +264,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         activity_seekbar.max = durationEvent.duration
     }
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED, sticky = true)
-    fun youtubeLenkEvent(youtubeLenkEvent: YoutubeLenkEvent) {
-      if ( youtubeLenkEvent.isGettingFromYoutube) {
+    fun youtubeLinkEvent(youtubeLinkEvent: YoutubeLinkEvent) {
+      if ( youtubeLinkEvent.isGettingFromYoutube) {
           bb_ProgressBar?.visibility =    View.VISIBLE
-          activity_seekbar.visibility = View.INVISIBLE
+          activity_seekbar.visibility = View.GONE
       } else {
-          bb_ProgressBar?.visibility =    View.INVISIBLE
+          bb_ProgressBar?.visibility =    View.GONE
           activity_seekbar.visibility =View.VISIBLE
       }
     }

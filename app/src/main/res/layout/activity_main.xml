@@ -39,7 +39,8 @@
         <ProgressBar
             android:id="@+id/bb_ProgressBar"
             style="?android:attr/progressBarStyleHorizontal"
-
+            android:visibility="gone"
+            android:padding="0dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:indeterminate="true" />

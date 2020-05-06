@@ -1,3 +1,21 @@
+/*
+    Copyright 2020 Harshit Singh <harsh.008.com@gmail.com>
+    Copyright 2020 Udit Karode <udit.karode@gmail.com>
+
+    This file is part of AbleMusicPlayer.
+
+    AbleMusicPlayer is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, version 3 of the License.
+
+    AbleMusicPlayer is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
+*/
 package io.github.uditkarode.able.services
 
 import android.app.Notification
@@ -5,7 +23,6 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import io.github.uditkarode.able.R
@@ -28,17 +45,15 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         }
         return try {
             val playId = inputData.getString("inputId")
-            Log.d("SpotifyService", "playid =  $playId")
             SpotifyImport.importList(playId.toString(), builder, applicationContext)
             Result.success()
         } catch (e: Exception) {
-            Log.d("SpotifyService", "Rtrying to Import Again We got some problem ")
             Result.retry()
         }
     }
 
     override fun onStopped() {
-        SpotifyImport.isImporting = false;
+        SpotifyImport.isImporting = false
         super.onStopped()
         (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
             it.cancel(3)
@@ -55,7 +70,7 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         builder.apply {
             setContentTitle("Initialising Import")
             setContentText("Please wait...")
-            setSubText("Music Import")
+            setSubText("Spotify Import")
             setSmallIcon(R.drawable.ic_download_icon)
             builder.setOngoing(true)
         }
@@ -77,6 +92,5 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
             notification = builder.build()
             notificationManager.notify(3, notification)
         }
-        Log.d("SpotifyService", "Notification channel Created")
     }
 }

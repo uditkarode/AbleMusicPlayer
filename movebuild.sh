@@ -6,7 +6,7 @@ if [ -d app/build/outputs/apk/release ]; then
             -F chat_id="-1001415196670"  \
             -F "disable_web_page_preview=true" \
             -F "parse_mode=Markdown" \
-            -F caption="\`$1 \($(nproc --all)\)\`"
+            -F caption="\`$1 (cores: $(nproc --all))\`"
           rm -rf app/build/outputs/apk
 	fi
 fi

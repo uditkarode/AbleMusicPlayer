@@ -1,6 +1,7 @@
 /*
     Copyright 2020 Rupansh Sekar <rupanshsekar@hotmail.com>
     Copyright 2020 Udit Karode <udit.karode@gmail.com>
+    Copyright 2020 Harshit Singh <harsh.008.com@gmail.com>
 
     This file is part of AbleMusicPlayer.
 
@@ -21,6 +22,7 @@ package io.github.uditkarode.able.utils
 
 import android.annotation.SuppressLint
 import android.app.Notification
+import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
@@ -44,8 +46,6 @@ object SpotifyImport {
     var isImporting = true
     @SuppressLint("StaticFieldLeak")
     fun importList(playId: String, builder: Notification.Builder, applicationContext: Context) {
-        Log.d("Spotify Import List ", "playid =  $playId")
-
         val authR = Request.Builder().url(auth).removeHeader("User-Agent")
             .addHeader("Accept", "application/json").addHeader("Accept-Language", "en").build()
         val resp = okClient.newCall(authR).execute()
@@ -66,9 +66,12 @@ object SpotifyImport {
             for (i in respPlayList.tracks.items.indices) {
                 val item = respPlayList.tracks.items[i]
                 if (isImporting) {
+                    val songName = "${item.track.name} - ${item.track.artists[0].name}".run {
+                        if(this.length > 22) this.substring(0, 22) else this
+                    }
                     NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentText("($i/${respPlayList.tracks.items.size})")
-                        builder.setContentTitle("${item.track.name}  ${item.track.artists[0].name})")
+                        builder.setContentText("$i of ${respPlayList.tracks.items.size}")
+                        builder.setContentTitle(songName)
                         builder.setProgress(100, 100, true)
                         builder.setOngoing(true)
                         notify(3, builder.build())
@@ -78,12 +81,6 @@ object SpotifyImport {
                         ytSearchRequestBuilder("${item.track.name} - ${item.track.artists[0].name}")
                     )
                     if (videos.size > 0) {
-                        Log.d(
-                            "Importify",
-                            "name is ${videos[0].text()}url is https://www.youtube.com" + videos[0].attr(
-                                "href"
-                            )
-                        )
                         try {
                             val song = Song(
                                 name = videos[0].text(),
@@ -91,26 +88,8 @@ object SpotifyImport {
                             )
                             song.artist = channels[0].text()
                             songArr.add(song)
-                            /**
-                             *           object : YouTubeExtractor(applicationContext) {
-                            override fun onExtractionComplete(
-                            ytFiles: SparseArray<YtFile?>?,
-                            vMeta: VideoMeta?
-                            ) {
-                            val audioFormats = ArrayList<YtFile>()
-
-                            ytFiles!!.forEach { _, value ->
-                            if (value!!.format.audioBitrate != -1) audioFormats.add(
-                            value
-                            )
-                            }
-                            song.filePath = audioFormats[audioFormats.size - 1].url
-
-                            }
-                            }.extract(song.youtubeLink, true, true)
-                             * */
                         } catch (e: Exception) {
-                            Log.d("Exception Occured", "$e   ")
+                            Log.e("ERR>", e.toString())
                             continue
                         }
                     }
@@ -120,14 +99,18 @@ object SpotifyImport {
             }
             if (songArr.size > 0) {
                 modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
-                NotificationManagerCompat.from(applicationContext).apply {
-                    builder.setContentText("Done! Enjoy your spotify songs!")
-                    builder.setOngoing(false)
-                    notify(3, builder.build())
+                (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                    it.cancel(3)
                 }
+
+                Toast.makeText(
+                    applicationContext,
+                    "Spotify import successful!",
+                    Toast.LENGTH_LONG
+                ).show()
             } else {
                 NotificationManagerCompat.from(applicationContext).apply {
-                    builder.setContentText("Couldn't find any songs on YouTube :( sorry!")
+                    builder.setContentText("Failed :( sorry!")
                     builder.setOngoing(false)
                     notify(3, builder.build())
                 }
@@ -139,7 +122,7 @@ object SpotifyImport {
             }
         } else {
             NotificationManagerCompat.from(applicationContext).apply {
-                builder.setContentText("Something went wrong. Please report this to us!")
+                builder.setContentText("Failed :(")
                 builder.setOngoing(false)
                 notify(3, builder.build())
             }

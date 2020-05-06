@@ -52,8 +52,6 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 import java.io.File
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
@@ -304,7 +302,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             mediaPlayer.reset()
         }
         if (playQueue[currentIndex].filePath == "") {
-            EventBus.getDefault().postSticky(YoutubeLenkEvent(true))
+            EventBus.getDefault().postSticky(YoutubeLinkEvent(true))
             thread(start = true, isDaemon = true) {
                 streamAudio()
             }
@@ -315,7 +313,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
             EventBus.getDefault().postSticky(GetIndexEvent(currentIndex))
             setPlayPause(SongState.playing)
-            EventBus.getDefault().postSticky(YoutubeLenkEvent(false))
+            EventBus.getDefault().postSticky(YoutubeLinkEvent(false))
         }
     }
 

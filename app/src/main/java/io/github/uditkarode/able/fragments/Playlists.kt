@@ -30,7 +30,6 @@ import android.view.LayoutInflater
 import android.view.SoundEffectConstants
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -56,7 +55,6 @@ class Playlists : Fragment() {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
-    private lateinit var spotProgressBar: ProgressBar
     private var isImporting = false
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -78,31 +76,25 @@ class Playlists : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        spotProgressBar = view.findViewById(R.id.spot_prog)
-        spotProgressBar.visibility = View.INVISIBLE
         WorkManager.getInstance(view.context).getWorkInfosForUniqueWorkLiveData("SpotifyImport")
             .observeForever { itt ->
                 if (itt.isNotEmpty()) {
                     when (itt.first().state) {
                         WorkInfo.State.RUNNING -> {
-                            spotProgressBar.visibility = View.VISIBLE
                             isImporting = true
                         }
                         WorkInfo.State.SUCCEEDED -> {
                             isImporting = false
                             (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
-                                spotProgressBar.visibility = View.INVISIBLE
                                 playlistAdapter.update(Shared.getPlaylists())
                                 spotbut.setImageResource(R.drawable.ic_spot)
                             }
                         }
                         WorkInfo.State.ENQUEUED -> {
                             isImporting = true
-                            spotProgressBar.visibility = View.VISIBLE
                             spotbut.setImageResource(R.drawable.ic_cancle_action)
                         }
                         WorkInfo.State.CANCELLED -> {
-                            spotProgressBar.visibility = View.INVISIBLE
                             isImporting = false
                             spotbut.setImageResource(R.drawable.ic_spot)
                         }

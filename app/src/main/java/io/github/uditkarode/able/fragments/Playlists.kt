@@ -23,8 +23,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Color
-import android.graphics.drawable.Drawable
-import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -82,7 +80,7 @@ class Playlists : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         spotProgressBar = view.findViewById(R.id.spot_prog)
         spotProgressBar.visibility = View.INVISIBLE
-        WorkManager.getInstance().getWorkInfosForUniqueWorkLiveData("SpotifyImport")
+        WorkManager.getInstance(view.context).getWorkInfosForUniqueWorkLiveData("SpotifyImport")
             .observeForever { itt ->
                 if (itt.isNotEmpty()) {
                     when (itt.first().state) {
@@ -108,6 +106,7 @@ class Playlists : Fragment() {
                             isImporting = false
                             spotbut.setImageResource(R.drawable.ic_spot)
                         }
+                        else -> {}
                     }
                 }
             }
@@ -139,7 +138,7 @@ class Playlists : Fragment() {
                     positiveButton(R.string.pos) {
                         val builder = Data.Builder()
                         builder.put("inputId", inputId)
-                        WorkManager.getInstance()
+                        WorkManager.getInstance(view.context)
                             .beginUniqueWork(
                                 "SpotifyImport",
                                 ExistingWorkPolicy.KEEP,
@@ -155,7 +154,7 @@ class Playlists : Fragment() {
                     }
                 }
             } else {
-                WorkManager.getInstance().cancelUniqueWork("SpotifyImport")
+                WorkManager.getInstance(view.context).cancelUniqueWork("SpotifyImport")
             }
         }
     }

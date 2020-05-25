@@ -36,6 +36,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.util.forEach
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import at.huber.youtubeExtractor.VideoMeta
@@ -50,6 +51,7 @@ import com.vincan.medialoader.download.DownloadListener
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -194,22 +196,36 @@ class Home: Fragment() {
 
                     val url = audioFormats.run { this[this.size-1].url }
                     val ext = audioFormats.run { this[this.size-1].format.ext }
+                    val bitrate = audioFormats.run { this[this.size - 1] }.format.audioBitrate
 
                     if(toCache){
-                        // TODO add mp3 support here
                         mediaLoader.addDownloadListener(url, object: DownloadListener {
                             override fun onProgress(url: String?, file: File?, progress: Int) {
                                 if(progress == 100){
                                     val current = mService!!.playQueue[mService!!.currentIndex]
                                     val tempFile = File(Constants.ableSongDir.absolutePath
                                             + "/" + songId + ".tmp.$ext")
-                                    when (val rc = FFmpeg.execute(
-                                        "-i " +
-                                                "\"${tempFile.absolutePath}\" -c copy " +
-                                                "-metadata title=\"${current.name}\" " +
-                                                "-metadata artist=\"${current.artist}\"" +
-                                                " \"${tempFile.absolutePath.replace(".tmp", "")}\""
-                                    )) {
+                                    val format =
+                                        if (PreferenceManager.getDefaultSharedPreferences(
+                                                context
+                                            )
+                                                .getString("format_key", "webm") == "mp3"
+                                        ) Format.MODE_MP3
+                                        else Format.MODE_WEBM
+
+                                    var command = "-i " +
+                                            "\"${tempFile.absolutePath}\" -c copy " +
+                                            "-metadata title=\"${current.name}\" " +
+                                            "-metadata artist=\"${current.artist}\" -y "
+
+                                    if (format == Format.MODE_MP3)
+                                        command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
+
+                                    command += "\"${tempFile.absolutePath.replace(".tmp", "")}/$id."
+
+                                    command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+
+                                    when (val rc = FFmpeg.execute(command)) {
                                         Config.RETURN_CODE_SUCCESS -> {
                                             tempFile.delete()
                                         }

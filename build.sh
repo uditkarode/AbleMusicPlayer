@@ -3,9 +3,9 @@ curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_
   -d "disable_web_page_preview=true" \
   -d "parse_mode=markdown" \
   -d text="🤖 \`building with HEAD as\` [$(echo $TRIGGERING_SHA | cut -c1-8)](https://github.com/uditkarode/AbleMusicPlayer/commit/${TRIGGERING_SHA}) 🤖"
-sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
-sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
-sed -i s/Debug/$(echo $TRIGGERING_SHA | cut -c1-8)/ app/src/main/java/io/github/uditkarode/able/utils/Constants.kt
+sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt
+sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt
+sed -i s/Debug/$(echo $TRIGGERING_SHA | cut -c1-8)/ app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt
 git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds
 cd GitBuilds
 git reset --hard 1798529c23bb57742e544e75b030aa2ce16baebb

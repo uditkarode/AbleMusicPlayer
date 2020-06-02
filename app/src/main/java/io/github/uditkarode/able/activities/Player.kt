@@ -600,7 +600,7 @@ class Player : AppCompatActivity() {
         player_seekbar.max = durationEvent.duration
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
-    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED, sticky = true)
+    @Subscribe(threadMode = ThreadMode.MAIN)
     fun youtubeLinkEvent(youtubeLinkEvent: YoutubeLinkEvent) {
         youtubeProgressbar?.visibility = if (youtubeLinkEvent.isGettingFromYoutube) {
             View.VISIBLE

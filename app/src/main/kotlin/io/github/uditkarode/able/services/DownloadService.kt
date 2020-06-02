@@ -18,7 +18,6 @@
 
 package io.github.uditkarode.able.services
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -85,7 +84,6 @@ class DownloadService : JobIntentService() {
         }
     }
 
-    @SuppressLint("StaticFieldLeak")
     private fun download(song: DownloadableSong) {
         thread {
             val bundle = Bundle()

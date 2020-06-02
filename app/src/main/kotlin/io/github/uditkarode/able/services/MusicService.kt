@@ -34,9 +34,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
-import android.util.SparseArray
 import androidx.annotation.RequiresApi
-import androidx.core.util.forEach
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
@@ -546,15 +544,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
     }
 
-    @SuppressLint("StaticFieldLeak")
-    fun streamAudio() {
+    private fun streamAudio() {
         try {
             val streamInfo = StreamInfo.getInfo(playQueue[currentIndex].youtubeLink)
             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
             val url = stream.url
-            val bitrate = stream.averageBitrate
-            val ext = stream.getFormat().suffix
             playQueue[currentIndex].filePath = url
             songChanged()
         } catch (e: java.lang.Exception) {

@@ -27,7 +27,6 @@ class CustomDownloader: Downloader() {
         val headers =
             request.headers()
         val dataToSend = request.dataToSend()
-        val localization = request.localization()
         val connection =
             URL(url).openConnection() as HttpsURLConnection
         connection.connectTimeout = 30 * 1000 // 30s

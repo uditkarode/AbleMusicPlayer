@@ -18,7 +18,6 @@
 
 package io.github.uditkarode.able.fragments
 
-import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -161,7 +160,6 @@ class Home: Fragment() {
         }
     }
 
-    @SuppressLint("StaticFieldLeak")
     fun streamAudio(song: Song, toCache: Boolean){
         if(!Shared.serviceRunning(MusicService::class.java, activity as Context)){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

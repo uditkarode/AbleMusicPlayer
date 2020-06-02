@@ -62,9 +62,10 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha03'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.4.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.6.0'
+    implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.19.5'
     implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1'
-    implementation 'org.jsoup:jsoup:1.10.3'
+    implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'io.github.dreierf:material-intro-screen:0.0.6'
     implementation 'com.airbnb.android:lottie:3.4.0'
     implementation 'co.revely:gradient:1.0.1'
@@ -79,8 +80,7 @@ dependencies {
     implementation 'com.takisoft.preferencex:preferencex:1.1.0'
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.0-beta6'
-    implementation "androidx.tonyodev.fetch2:xfetch2:3.1.4"
-    implementation 'com.github.HaarigerHarald:android-youtubeExtractor:master-SNAPSHOT'
+    implementation 'androidx.tonyodev.fetch2:xfetch2:3.1.4'
     implementation 'androidx.work:work-runtime:2.3.4'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 }

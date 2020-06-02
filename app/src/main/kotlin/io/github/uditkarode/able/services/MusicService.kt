@@ -37,9 +37,6 @@ import android.util.Log
 import android.util.SparseArray
 import androidx.annotation.RequiresApi
 import androidx.core.util.forEach
-import at.huber.youtubeExtractor.VideoMeta
-import at.huber.youtubeExtractor.YouTubeExtractor
-import at.huber.youtubeExtractor.YtFile
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
@@ -47,6 +44,7 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import org.greenrobot.eventbus.EventBus
+import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
@@ -551,20 +549,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     @SuppressLint("StaticFieldLeak")
     fun streamAudio() {
         try {
-            object : YouTubeExtractor(applicationContext) {
-                override fun onExtractionComplete(
-                    ytFiles: SparseArray<YtFile?>?,
-                    vMeta: VideoMeta?
-                ) {
-                    val audioFormats = ArrayList<YtFile>()
-                    ytFiles!!.forEach { _, value ->
-                        if (value!!.format.audioBitrate != -1) audioFormats.add(value)
-                    }
-                    val url = audioFormats.run { this[this.size - 1].url }
-                    playQueue[currentIndex].filePath = url
-                    songChanged()
-                }
-            }.extract(playQueue[currentIndex].youtubeLink, true, true)
+            val streamInfo = StreamInfo.getInfo(playQueue[currentIndex].youtubeLink)
+            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+
+            val url = stream.url
+            val bitrate = stream.averageBitrate
+            val ext = stream.getFormat().suffix
+            playQueue[currentIndex].filePath = url
+            songChanged()
         } catch (e: java.lang.Exception) {
             nextSong()
         }

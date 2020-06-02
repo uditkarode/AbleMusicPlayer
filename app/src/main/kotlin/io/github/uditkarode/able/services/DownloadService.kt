@@ -28,14 +28,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.ResultReceiver
 import android.util.Log
-import android.util.SparseArray
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.util.forEach
 import androidx.preference.PreferenceManager
-import at.huber.youtubeExtractor.VideoMeta
-import at.huber.youtubeExtractor.YouTubeExtractor
-import at.huber.youtubeExtractor.YtFile
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.tonyodev.fetch2.*
@@ -45,6 +40,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.models.DownloadableSong
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.utils.Constants
+import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
@@ -103,197 +99,189 @@ class DownloadService : JobIntentService() {
                 notify(2, builder.build())
             }
 
-            object : YouTubeExtractor(this) {
-                override fun onExtractionComplete(
-                    ytFiles: SparseArray<YtFile?>?,
-                    vMeta: VideoMeta?
-                ) {
-                    val audioFormats = ArrayList<YtFile>()
-                    ytFiles!!.forEach { _, value ->
-                        if (value!!.format.audioBitrate != -1) audioFormats.add(value)
-                    }
-                    val mediaFile = File(Constants.ableSongDir, id)
-                    val url = audioFormats.run { this[this.size - 1] }.url
-                    val bitrate = audioFormats.run { this[this.size - 1] }.format.audioBitrate
-                    val ext = audioFormats.run { this[this.size - 1] }.format.ext
+            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
+            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-                    if (!Constants.ableSongDir.exists()) {
-                        val mkdirs = Constants.ableSongDir.mkdirs()
-                        if (!mkdirs) throw IOException("Could not create output directory: ${Constants.ableSongDir}")
-                    }
+            val url = stream.url
+            val bitrate = stream.averageBitrate
+            val ext = stream.getFormat().suffix
+            val mediaFile = File(Constants.ableSongDir, id)
 
-                    val notifName =
-                        if (song.name.length > 25) song.name.substring(0, 25) + "..." else song.name
+            if (!Constants.ableSongDir.exists()) {
+                val mkdirs = Constants.ableSongDir.mkdirs()
+                if (!mkdirs) throw IOException("Could not create output directory: ${Constants.ableSongDir}")
+            }
 
-                    NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentTitle(notifName)
-                        builder.setOngoing(true)
-                        notify(2, builder.build())
-                    }
-                    try {
-                        val request = Request(url, mediaFile.absolutePath).also {
-                            it.priority = Priority.HIGH
-                            it.networkType = NetworkType.ALL
+            val notifName =
+                if (song.name.length > 25) song.name.substring(0, 25) + "..." else song.name
+
+            NotificationManagerCompat.from(applicationContext).apply {
+                builder.setContentTitle(notifName)
+                builder.setOngoing(true)
+                notify(2, builder.build())
+            }
+            try {
+                val request = Request(url, mediaFile.absolutePath).also {
+                    it.priority = Priority.HIGH
+                    it.networkType = NetworkType.ALL
+                }
+
+                fetch?.addListener(object : FetchListener {
+                    override fun onAdded(download: Download) {}
+
+                    override fun onCancelled(download: Download) {}
+
+                    override fun onCompleted(download: Download) {
+                        NotificationManagerCompat.from(applicationContext).apply {
+                            builder.setContentText("Saving...")
+                                .setProgress(100, 100, true)
+                            builder.setOngoing(true)
+                            notify(2, builder.build())
                         }
 
-                        fetch?.addListener(object : FetchListener {
-                            override fun onAdded(download: Download) {}
+                        var name = song.name
+                        name = name.replace(
+                            Regex("${song.artist}\\s[-,:]?\\s"),
+                            ""
+                        )
+                        name = name.replace(
+                            Regex("\\(([Oo]]fficial)?\\s([Mm]usic)?\\s([Vv]ideo)?\\s\\)"),
+                            ""
+                        )
+                        name = name.replace(
+                            Regex("\\(\\[?[Ll]yrics?\\)]?\\s?([Vv]ideo)?\\)?"),
+                            ""
+                        )
+                        name =
+                            name.replace(Regex("\\(?[aA]udio\\)?\\s"), "")
+                        name = name.replace(Regex("\\[Lyrics?]"), "")
+                        name = name.replace(
+                            Regex("\\(Official\\sMusic\\sVideo\\)"),
+                            ""
+                        )
+                        name = name.replace(Regex("\\[HD\\s&\\sHQ]"), "")
+                        val target = mediaFile.absolutePath.toString()
 
-                            override fun onCancelled(download: Download) {}
-
-                            override fun onCompleted(download: Download) {
-                                NotificationManagerCompat.from(applicationContext).apply {
-                                    builder.setContentText("Saving...")
-                                        .setProgress(100, 100, true)
-                                    builder.setOngoing(true)
-                                    notify(2, builder.build())
-                                }
-
-                                var name = song.name
-                                name = name.replace(
-                                    Regex("${song.artist}\\s[-,:]?\\s"),
-                                    ""
+                        var command = "-i " +
+                                "\"${target}\" -c copy " +
+                                "-metadata title=\"${name}\" " +
+                                "-metadata artist=\"${song.artist}\" -y "
+                        val format =
+                            if (PreferenceManager.getDefaultSharedPreferences(
+                                    applicationContext
                                 )
-                                name = name.replace(
-                                    Regex("\\(([Oo]]fficial)?\\s([Mm]usic)?\\s([Vv]ideo)?\\s\\)"),
-                                    ""
-                                )
-                                name = name.replace(
-                                    Regex("\\(\\[?[Ll]yrics?\\)]?\\s?([Vv]ideo)?\\)?"),
-                                    ""
-                                )
-                                name =
-                                    name.replace(Regex("\\(?[aA]udio\\)?\\s"), "")
-                                name = name.replace(Regex("\\[Lyrics?]"), "")
-                                name = name.replace(
-                                    Regex("\\(Official\\sMusic\\sVideo\\)"),
-                                    ""
-                                )
-                                name = name.replace(Regex("\\[HD\\s&\\sHQ]"), "")
-                                val target = mediaFile.absolutePath.toString()
+                                    .getString("format_key", "webm") == "mp3"
+                            ) Format.MODE_MP3
+                            else Format.MODE_WEBM
+                        if (format == Format.MODE_MP3)
+                            command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
-                                var command = "-i " +
-                                        "\"${target}\" -c copy " +
-                                        "-metadata title=\"${name}\" " +
-                                        "-metadata artist=\"${song.artist}\" -y "
-                                val format =
-                                    if (PreferenceManager.getDefaultSharedPreferences(
-                                            applicationContext
-                                        )
-                                            .getString("format_key", "webm") == "mp3"
-                                    ) Format.MODE_MP3
-                                    else Format.MODE_WEBM
-                                if (format == Format.MODE_MP3)
-                                    command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
+                        command += "\"${Constants.ableSongDir.absolutePath}/$id."
 
-                                command += "\"${Constants.ableSongDir.absolutePath}/$id."
-
-                                command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                                when (val rc = FFmpeg.execute(command)) {
-                                    Config.RETURN_CODE_SUCCESS -> {
-                                        File(target).delete()
-                                        if (currentIndex == songQueue.size) {
-                                            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-                                                it.cancel(2)
-                                            }
-                                            song.resultReceiver.send(123, bundle)
-                                            fetch?.removeListener(this)
-                                            songQueue.clear()
-                                            stopSelf()
-                                        } else {
-                                            (++currentIndex).also {
-                                                builder.setSubText("$it of ${songQueue.size}")
-                                            }
-                                            song.resultReceiver.send(123, bundle)
-                                            download(songQueue[currentIndex - 1])
-                                        }
+                        command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+                        when (val rc = FFmpeg.execute(command)) {
+                            Config.RETURN_CODE_SUCCESS -> {
+                                File(target).delete()
+                                if (currentIndex == songQueue.size) {
+                                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                                        it.cancel(2)
                                     }
-                                    Config.RETURN_CODE_CANCEL -> {
-                                        Log.e(
-                                            "ERR>",
-                                            "Command execution cancelled by user."
-                                        )
+                                    song.resultReceiver.send(123, bundle)
+                                    fetch?.removeListener(this)
+                                    songQueue.clear()
+                                    stopSelf()
+                                } else {
+                                    (++currentIndex).also {
+                                        builder.setSubText("$it of ${songQueue.size}")
                                     }
-                                    else -> {
-                                        Log.e(
-                                            "ERR>",
-                                            String.format(
-                                                "Command execution failed with rc=%d and the output below.",
-                                                rc
-                                            )
-                                        )
-                                    }
-                                }
-
-                            }
-
-                            override fun onDeleted(download: Download) {}
-
-                            override fun onDownloadBlockUpdated(
-                                download: Download,
-                                downloadBlock: DownloadBlock,
-                                totalBlocks: Int
-                            ) {
-
-                            }
-
-                            override fun onError(
-                                download: Download,
-                                error: Error,
-                                throwable: Throwable?
-                            ) {
-
-                            }
-
-                            override fun onPaused(download: Download) {
-
-                            }
-
-                            override fun onProgress(
-                                download: Download,
-                                etaInMilliSeconds: Long,
-                                downloadedBytesPerSecond: Long
-                            ) {
-                                NotificationManagerCompat.from(applicationContext).apply {
-                                    builder.setProgress(100, download.progress, false)
-                                    builder.setOngoing(true)
-                                    builder.setSubText("$currentIndex of ${songQueue.size}")
-                                    builder.setContentText("${etaInMilliSeconds / 1000}s left")
-                                    notify(2, builder.build())
+                                    song.resultReceiver.send(123, bundle)
+                                    download(songQueue[currentIndex - 1])
                                 }
                             }
-
-                            override fun onQueued(download: Download, waitingOnNetwork: Boolean) {
-
+                            Config.RETURN_CODE_CANCEL -> {
+                                Log.e(
+                                    "ERR>",
+                                    "Command execution cancelled by user."
+                                )
                             }
-
-                            override fun onRemoved(download: Download) {
-
+                            else -> {
+                                Log.e(
+                                    "ERR>",
+                                    String.format(
+                                        "Command execution failed with rc=%d and the output below.",
+                                        rc
+                                    )
+                                )
                             }
+                        }
 
-                            override fun onResumed(download: Download) {
-
-                            }
-
-                            override fun onStarted(
-                                download: Download,
-                                downloadBlocks: List<DownloadBlock>,
-                                totalBlocks: Int
-                            ) {
-
-                            }
-
-                            override fun onWaitingNetwork(download: Download) {
-
-                            }
-                        })
-
-                        fetch?.enqueue(request)
-                    } catch (e: Exception) {
-                        Log.e("ERR>", e.toString())
                     }
-                }
-            }.extract(song.youtubeLink, true, true)
+
+                    override fun onDeleted(download: Download) {}
+
+                    override fun onDownloadBlockUpdated(
+                        download: Download,
+                        downloadBlock: DownloadBlock,
+                        totalBlocks: Int
+                    ) {
+
+                    }
+
+                    override fun onError(
+                        download: Download,
+                        error: Error,
+                        throwable: Throwable?
+                    ) {
+
+                    }
+
+                    override fun onPaused(download: Download) {
+
+                    }
+
+                    override fun onProgress(
+                        download: Download,
+                        etaInMilliSeconds: Long,
+                        downloadedBytesPerSecond: Long
+                    ) {
+                        NotificationManagerCompat.from(applicationContext).apply {
+                            builder.setProgress(100, download.progress, false)
+                            builder.setOngoing(true)
+                            builder.setSubText("$currentIndex of ${songQueue.size}")
+                            builder.setContentText("${etaInMilliSeconds / 1000}s left")
+                            notify(2, builder.build())
+                        }
+                    }
+
+                    override fun onQueued(download: Download, waitingOnNetwork: Boolean) {
+
+                    }
+
+                    override fun onRemoved(download: Download) {
+
+                    }
+
+                    override fun onResumed(download: Download) {
+
+                    }
+
+                    override fun onStarted(
+                        download: Download,
+                        downloadBlocks: List<DownloadBlock>,
+                        totalBlocks: Int
+                    ) {
+
+                    }
+
+                    override fun onWaitingNetwork(download: Download) {
+
+                    }
+                })
+
+                fetch?.enqueue(request)
+            } catch (e: Exception) {
+                Log.e("ERR>", e.toString())
+            }
         }
     }
 

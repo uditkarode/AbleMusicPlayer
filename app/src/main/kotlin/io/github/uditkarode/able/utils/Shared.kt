@@ -29,17 +29,21 @@ import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.*
 import org.greenrobot.eventbus.EventBus
 import org.json.JSONArray
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.internal.http2.Header
+import org.schabi.newpipe.extractor.downloader.Downloader
+import org.schabi.newpipe.extractor.downloader.Response
 import java.io.*
 
 class Shared {
     companion object {
         var isFirstRun = true
+
         lateinit var mService: MusicService
 
         fun serviceLinked(): Boolean{

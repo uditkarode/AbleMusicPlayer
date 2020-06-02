@@ -40,11 +40,6 @@ import androidx.core.util.forEach
 import at.huber.youtubeExtractor.VideoMeta
 import at.huber.youtubeExtractor.YouTubeExtractor
 import at.huber.youtubeExtractor.YtFile
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
-import com.vincan.medialoader.MediaLoader
-import com.vincan.medialoader.MediaLoaderConfig
-import com.vincan.medialoader.download.DownloadListener
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
@@ -92,8 +87,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     private lateinit var builder: Notification.Builder
     private var wakeLock: PowerManager.WakeLock? = null
     private lateinit var mediaSession: MediaSession
-    private lateinit var mediaLoaderConfig: MediaLoaderConfig
-    private lateinit var mediaLoader: MediaLoader
 
     private val actions: Long = (PlaybackState.ACTION_PLAY
             or PlaybackState.ACTION_PAUSE
@@ -302,7 +295,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             mediaPlayer.reset()
         }
         if (playQueue[currentIndex].filePath == "") {
-            EventBus.getDefault().postSticky(YoutubeLinkEvent(true))
+            EventBus.getDefault().post(YoutubeLinkEvent(true))
             thread(start = true, isDaemon = true) {
                 streamAudio()
             }
@@ -313,7 +306,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
             EventBus.getDefault().postSticky(GetIndexEvent(currentIndex))
             setPlayPause(SongState.playing)
-            EventBus.getDefault().postSticky(YoutubeLinkEvent(false))
+            EventBus.getDefault().post(YoutubeLinkEvent(false))
         }
     }
 
@@ -563,59 +556,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                     ytFiles: SparseArray<YtFile?>?,
                     vMeta: VideoMeta?
                 ) {
-                    val toCache = true
                     val audioFormats = ArrayList<YtFile>()
                     ytFiles!!.forEach { _, value ->
                         if (value!!.format.audioBitrate != -1) audioFormats.add(value)
                     }
                     val url = audioFormats.run { this[this.size - 1].url }
-                    val ext = audioFormats.run { this[this.size - 1].format.ext }
-                    if (toCache) {
-                        initMediaLoader()
-                        // TODO add mp3 support here
-                        mediaLoader.addDownloadListener(url, object : DownloadListener {
-                            override fun onProgress(url: String?, file: File?, progress: Int) {
-                                if (progress == 100) {
-                                    val current = playQueue[currentIndex]
-                                    val tempFile = File(
-                                        Constants.ableSongDir.absolutePath
-                                                + "/" + playQueue[currentIndex].youtubeLink.split("v=")[1] + ".tmp.$ext"
-                                    )
-                                    when (val rc = FFmpeg.execute(
-                                        "-i " +
-                                                "\"${tempFile.absolutePath}\" -c copy " +
-                                                "-metadata title=\"${current.name}\" " +
-                                                "-metadata artist=\"${current.artist}\"" +
-                                                " \"${tempFile.absolutePath.replace(".tmp", "")}\""
-                                    )) {
-                                        Config.RETURN_CODE_SUCCESS -> {
-                                            tempFile.delete()
-                                        }
-                                        Config.RETURN_CODE_CANCEL -> {
-                                            Log.e(
-                                                "ERR>",
-                                                "Command execution cancelled by user."
-                                            )
-                                        }
-                                        else -> {
-                                            Log.e(
-                                                "ERR>",
-                                                String.format(
-                                                    "Command execution failed with rc=%d and the output below.",
-                                                    rc
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            override fun onError(e: Throwable?) {
-                                Log.e("ERR>", e.toString())
-                            }
-                        })
-                        playQueue[currentIndex].filePath = mediaLoader.getProxyUrl(url)
-                    } else playQueue[currentIndex].filePath = url
+                    playQueue[currentIndex].filePath = url
                     songChanged()
                 }
             }.extract(playQueue[currentIndex].youtubeLink, true, true)
@@ -623,21 +569,4 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             nextSong()
         }
     }
-
-    private fun initMediaLoader() {
-        mediaLoaderConfig = MediaLoaderConfig.Builder(applicationContext)
-            .cacheRootDir(
-                Constants.ableSongDir
-            )
-            .cacheFileNameGenerator {
-                "${playQueue[currentIndex].youtubeLink.split("v=")[1]}.tmp.webm"
-            }
-            .downloadThreadPriority(Thread.NORM_PRIORITY)
-            .build()
-
-        mediaLoader = MediaLoader.getInstance(applicationContext)
-        mediaLoader.init(mediaLoaderConfig)
-    }
 }
-
-////EventBus.getDefault().postSticky(YoutubeLenkEvent(true))

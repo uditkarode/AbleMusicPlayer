@@ -263,14 +263,14 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     fun durationUpdate(durationEvent: GetDurationEvent) {
         activity_seekbar.max = durationEvent.duration
     }
-    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED, sticky = true)
+    @Subscribe(threadMode = ThreadMode.MAIN)
     fun youtubeLinkEvent(youtubeLinkEvent: YoutubeLinkEvent) {
       if ( youtubeLinkEvent.isGettingFromYoutube) {
-          bb_ProgressBar?.visibility =    View.VISIBLE
+          bb_ProgressBar?.visibility =  View.VISIBLE
           activity_seekbar.visibility = View.GONE
       } else {
-          bb_ProgressBar?.visibility =    View.GONE
-          activity_seekbar.visibility =View.VISIBLE
+          bb_ProgressBar?.visibility = View.GONE
+          activity_seekbar.visibility = View.VISIBLE
       }
     }
     override fun attachBaseContext(newBase: Context?) {

@@ -57,12 +57,14 @@ import io.github.uditkarode.able.services.DownloadService.Companion.enqueueDownl
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.ServiceResultReceiver
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.CustomDownloader
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.OkHttpClient
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import org.schabi.newpipe.extractor.NewPipe
 import java.util.*
 import kotlin.concurrent.thread
 
@@ -91,6 +93,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(applicationContext, Welcome::class.java))
             } else startActivity(Intent(applicationContext, Splash::class.java))
         }
+
+        thread {
+            NewPipe.init(CustomDownloader.instance)
+        }
+
         mServiceResultReceiver = ServiceResultReceiver(Handler())
         mServiceResultReceiver.setReceiver(this)
         super.onCreate(savedInstanceState)

@@ -28,20 +28,15 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
-import android.util.SparseArray
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.util.forEach
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import at.huber.youtubeExtractor.VideoMeta
-import at.huber.youtubeExtractor.YouTubeExtractor
-import at.huber.youtubeExtractor.YtFile
 import co.revely.gradient.RevelyGradient
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
@@ -59,6 +54,7 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
+import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
@@ -184,83 +180,74 @@ class Home: Fragment() {
             mService?.currentIndex = 0
             mService?.showNotif()
 
-            object : YouTubeExtractor(requireActivity()) {
-                override fun onExtractionComplete(
-                    ytFiles: SparseArray<YtFile?>?,
-                    vMeta: VideoMeta?
-                ) {
-                    val audioFormats = ArrayList<YtFile>()
-                    ytFiles!!.forEach { _, value ->
-                        if(value!!.format.audioBitrate != -1) audioFormats.add(value)
-                    }
+            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
+            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-                    val url = audioFormats.run { this[this.size-1].url }
-                    val ext = audioFormats.run { this[this.size-1].format.ext }
-                    val bitrate = audioFormats.run { this[this.size - 1] }.format.audioBitrate
+            val url = stream.url
+            val bitrate = stream.averageBitrate
+            val ext = stream.getFormat().suffix
 
-                    if(toCache){
-                        mediaLoader.addDownloadListener(url, object: DownloadListener {
-                            override fun onProgress(url: String?, file: File?, progress: Int) {
-                                if(progress == 100){
-                                    val current = mService!!.playQueue[mService!!.currentIndex]
-                                    val tempFile = File(Constants.ableSongDir.absolutePath
-                                            + "/" + songId + ".tmp.$ext")
-                                    val format =
-                                        if (PreferenceManager.getDefaultSharedPreferences(
-                                                context
-                                            )
-                                                .getString("format_key", "webm") == "mp3"
-                                        ) Format.MODE_MP3
-                                        else Format.MODE_WEBM
+            if(toCache){
+                mediaLoader.addDownloadListener(url, object: DownloadListener {
+                    override fun onProgress(url: String?, file: File?, progress: Int) {
+                        if(progress == 100){
+                            val current = mService!!.playQueue[mService!!.currentIndex]
+                            val tempFile = File(Constants.ableSongDir.absolutePath
+                                    + "/" + songId + ".tmp.$ext")
+                            val format =
+                                if (PreferenceManager.getDefaultSharedPreferences(
+                                        context
+                                    )
+                                        .getString("format_key", "webm") == "mp3"
+                                ) Format.MODE_MP3
+                                else Format.MODE_WEBM
 
-                                    var command = "-i " +
-                                            "\"${tempFile.absolutePath}\" -c copy " +
-                                            "-metadata title=\"${current.name}\" " +
-                                            "-metadata artist=\"${current.artist}\" -y "
+                            var command = "-i " +
+                                    "\"${tempFile.absolutePath}\" -c copy " +
+                                    "-metadata title=\"${current.name}\" " +
+                                    "-metadata artist=\"${current.artist}\" -y "
 
-                                    if (format == Format.MODE_MP3)
-                                        command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
+                            if (format == Format.MODE_MP3)
+                                command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
-                                    command += "\"${tempFile.absolutePath.replace(".tmp", "")}/$id."
+                            command += "\"${tempFile.absolutePath.replace(".tmp", "")}/$id."
 
-                                    command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+                            command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
 
-                                    when (val rc = FFmpeg.execute(command)) {
-                                        Config.RETURN_CODE_SUCCESS -> {
-                                            tempFile.delete()
-                                        }
-                                        Config.RETURN_CODE_CANCEL -> {
-                                            Log.e(
-                                                "ERR>",
-                                                "Command execution cancelled by user."
-                                            )
-                                        }
-                                        else -> {
-                                            Log.e(
-                                                "ERR>",
-                                                String.format(
-                                                    "Command execution failed with rc=%d and the output below.",
-                                                    rc
-                                                )
-                                            )
-                                        }
-                                    }
+                            when (val rc = FFmpeg.execute(command)) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    tempFile.delete()
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
                                 }
                             }
-
-                            override fun onError(e: Throwable?) {
-                                Log.e("ERR>", e.toString())
-                            }
-                        })
-
-                        song.filePath = mediaLoader.getProxyUrl(url)
+                        }
                     }
-                    else song.filePath = url
-                    mService?.playQueue = arrayListOf(song)
-                    mService?.setIndex(0)
-                    mService?.setPlayPause(SongState.playing)
-                }
-            }.extract(song.youtubeLink, true, true)
+
+                    override fun onError(e: Throwable?) {
+                        Log.e("ERR>", e.toString())
+                    }
+                })
+
+                song.filePath = mediaLoader.getProxyUrl(url)
+            }
+            else song.filePath = url
+            mService?.playQueue = arrayListOf(song)
+            mService?.setIndex(0)
+            mService?.setPlayPause(SongState.playing)
         }
     }
 

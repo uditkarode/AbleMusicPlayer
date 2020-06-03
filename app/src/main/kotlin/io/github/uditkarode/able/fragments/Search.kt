@@ -34,10 +34,7 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ResultAdapter
 import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.utils.Shared.Companion.ytSearchRequestBuilder
-import io.github.uditkarode.able.utils.Shared.Companion.ytSearcher
 import kotlinx.android.synthetic.main.search.*
-import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -48,7 +45,6 @@ import kotlin.concurrent.thread
 
 class Search : Fragment() {
     private lateinit var itemPressed: SongCallback
-    private var okClient = OkHttpClient()
 
     interface SongCallback {
         fun sendItem(song: Song)
@@ -97,11 +93,11 @@ class Search : Fragment() {
                 }
 
                 hideKeyboard(activity as Activity)
-                val request = ytSearchRequestBuilder(text.toString())
                 val resultArray = ArrayList<Song>()
 
                 try {
                     if(text.toString().startsWith("!")){
+                        Log.e("INFO", "Searching YTMusic")
                         thread {
                             val query = text.replaceFirst(Regex("!\\s*"), "")
                             val extractor = YouTube.getSearchExtractor(query, singletonList(
@@ -130,22 +126,17 @@ class Search : Fragment() {
                         }
                     } else {
                         thread {
-                            val (videos, channels) = ytSearcher(okClient, request)
+                            val extractor = YouTube.getSearchExtractor(text.toString(), singletonList(
+                                YoutubeSearchQueryHandlerFactory.VIDEOS), "")
+                            extractor.fetchPage()
 
-                            /* this is pathetic */
-                            val compatMin = fun(a: Int, b: Int) = if (a <= b) a else b
-
-                            for (i in 0 until compatMin(videos.size, channels.size)) {
-                                val element = videos[i]
-                                val finalLink = "https://www.youtube.com" + element.attr("href")
-                                if (element.text() != channels[i].text())
-                                    resultArray.add(
-                                        Song(
-                                            name = element.text(),
-                                            youtubeLink = finalLink,
-                                            artist = channels[i].text()
-                                        )
-                                    )
+                            for(song in extractor.initialPage.items) {
+                                val ex = song as StreamInfoItem
+                                resultArray.add(Song(
+                                    name = ex.name,
+                                    artist = ex.uploaderName,
+                                    youtubeLink = ex.url
+                                ))
                             }
 
                             activity?.runOnUiThread {
@@ -161,7 +152,6 @@ class Search : Fragment() {
                         }
                     }
                 } catch (e: IOException) {
-                    Log.e("Err", e.toString())
                     Toast.makeText(activity as Context, "Something failed!", Toast.LENGTH_SHORT)
                         .show()
                 }

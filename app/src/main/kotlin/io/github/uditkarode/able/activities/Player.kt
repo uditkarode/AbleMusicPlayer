@@ -367,10 +367,8 @@ class Player : AppCompatActivity() {
 
     private fun onBindDone() {
         mService = Shared.mService
-        if (mService.mediaPlayer.isPlaying) Glide.with(this).load(R.drawable.pause).into(
-            player_center_icon
-        )
-        else Glide.with(this).load(R.drawable.play).into(player_center_icon)
+        if (mService.mediaPlayer.isPlaying) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
+        else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
         songChangeEvent(GetSongChangedEvent())
     }
 

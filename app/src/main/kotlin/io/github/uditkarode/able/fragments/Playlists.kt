@@ -113,7 +113,8 @@ class Playlists : Fragment() {
                     input(waitForPositiveButton = false) { dialog, textInp ->
                         val inputField = dialog.getInputField()
                         val validUrl =
-                            textInp.toString().replace("https://", "").split("/").toMutableList()
+                            textInp.toString().replace("https://", "")
+                                .split("/").toMutableList()
                         var isValid = true
                         if (validUrl.size <= 2 || validUrl[0] != "open.spotify.com" || validUrl[1] != "playlist") {
                             isValid = false

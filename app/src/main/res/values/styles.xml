@@ -9,7 +9,9 @@
         <item name="android:navigationBarColor">#1b1b1b</item>
     </style>
 
-    <style name="SettingsTheme" parent="Theme.AppCompat.DayNight.DarkActionBar"/>
+    <style name="SettingsTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">
+        <item name="android:textColor">#fbfbfb</item>
+    </style>
 
     <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
         <item name="android:textColorPrimary">#fbfbfb</item>

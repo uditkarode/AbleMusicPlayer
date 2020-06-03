@@ -185,9 +185,9 @@ class Shared {
             var artist = "???"
             for (f in musicFolder.listFiles()?:arrayOf()) {
                 if(!f.isDirectory){
-                    if(f.extension == "tmp" || f.nameWithoutExtension.length != 11
+                    if(f.extension == "tmp" ||
+                        (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
                         || (f.extension != "webm" && f.extension != "mp3")){
-                        //f.delete()
                         continue
                     }
 

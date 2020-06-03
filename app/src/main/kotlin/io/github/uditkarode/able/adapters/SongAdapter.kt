@@ -211,7 +211,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
         notifyDataSetChanged()
     }
 
-    @Subscribe
+    @Subscribe(threadMode = ThreadMode.MAIN)
     fun indexUpdate(@Suppress("UNUSED_PARAMETER") sce: GetSongChangedEvent) {
         playingSong = wr?.get()?.mService.run {
             this!!.playQueue[this.currentIndex]

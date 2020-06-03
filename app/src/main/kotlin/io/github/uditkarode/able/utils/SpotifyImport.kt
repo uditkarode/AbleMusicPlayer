@@ -26,9 +26,12 @@ import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tonyodev.fetch2.*
@@ -46,6 +49,7 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.concurrent.thread
 
 object SpotifyImport {
     private const val auth =
@@ -107,6 +111,21 @@ object SpotifyImport {
 
                         val streamInfo = StreamInfo.getInfo(toAdd.url)
                         val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+
+                        thread {
+                            if(toAdd.thumbnailUrl.isNotBlank()) {
+                                val drw = Glide
+                                    .with(applicationContext)
+                                    .load(toAdd.thumbnailUrl)
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .submit()
+                                    .get()
+
+                                val img = File(Constants.ableSongDir.absolutePath + "/album_art", fileName)
+                                Shared.saveAlbumArtToDisk(drw.toBitmap(), img)
+                            }
+                        }
 
                         val url = stream.url
                         val bitrate = stream.averageBitrate

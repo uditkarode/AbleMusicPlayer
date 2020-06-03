@@ -96,10 +96,12 @@ class Search : Fragment() {
                 val resultArray = ArrayList<Song>()
 
                 try {
-                    if(text.toString().startsWith("!")){
+                    if(text.toString().startsWith(",") || text.toString().startsWith("!")){
                         Log.e("INFO", "Searching YTMusic")
                         thread {
-                            val query = text.replaceFirst(Regex("!\\s*"), "")
+                            val query = text
+                                .replaceFirst(Regex("^,\\s*"), "")
+                                .replaceFirst(Regex("^!\\s*"), "")
                             val extractor = YouTube.getSearchExtractor(query, singletonList(
                                 YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
                             extractor.fetchPage()
@@ -109,7 +111,8 @@ class Search : Fragment() {
                                 resultArray.add(Song(
                                     name = ex.name,
                                     artist = ex.uploaderName,
-                                    youtubeLink = ex.url
+                                    youtubeLink = ex.url,
+                                    ytmThumbnail = song.thumbnailUrl
                                 ))
                             }
 
@@ -135,7 +138,8 @@ class Search : Fragment() {
                                 resultArray.add(Song(
                                     name = ex.name,
                                     artist = ex.uploaderName,
-                                    youtubeLink = ex.url
+                                    youtubeLink = ex.url,
+                                    ytmThumbnail = song.thumbnailUrl
                                 ))
                             }
 

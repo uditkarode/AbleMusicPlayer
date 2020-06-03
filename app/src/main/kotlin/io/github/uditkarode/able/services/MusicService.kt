@@ -445,12 +445,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
         val current = playQueue[currentIndex]
-        val imageName = current.filePath.run {
-            this.substring(this.lastIndexOf("/") + 1).run {
-                if (this.length >= 11) this.substring(0, 11)
-                else this
-            }
-        }
+        val imageName = File(current.filePath).nameWithoutExtension
         var largeIcon = BitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
 
         if (image != null) {

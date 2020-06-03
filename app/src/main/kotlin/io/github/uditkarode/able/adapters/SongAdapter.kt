@@ -164,7 +164,12 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                 message(text = "Are you sure you want to delete ${current.name} (${current.filePath}) " +
                         "from disk?")
                 positiveButton(text = "Delete"){
-                    File(current.filePath).delete()
+                    val curFile = File(current.filePath)
+                    val curArt =
+                        File(Constants.ableSongDir.absolutePath + "/album_art", curFile.nameWithoutExtension)
+
+                    curFile.delete()
+                    curArt.delete()
                     songList.removeAt(position)
                     notifyDataSetChanged()
                 }
@@ -228,15 +233,5 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
     @Subscribe
     fun getQueueUpdate(songEvent: GetQueueEvent){
         songList = songEvent.queue
-    }
-
-    fun temp(song: Song){
-        if(originalLength == songList.size){
-            songList.add(song.run { song.placeholder = true ; song })
-        } else {
-            songList[originalLength] = song
-        }
-
-        notifyDataSetChanged()
     }
 }

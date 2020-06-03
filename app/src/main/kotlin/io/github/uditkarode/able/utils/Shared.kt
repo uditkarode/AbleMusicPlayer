@@ -51,19 +51,15 @@ class Shared {
         }
 
         fun saveAlbumArtToDisk(image: Bitmap, imageFile: File) {
-            val storageDir = File(Constants.ableSongDir.absolutePath + "/album_art")
-            var success = false
-            if (!storageDir.exists()) {
-                success = storageDir.mkdirs()
+            File(Constants.ableSongDir.absolutePath + "/album_art").run {
+                if (!this.exists()) this.mkdirs()
             }
-            if (success) {
-                try {
-                    val fOut: OutputStream = FileOutputStream(imageFile)
-                    image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
-                    fOut.close()
-                } catch (e: java.lang.Exception) {
-                    e.printStackTrace()
-                }
+            try {
+                val fOut: OutputStream = FileOutputStream(imageFile)
+                image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
+                fOut.close()
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
             }
         }
 

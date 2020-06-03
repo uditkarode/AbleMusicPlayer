@@ -52,7 +52,7 @@ class Shared {
 
         fun saveAlbumArtToDisk(image: Bitmap, imageFile: File) {
             val storageDir = File(Constants.ableSongDir.absolutePath + "/album_art")
-            var success = true
+            var success = false
             if (!storageDir.exists()) {
                 success = storageDir.mkdirs()
             }

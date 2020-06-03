@@ -318,13 +318,17 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 songL.add(song.name)
                 songL.add(song.youtubeLink)
                 songL.add(song.artist)
+                songL.add(song.ytmThumbnail)
                 val serviceIntentService = Intent(applicationContext, DownloadService::class.java)
                     .putStringArrayListExtra("song", songL)
                     .putExtra("receiver", mServiceResultReceiver)
                 enqueueDownload(this, serviceIntentService)
                 Toast.makeText(applicationContext, "${song.name} is added to Download Queue", Toast.LENGTH_SHORT).show()
-                //mainContent.currentItem = -1
-                //bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+                /*
+                    * takes user back to the home screen when download starts *
+                    mainContent.currentItem = -1
+                    bottomNavigation.menu.findItem(R.id.home_menu)?.isChecked = true
+                 */
             }
 
             MusicMode.stream -> {

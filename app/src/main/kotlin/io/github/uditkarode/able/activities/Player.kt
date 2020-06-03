@@ -469,6 +469,7 @@ class Player : AppCompatActivity() {
                         Palette.from(bmp).generate {
                             setBgColor(it?.getDominantColor(0x002171)?:0x002171)
                         }
+                        bmp.recycle()
                         }
                     } else {
                     val albumArtRequest = if (customSongName == null) {
@@ -510,6 +511,7 @@ class Player : AppCompatActivity() {
 
                                 if (img.exists()) img.delete()
                                 Shared.saveAlbumArtToDisk(bmp, img)
+                                bmp.recycle()
 
                                 runOnUiThread {
                                     img_albart.setImageDrawable(drw)

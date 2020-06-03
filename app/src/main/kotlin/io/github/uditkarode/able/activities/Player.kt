@@ -22,6 +22,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
@@ -35,6 +36,7 @@ import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.palette.graphics.Palette
 import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
@@ -156,17 +158,7 @@ class Player : AppCompatActivity() {
             mService.setNextPrevious(next = false)
         }
 
-        RevelyGradient
-            .linear()
-            .colors(
-                intArrayOf(
-                    Color.parseColor("#002171"),
-                    Color.parseColor("#212121")
-                )
-            )
-            .angle(90f)
-            .alpha(0.2f)
-            .onBackgroundOf(player_bg)
+        setBgColor(0x002171)
 
         player_seekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
@@ -418,6 +410,20 @@ class Player : AppCompatActivity() {
         }
     }
 
+    private fun setBgColor(color: Int){
+        RevelyGradient
+            .linear()
+            .colors(
+                intArrayOf(
+                    color,
+                    Color.parseColor("#212121")
+                )
+            )
+            .angle(90f)
+            .alpha(0.2f)
+            .onBackgroundOf(player_bg)
+    }
+
     @Subscribe
     fun getPlayPauseEvent(pp: GetPlayPauseEvent) {
         playPauseEvent(pp.state)
@@ -462,8 +468,13 @@ class Player : AppCompatActivity() {
                             .diskCacheStrategy(DiskCacheStrategy.NONE)
                             .skipMemoryCache(true)
                             .into(img_albart)
-                    }
-                } else {
+
+                        val bmp = BitmapFactory.decodeFile(img.toString())
+                        Palette.from(bmp).generate {
+                            setBgColor(it?.getDominantColor(0x002171)?:0x002171)
+                        }
+                        }
+                    } else {
                     val albumArtRequest = if (customSongName == null) {
                         Request.Builder()
                             .url(Constants.DEEZER_API + current.name)
@@ -497,6 +508,9 @@ class Player : AppCompatActivity() {
                                     .get()
 
                                 val bmp = drw.toBitmap()
+                                Palette.from(bmp).generate {
+                                    setBgColor(it?.getDominantColor(0x002171)?:0x002171)
+                                }
 
                                 if (img.exists()) img.delete()
                                 Shared.saveAlbumArtToDisk(bmp, img)

@@ -25,7 +25,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.media.*
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
@@ -35,6 +34,8 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.glidebitmappool.GlideBitmapFactory
+import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
@@ -53,6 +54,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     var currentIndex = -1
     private var onShuffle = false
     private var onRepeat = false
+    private lateinit var largeIcon: Bitmap
     var playQueue = ArrayList<Song>()
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -96,6 +98,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         super.onCreate()
 
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+
+        GlideBitmapPool.initialize(10 * 1024 * 1024)
+        largeIcon = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
+        GlideBitmapPool.putBitmap(largeIcon)
 
         mediaSession = MediaSession(this, "AbleSession")
 
@@ -285,6 +291,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     }
 
     private fun songChanged() {
+        GlideBitmapPool.clearMemory()
         if (!isInstantiated) isInstantiated = true
         else {
             if (mediaPlayer.isPlaying) mediaPlayer.stop()
@@ -445,15 +452,16 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
         val current = playQueue[currentIndex]
-        var largeIcon = BitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
+        var customImage: Bitmap? = null
 
         if (image != null) {
-            largeIcon = image
+            customImage = image
         } else {
             File(Constants.ableSongDir.absolutePath + "/album_art",
                 File(current.filePath).nameWithoutExtension).also {
-                if (it.exists())
-                    largeIcon = BitmapFactory.decodeFile(it.absolutePath)
+                if (it.exists()){
+                    customImage = GlideBitmapFactory.decodeFile(it.absolutePath)
+                }
             }
 
         }
@@ -472,7 +480,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         builder
             .setSmallIcon(R.drawable.ic_notification)
             .setSubText("Music")
-            .setLargeIcon(largeIcon)
+            .setLargeIcon(customImage?:largeIcon)
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
             .setOngoing(playing)

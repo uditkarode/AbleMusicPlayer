@@ -418,7 +418,7 @@ class Player : AppCompatActivity() {
                 )
             )
             .angle(90f)
-            .alpha(0.85f)
+            .alpha(0.80f)
             .onBackgroundOf(player_bg)
     }
 

@@ -33,6 +33,8 @@ class Constants {
             Environment.getExternalStorageDirectory(),
             "AbleMusic")
 
+        val playlistSongDir = File(ableSongDir.absolutePath + "/playlist_songs")
+
         const val FLURRY_KEY = "INSERT_FLURRY_KEY"
         const val RAPID_API_KEY= "INSERT_RAPID_KEY"
         const val VERSION = "Debug"

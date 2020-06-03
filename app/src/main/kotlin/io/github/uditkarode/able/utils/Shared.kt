@@ -25,29 +25,34 @@ import android.util.Log
 import android.widget.Toast
 import com.arthenica.mobileffmpeg.FFprobe
 import com.google.gson.Gson
+import com.tonyodev.fetch2.Fetch
 import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
-import okhttp3.*
 import org.greenrobot.eventbus.EventBus
+import com.tonyodev.fetch2.Fetch.Impl.getInstance
+import com.tonyodev.fetch2.FetchConfiguration
 import org.json.JSONArray
-import org.jsoup.Jsoup
-import org.jsoup.select.Elements
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.internal.http2.Header
-import org.schabi.newpipe.extractor.downloader.Downloader
-import org.schabi.newpipe.extractor.downloader.Response
 import java.io.*
 
 class Shared {
     companion object {
         var isFirstRun = true
+        lateinit var fetch: Fetch
 
         lateinit var mService: MusicService
 
         fun serviceLinked(): Boolean{
             return this::mService.isInitialized
+        }
+
+        fun setupFetch(context: Context){
+            fetch = getInstance(
+                FetchConfiguration.Builder(context)
+                    .setDownloadConcurrentLimit(1)
+                    .build()
+            )
         }
 
         fun saveAlbumArtToDisk(image: Bitmap, imageFile: File) {
@@ -88,32 +93,6 @@ class Shared {
                 }
             }
             return ret
-        }
-
-        fun ytSearchRequestBuilder(searchTerm: String): Request {
-            return Request.Builder()
-                .url(
-                    "https://m.youtube.com/results?search_query=${searchTerm.replace(
-                        Regex(" "),
-                        "+"
-                    )}"
-                )
-                .removeHeader("User-Agent")
-                .build()
-        }
-
-        fun ytSearcher(okClient: OkHttpClient, searchReq: Request): Pair<Elements, Elements> {
-            val response = okClient.newCall(searchReq).execute()
-            val resultHtml = response.body?.string() ?: ""
-
-            val doc = Jsoup.parse(resultHtml)
-            val videos = doc.select("h3.yt-lockup-title a")
-            val channels = doc.getElementsByClass(
-                "yt-uix-sessionlink" +
-                        "       spf-link "
-            )
-
-            return Pair(videos, channels)
         }
 
         fun getSongsFromPlaylist(playlist: Playlist): ArrayList<Song> {

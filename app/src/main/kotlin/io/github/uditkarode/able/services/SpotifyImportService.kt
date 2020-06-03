@@ -23,6 +23,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import io.github.uditkarode.able.R
@@ -45,6 +46,13 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         }
         return try {
             val playId = inputData.getString("inputId")
+            NotificationManagerCompat.from(applicationContext).apply {
+                builder.setContentText("")
+                builder.setContentTitle("Initializing import...")
+                builder.setProgress(100, 100, true)
+                builder.setOngoing(true)
+                notify(3, builder.build())
+            }
             SpotifyImport.importList(playId.toString(), builder, applicationContext)
             Result.success()
         } catch (e: Exception) {

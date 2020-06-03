@@ -90,7 +90,7 @@ class DownloadService : JobIntentService() {
 
     private fun download(song: DownloadableSong) {
         thread {
-            if(song.ytmThumbnailLink.isNotBlank()){
+            if(song.ytmThumbnailLink.isNotBlank()) {
                 val drw = Glide
                     .with(this)
                     .load(song.ytmThumbnailLink)
@@ -98,6 +98,7 @@ class DownloadService : JobIntentService() {
                     .skipMemoryCache(true)
                     .submit()
                     .get()
+
 
                 val id = song.youtubeLink.run {
                     this.substring(this.lastIndexOf("=") + 1)

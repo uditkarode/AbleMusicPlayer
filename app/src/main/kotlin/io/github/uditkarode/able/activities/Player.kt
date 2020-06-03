@@ -418,7 +418,7 @@ class Player : AppCompatActivity() {
                 )
             )
             .angle(90f)
-            .alpha(0.85f)
+            .alpha(0.76f)
             .onBackgroundOf(player_bg)
 
         if(Shared.isColorDark(color)){

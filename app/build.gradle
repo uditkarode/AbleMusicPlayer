@@ -8,7 +8,7 @@ android {
     buildToolsVersion "29.0.3"
     defaultConfig {
         applicationId "io.github.uditkarode.able"
-        minSdkVersion 24
+        minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
         versionName "EagerLion"
@@ -64,7 +64,7 @@ dependencies {
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
     implementation 'com.squareup.okhttp3:okhttp:4.6.0'
     implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.19.5'
-    implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1'
+    implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1.LTS'
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'io.github.dreierf:material-intro-screen:0.0.6'
     implementation 'com.airbnb.android:lottie:3.4.0'

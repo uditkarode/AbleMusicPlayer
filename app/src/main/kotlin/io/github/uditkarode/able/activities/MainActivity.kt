@@ -96,6 +96,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
         thread {
             NewPipe.init(CustomDownloader.instance)
+            Shared.setupFetch(this@MainActivity)
         }
 
         mServiceResultReceiver = ServiceResultReceiver(Handler())

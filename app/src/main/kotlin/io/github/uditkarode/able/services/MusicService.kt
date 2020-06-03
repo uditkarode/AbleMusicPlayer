@@ -445,15 +445,17 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
         val current = playQueue[currentIndex]
-        val imageName = File(current.filePath).nameWithoutExtension
         var largeIcon = BitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
 
         if (image != null) {
             largeIcon = image
         } else {
-            val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
-            if (img.exists())
-                largeIcon = BitmapFactory.decodeFile(img.absolutePath)
+            File(Constants.ableSongDir.absolutePath + "/album_art",
+                File(current.filePath).nameWithoutExtension).also {
+                if (it.exists())
+                    largeIcon = BitmapFactory.decodeFile(it.absolutePath)
+            }
+
         }
         val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
         val intent = Intent(this, MusicService::class.java)

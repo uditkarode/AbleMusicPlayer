@@ -453,9 +453,7 @@ class Player : AppCompatActivity() {
         thread {
             try {
                 val current = mService.playQueue[mService.currentIndex]
-                val imageName = current.filePath.run {
-                    this.substring(this.lastIndexOf("/") + 1).substring(0, 11)
-                }
+                val imageName = File(current.filePath).nameWithoutExtension
 
                 val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
 

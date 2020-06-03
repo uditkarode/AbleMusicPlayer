@@ -29,9 +29,12 @@ import android.os.ResultReceiver
 import android.util.Log
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.tonyodev.fetch2.*
 import com.tonyodev.fetch2.Fetch.Impl.getInstance
 import com.tonyodev.fetch2core.DownloadBlock
@@ -39,6 +42,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.models.DownloadableSong
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.Shared
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.io.IOException
@@ -74,7 +78,7 @@ class DownloadService : JobIntentService() {
     override fun onHandleWork(p0: Intent) {
         val song: ArrayList<String> = p0.getStringArrayListExtra("song") ?: arrayListOf()
         val mResultReceiver = p0.getParcelableExtra<ResultReceiver>("receiver")!!
-        songQueue.add(DownloadableSong(song[0], song[2], song[1], mResultReceiver))
+        songQueue.add(DownloadableSong(song[0], song[2], song[1], song[3], mResultReceiver))
         if (songQueue.size == 1) download(songQueue[0])
         else {
             NotificationManagerCompat.from(applicationContext).apply {
@@ -85,6 +89,25 @@ class DownloadService : JobIntentService() {
     }
 
     private fun download(song: DownloadableSong) {
+        thread {
+            if(song.ytmThumbnailLink.isNotBlank()){
+                val drw = Glide
+                    .with(this)
+                    .load(song.ytmThumbnailLink)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .skipMemoryCache(true)
+                    .submit()
+                    .get()
+
+                val id = song.youtubeLink.run {
+                    this.substring(this.lastIndexOf("=") + 1)
+                }
+
+                val img = File(Constants.ableSongDir.absolutePath + "/album_art", id)
+                Shared.saveAlbumArtToDisk(drw.toBitmap(), img)
+            }
+        }
+
         thread {
             val bundle = Bundle()
             val id = song.youtubeLink.run {

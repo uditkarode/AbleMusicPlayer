@@ -22,7 +22,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
@@ -48,6 +47,7 @@ import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.glidebitmappool.GlideBitmapFactory
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -418,8 +418,16 @@ class Player : AppCompatActivity() {
                 )
             )
             .angle(90f)
-            .alpha(0.80f)
+            .alpha(0.85f)
             .onBackgroundOf(player_bg)
+
+        if(Shared.isColorDark(color)){
+            player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow))
+            player_queue.setImageDrawable(getDrawable(R.drawable.playlist))
+        } else {
+            player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow_black))
+            player_queue.setImageDrawable(getDrawable(R.drawable.playlist_black))
+        }
     }
 
     @Subscribe
@@ -465,11 +473,10 @@ class Player : AppCompatActivity() {
                             .skipMemoryCache(true)
                             .into(img_albart)
 
-                        val bmp = BitmapFactory.decodeFile(img.toString())
+                        val bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
                         Palette.from(bmp).generate {
                             setBgColor(it?.getDominantColor(0x002171)?:0x002171)
                         }
-                        bmp.recycle()
                         }
                     } else {
                     val albumArtRequest = if (customSongName == null) {
@@ -511,7 +518,6 @@ class Player : AppCompatActivity() {
 
                                 if (img.exists()) img.delete()
                                 Shared.saveAlbumArtToDisk(bmp, img)
-                                bmp.recycle()
 
                                 runOnUiThread {
                                     img_albart.setImageDrawable(drw)

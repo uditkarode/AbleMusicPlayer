@@ -21,18 +21,19 @@ package io.github.uditkarode.able.utils
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.util.Log
 import android.widget.Toast
 import com.arthenica.mobileffmpeg.FFprobe
 import com.google.gson.Gson
 import com.tonyodev.fetch2.Fetch
+import com.tonyodev.fetch2.Fetch.Impl.getInstance
+import com.tonyodev.fetch2.FetchConfiguration
 import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
 import org.greenrobot.eventbus.EventBus
-import com.tonyodev.fetch2.Fetch.Impl.getInstance
-import com.tonyodev.fetch2.FetchConfiguration
 import org.json.JSONArray
 import java.io.*
 
@@ -45,6 +46,12 @@ class Shared {
 
         fun serviceLinked(): Boolean{
             return this::mService.isInitialized
+        }
+
+        fun isColorDark(color: Int): Boolean {
+            val darkness: Double =
+                1-(0.299*Color.red(color) + 0.587*Color.green(color) + 0.114* Color.blue(color))/255
+            return darkness >= 0.5
         }
 
         fun setupFetch(context: Context){

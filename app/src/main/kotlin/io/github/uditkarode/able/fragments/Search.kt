@@ -38,8 +38,12 @@ import io.github.uditkarode.able.utils.Shared.Companion.ytSearchRequestBuilder
 import io.github.uditkarode.able.utils.Shared.Companion.ytSearcher
 import kotlinx.android.synthetic.main.search.*
 import okhttp3.OkHttpClient
+import org.schabi.newpipe.extractor.ServiceList.YouTube
+import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.IOException
 import java.lang.ref.WeakReference
+import java.util.Collections.singletonList
 import kotlin.concurrent.thread
 
 class Search : Fragment() {
@@ -94,37 +98,66 @@ class Search : Fragment() {
 
                 hideKeyboard(activity as Activity)
                 val request = ytSearchRequestBuilder(text.toString())
+                val resultArray = ArrayList<Song>()
 
                 try {
-                    thread {
-                        val resultArray = ArrayList<Song>()
+                    if(text.toString().startsWith("!")){
+                        thread {
+                            val query = text.replaceFirst(Regex("!\\s*"), "")
+                            val extractor = YouTube.getSearchExtractor(query, singletonList(
+                                YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
+                            extractor.fetchPage()
 
-                        val (videos, channels) = ytSearcher(okClient, request)
+                            for(song in extractor.initialPage.items) {
+                                val ex = song as StreamInfoItem
+                                resultArray.add(Song(
+                                    name = ex.name,
+                                    artist = ex.uploaderName,
+                                    youtubeLink = ex.url
+                                ))
+                            }
 
-                        /* this is pathetic */
-                        val compatMin = fun(a: Int, b: Int) = if(a <= b) a else b
-
-                        for (i in 0 until compatMin(videos.size, channels.size)) {
-                            val element = videos[i]
-                            val finalLink = "https://www.youtube.com" + element.attr("href")
-                            if(element.text() != channels[i].text())
-                                resultArray.add(
-                                    Song(
-                                        name = element.text(),
-                                        youtubeLink = finalLink,
-                                        artist = channels[i].text()
-                                    )
-                                )
-                        }
-
-                        activity?.runOnUiThread {
-                            searchRv.adapter = ResultAdapter(resultArray, WeakReference(this@Search))
-                            searchRv.layoutManager = LinearLayoutManager(activity as Context)
-                            loading_view.visibility = View.GONE
-                            loading_view.pauseAnimation()
+                            activity?.runOnUiThread {
+                                searchRv.adapter =
+                                    ResultAdapter(resultArray, WeakReference(this@Search))
+                                searchRv.layoutManager = LinearLayoutManager(activity as Context)
+                                loading_view.visibility = View.GONE
+                                loading_view.pauseAnimation()
                                 searchRv.alpha = 0f
                                 searchRv.visibility = View.VISIBLE
                                 searchRv.animate().alpha(1f).duration = 200
+                            }
+                        }
+                    } else {
+                        thread {
+                            val (videos, channels) = ytSearcher(okClient, request)
+
+                            /* this is pathetic */
+                            val compatMin = fun(a: Int, b: Int) = if (a <= b) a else b
+
+                            for (i in 0 until compatMin(videos.size, channels.size)) {
+                                val element = videos[i]
+                                val finalLink = "https://www.youtube.com" + element.attr("href")
+                                if (element.text() != channels[i].text())
+                                    resultArray.add(
+                                        Song(
+                                            name = element.text(),
+                                            youtubeLink = finalLink,
+                                            artist = channels[i].text()
+                                        )
+                                    )
+                            }
+
+                            activity?.runOnUiThread {
+                                searchRv.adapter =
+                                    ResultAdapter(resultArray, WeakReference(this@Search))
+                                searchRv.layoutManager = LinearLayoutManager(activity as Context)
+                                loading_view.visibility = View.GONE
+                                loading_view.pauseAnimation()
+                                searchRv.alpha = 0f
+                                searchRv.visibility = View.VISIBLE
+                                searchRv.animate().alpha(1f).duration = 200
+                            }
                         }
                     }
                 } catch (e: IOException) {

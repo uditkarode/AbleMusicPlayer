@@ -299,7 +299,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
         if (playQueue[currentIndex].filePath == "") {
             EventBus.getDefault().post(YoutubeLinkEvent(true))
-            thread(start = true, isDaemon = true) {
+            thread() {
                 streamAudio()
             }
         } else {
@@ -459,7 +459,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         } else {
             File(Constants.ableSongDir.absolutePath + "/album_art",
                 File(current.filePath).nameWithoutExtension).also {
-                if (it.exists()){
+                if (it.exists() && it.isFile){
                     customImage = GlideBitmapFactory.decodeFile(it.absolutePath)
                 }
             }

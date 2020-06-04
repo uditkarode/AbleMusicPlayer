@@ -179,7 +179,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
                 songChange(GetSongChangedEvent())
-                playPauseEvent(GetPlayPauseEvent(service.getService().mediaPlayer.run {
+                playPauseEvent(GetPlayPauseEvent(service.getService().getMediaPlayer().run {
                     if (this.isPlaying) SongState.playing
                     else SongState.paused
                 }))
@@ -201,7 +201,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         } else {
             mService = Shared.mService
             songChange(GetSongChangedEvent())
-            playPauseEvent(GetPlayPauseEvent(mService!!.mediaPlayer.run {
+            playPauseEvent(GetPlayPauseEvent(mService!!.getMediaPlayer().run {
                 if (this.isPlaying) SongState.playing
                 else SongState.paused
             }))
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    activity_seekbar.progress = Shared.mService.mediaPlayer.currentPosition
+                    activity_seekbar.progress = Shared.mService.getMediaPlayer().currentPosition
                 }
             }, 0, 1000)
         }
@@ -240,10 +240,10 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun songChange(@Suppress("UNUSED_PARAMETER") event: GetSongChangedEvent) {
         activity_seekbar.progress = 0
-        activity_seekbar.max = Shared.mService.mediaPlayer.duration
+        activity_seekbar.max = Shared.mService.getMediaPlayer().duration
 
         startSeekbarUpdates()
-        val song = Shared.mService.playQueue[Shared.mService.currentIndex]
+        val song = Shared.mService.getPlayQueue()[Shared.mService.getCurrentIndex()]
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             bb_song.text = Html.fromHtml(

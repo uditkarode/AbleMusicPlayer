@@ -174,8 +174,8 @@ class Home: Fragment() {
         thread {
             @Suppress("ControlFlowWithEmptyBody")
             while(!isBound){}
-            mService?.playQueue = arrayListOf(Song(name = "Loading...", artist = ""))
-            mService?.currentIndex = 0
+            mService?.setPlayQueue(arrayListOf(Song(name = "Loading...", artist = "")))
+            mService?.setCurrentIndex(0)
             mService?.showNotif()
 
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
@@ -189,7 +189,7 @@ class Home: Fragment() {
                 mediaLoader.addDownloadListener(url, object: DownloadListener {
                     override fun onProgress(url: String?, file: File?, progress: Int) {
                         if(progress == 100){
-                            val current = mService!!.playQueue[mService!!.currentIndex]
+                            val current = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
                             val tempFile = File(Constants.ableSongDir.absolutePath
                                     + "/" + songId + ".tmp.$ext")
                             val format =
@@ -243,7 +243,7 @@ class Home: Fragment() {
                 song.filePath = mediaLoader.getProxyUrl(url)
             }
             else song.filePath = url
-            mService?.playQueue = arrayListOf(song)
+            mService?.setPlayQueue(arrayListOf(song))
             mService?.setIndex(0)
             mService?.setPlayPause(SongState.playing)
         }

@@ -76,7 +76,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
             if(current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
                 if(Shared.serviceLinked()){
-                    if(current.filePath == Shared.mService.playQueue[Shared.mService.currentIndex].filePath) {
+                    if(current.filePath == Shared.mService.getPlayQueue()[Shared.mService.getCurrentIndex()].filePath) {
                         holder.songName.setTextColor(Color.parseColor("#5e92f3"))
                     }
                     else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
@@ -219,7 +219,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun indexUpdate(@Suppress("UNUSED_PARAMETER") sce: GetSongChangedEvent) {
         playingSong = wr?.get()?.mService.run {
-            this!!.playQueue[this.currentIndex]
+            this!!.getPlayQueue()[this.getCurrentIndex()]
         }
         notifyDataSetChanged()
     }

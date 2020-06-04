@@ -27,8 +27,12 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.events.ImportDoneEvent
+import io.github.uditkarode.able.events.ImportStartedEvent
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.SpotifyImport
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 
 class SpotifyImportService(context: Context, workerParams: WorkerParameters) : Worker(
     context,
@@ -46,6 +50,7 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         }
         return try {
             val playId = inputData.getString("inputId")
+            EventBus.getDefault().postSticky(ImportStartedEvent())
             NotificationManagerCompat.from(applicationContext).apply {
                 builder.setContentText("")
                 builder.setContentTitle("Initializing import...")
@@ -63,12 +68,22 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
     override fun onStopped() {
         SpotifyImport.isImporting = false
         super.onStopped()
+        EventBus.getDefault().unregister(this)
         (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
             it.cancel(3)
         }
+
+    }
+
+    @Subscribe
+    fun importDone(importDoneEvent: ImportDoneEvent){
+        this.stop()
+        SpotifyImport.isImporting = false
     }
 
     private fun createNotificationChannel() {
+        if(!EventBus.getDefault().isRegistered(this))
+            EventBus.getDefault().register(this)
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(applicationContext, Constants.CHANNEL_ID)
         } else {

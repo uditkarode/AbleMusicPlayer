@@ -49,13 +49,28 @@ import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
 class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
+    companion object {
+        val mediaPlayer = MediaPlayer()
+        var currentIndex = -1
+        private var onShuffle = false
+        private var onRepeat = false
+        private lateinit var largeIcon: Bitmap
+        var playQueue = ArrayList<Song>()
+    }
+
     private val binder = MusicBinder(this@MusicService)
-    val mediaPlayer = MediaPlayer()
-    var currentIndex = -1
-    private var onShuffle = false
-    private var onRepeat = false
-    private lateinit var largeIcon: Bitmap
-    var playQueue = ArrayList<Song>()
+
+    fun getMediaPlayer() = mediaPlayer
+    fun getPlayQueue() = playQueue
+    fun getCurrentIndex() = currentIndex
+
+    fun setPlayQueue(arrayList: ArrayList<Song>){
+        playQueue = arrayList
+    }
+
+    fun setCurrentIndex(ind: Int){
+        currentIndex = ind
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
@@ -101,7 +116,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
         GlideBitmapPool.initialize(10 * 1024 * 1024)
         largeIcon = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
-        GlideBitmapPool.putBitmap(largeIcon)
 
         mediaSession = MediaSession(this, "AbleSession")
 

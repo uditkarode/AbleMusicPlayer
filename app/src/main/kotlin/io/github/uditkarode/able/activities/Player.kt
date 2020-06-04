@@ -181,7 +181,7 @@ class Player : AppCompatActivity() {
         }
 
         song_name.setOnClickListener {
-            val current = mService.playQueue[mService.currentIndex]
+            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             MaterialDialog(this@Player).show {
                 title(text = "Enter the new song name")
                 input("e.g. Wake Up") { _, charSequence ->
@@ -224,7 +224,7 @@ class Player : AppCompatActivity() {
         }
 
         artist_name.setOnClickListener {
-            val current = mService.playQueue[mService.currentIndex]
+            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             MaterialDialog(this@Player).show {
                 title(text = "Enter the new song artist")
                 input("e.g. Eden") { _, charSequence ->
@@ -331,12 +331,12 @@ class Player : AppCompatActivity() {
             /* TODO add to settings val additive = if(!mService.onRepeat){
                 val ret = arrayListOf<Song>()
                 ret.add(Song(name = "(repeat)", placeholder = true))
-                if(mService.playQueue.size > 3){
-                    ret += mService.playQueue.subList(0, 3)
+                if(mService.getPlayQueue.size > 3){
+                    ret += mService.getPlayQueue.subList(0, 3)
                     ret.add(Song(name = "...", placeholder = true))
                     ret
                 }
-                else ret + mService.playQueue
+                else ret + mService.getPlayQueue
             } else {
                 arrayListOf()
             } */
@@ -345,9 +345,9 @@ class Player : AppCompatActivity() {
                 customListAdapter(
                     SongAdapter(
                         ArrayList(
-                            mService.playQueue.subList(
-                                mService.currentIndex,
-                                mService.playQueue.size
+                            mService.getPlayQueue().subList(
+                                mService.getCurrentIndex(),
+                                mService.getPlayQueue().size
                             ) //+ additive
                         )
                     )
@@ -368,7 +368,7 @@ class Player : AppCompatActivity() {
 
     private fun onBindDone() {
         mService = Shared.mService
-        if (mService.mediaPlayer.isPlaying) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
+        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
         else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
         songChangeEvent(GetSongChangedEvent())
     }
@@ -401,7 +401,7 @@ class Player : AppCompatActivity() {
             timer.schedule(object : TimerTask() {
                 override fun run() {
                     runOnUiThread {
-                        player_seekbar.progress = mService.mediaPlayer.currentPosition
+                        player_seekbar.progress = mService.getMediaPlayer().currentPosition
                         player_current_position.text = getDurationFromMs(player_seekbar.progress)
                     }
                 }
@@ -492,7 +492,7 @@ class Player : AppCompatActivity() {
         note_ph.visibility = View.VISIBLE
         thread {
             try {
-                val current = mService.playQueue[mService.currentIndex]
+                val current = mService.getPlayQueue()[mService.getCurrentIndex()]
                 val imageName = File(current.filePath).nameWithoutExtension
 
                 val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
@@ -559,7 +559,7 @@ class Player : AppCompatActivity() {
                                     img_albart.setImageDrawable(drw)
                                     img_albart.visibility = View.VISIBLE
                                     note_ph.visibility = View.GONE
-                                    if (mService.mediaPlayer.isPlaying) {
+                                    if (mService.getMediaPlayer().isPlaying) {
                                         mService.showNotification(
                                             mService.generateAction(
                                                 R.drawable.notif_pause,
@@ -593,18 +593,18 @@ class Player : AppCompatActivity() {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent) {
-        mService.playQueue = Shared.getSongList(Constants.ableSongDir)
+        mService.setPlayQueue(Shared.getSongList(Constants.ableSongDir))
 
         if (metaDataEvent.name != null) {
             song_name.text = metaDataEvent.name
-            mService.currentIndex = mService.playQueue.run {
+            mService.setCurrentIndex(mService.getPlayQueue().run {
                 this.indexOf(this.find { it.name == metaDataEvent.name })
-            }
+            })
         }
 
         if (metaDataEvent.artist != null) artist_name.text = metaDataEvent.artist
 
-        if (mService.mediaPlayer.isPlaying) {
+        if (mService.getMediaPlayer().isPlaying) {
             mService.showNotification(
                 mService.generateAction(
                     R.drawable.pause,
@@ -627,14 +627,14 @@ class Player : AppCompatActivity() {
     fun songChangeEvent(@Suppress("UNUSED_PARAMETER") songChangedEvent: GetSongChangedEvent) {
         updateAlbumArt()
 
-        val duration = mService.mediaPlayer.duration
+        val duration = mService.getMediaPlayer().duration
         player_seekbar.max = duration
         complete_position.text = getDurationFromMs(duration)
 
-        val song = mService.playQueue[mService.currentIndex]
+        val song = mService.getPlayQueue()[mService.getCurrentIndex()]
         song_name.text = song.name
         artist_name.text = song.artist
-        player_seekbar.progress = mService.mediaPlayer.currentPosition
+        player_seekbar.progress = mService.getMediaPlayer().currentPosition
         playPauseEvent(SongState.playing)
     }
 

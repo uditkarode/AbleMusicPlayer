@@ -45,6 +45,7 @@ import io.github.uditkarode.able.utils.Constants
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
+import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -55,7 +56,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         private var onShuffle = false
         private var onRepeat = false
         private var coverArtHeight: Int? = null
-        var songCoverArt: Bitmap? = null
+        var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
     }
 
@@ -115,7 +116,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
 
-        GlideBitmapPool.initialize(10 * 1024 * 1024)
+        GlideBitmapPool.initialize(1 * 1024 * 1024)
 
         if(coverArtHeight == null)
             coverArtHeight = resources.getDimension(R.dimen.top_art_height).toInt()
@@ -308,7 +309,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     }
 
     private fun songChanged() {
-        GlideBitmapPool.clearMemory()
         if (!isInstantiated) isInstantiated = true
         else {
             if (mediaPlayer.isPlaying) mediaPlayer.stop()
@@ -322,11 +322,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         } else {
             mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
             mediaPlayer.prepare()
-            EventBus.getDefault().postSticky(GetSongChangedEvent())
+            EventBus.getDefault().post(GetSongChangedEvent())
             EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-            EventBus.getDefault().postSticky(GetIndexEvent(currentIndex))
+            EventBus.getDefault().post(GetIndexEvent(currentIndex))
             setPlayPause(SongState.playing)
-            EventBus.getDefault().post(YoutubeLinkEvent(false))
         }
     }
 
@@ -456,12 +455,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     private fun getAlbumArt(file: File) {
         val bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
-        songCoverArt = if (bitmap.height > coverArtHeight!! * 2) {
+        songCoverArt = WeakReference(if (bitmap.height > coverArtHeight!! * 2) {
             val ratio = bitmap.width / bitmap.height.toFloat()
             Bitmap.createScaledBitmap(bitmap, (coverArtHeight!! * ratio).toInt(), coverArtHeight!!, false)
         } else {
             bitmap
-        }
+        })
     }
 
     fun generateAction(
@@ -478,11 +477,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     }
 
     fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
-        val current = playQueue[currentIndex]
-
         if (image == null) {
             File(Constants.ableSongDir.absolutePath + "/album_art",
-                File(current.filePath).nameWithoutExtension).also {
+                File(playQueue[currentIndex].filePath).nameWithoutExtension).also {
                 if (it.exists() && it.isFile){
                     getAlbumArt(it)
                 }
@@ -491,8 +488,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
         val intent = Intent(this, MusicService::class.java)
         intent.action = "ACTION_STOP"
-        val pendingIntent =
-            PendingIntent.getService(this, 1, intent, 0)
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, "10002")
         } else {
@@ -500,14 +495,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             Notification.Builder(this)
         }
 
-        if(songCoverArt == null || songCoverArt?.isRecycled == true){
-            songCoverArt = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
+        if(songCoverArt == null || songCoverArt?.get()?.isRecycled == true){
+            songCoverArt = WeakReference(GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart))
         }
 
         builder
             .setSmallIcon(R.drawable.ic_notification)
             .setSubText("Music")
-            .setLargeIcon(songCoverArt)
+            .setLargeIcon(songCoverArt?.get())
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
             .setOngoing(playing)
@@ -519,7 +514,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                     0
                 )
             )
-            .setDeleteIntent(pendingIntent).style = style
+            .setDeleteIntent(PendingIntent.getService(this, 1, intent, 0))
+            .style = style
 
         builder.addAction(
             generateAction(
@@ -570,7 +566,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             notificationManager.notify(1, notification)
         }
 
-        songCoverArt?.recycle()
+        songCoverArt?.get()?.recycle()
+        songCoverArt = null
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

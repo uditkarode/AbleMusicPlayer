@@ -299,7 +299,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
         if (playQueue[currentIndex].filePath == "") {
             EventBus.getDefault().post(YoutubeLinkEvent(true))
-            thread() {
+            thread {
                 streamAudio()
             }
         } else {

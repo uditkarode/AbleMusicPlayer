@@ -42,6 +42,7 @@ import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -54,7 +55,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         var currentIndex = -1
         private var onShuffle = false
         private var onRepeat = false
-        private lateinit var largeIcon: Bitmap
+        var mCurrSongCover: Bitmap? = null
         var playQueue = ArrayList<Song>()
     }
 
@@ -115,7 +116,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
 
         GlideBitmapPool.initialize(10 * 1024 * 1024)
-        largeIcon = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
 
         mediaSession = MediaSession(this, "AbleSession")
 
@@ -466,18 +466,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
         val current = playQueue[currentIndex]
-        var customImage: Bitmap? = null
 
-        if (image != null) {
-            customImage = image
-        } else {
+        if (image == null) {
             File(Constants.ableSongDir.absolutePath + "/album_art",
                 File(current.filePath).nameWithoutExtension).also {
                 if (it.exists() && it.isFile){
-                    customImage = GlideBitmapFactory.decodeFile(it.absolutePath)
+                    mCurrSongCover = GlideBitmapFactory.decodeFile(it.absolutePath)
                 }
             }
-
         }
         val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
         val intent = Intent(this, MusicService::class.java)
@@ -491,10 +487,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             Notification.Builder(this)
         }
 
+        if(mCurrSongCover == null || mCurrSongCover?.isRecycled == true){
+            mCurrSongCover = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
+        }
+
         builder
             .setSmallIcon(R.drawable.ic_notification)
             .setSubText("Music")
-            .setLargeIcon(customImage?:largeIcon)
+            .setLargeIcon(mCurrSongCover)
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
             .setOngoing(playing)
@@ -556,6 +556,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             notification = builder.build()
             notificationManager.notify(1, notification)
         }
+
+        mCurrSongCover?.recycle()
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

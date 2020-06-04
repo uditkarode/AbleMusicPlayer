@@ -36,12 +36,14 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tonyodev.fetch2.*
 import com.tonyodev.fetch2core.DownloadBlock
+import io.github.uditkarode.able.events.ImportDoneEvent
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.spotifyplaylist.SpotifyPlaylist
 import io.github.uditkarode.able.utils.Shared.Companion.modifyPlaylist
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -273,6 +275,7 @@ object SpotifyImport {
                 }
             }
             if (songArr.size > 0) {
+                EventBus.getDefault().post(ImportDoneEvent())
                 modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
                 (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
                     it.cancel(3)

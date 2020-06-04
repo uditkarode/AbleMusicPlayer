@@ -27,7 +27,6 @@ import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.SoundEffectConstants
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -43,13 +42,16 @@ import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaylistAdapter
+import io.github.uditkarode.able.events.ImportDoneEvent
+import io.github.uditkarode.able.events.ImportStartedEvent
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.SpotifyImportService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.playlists.*
 import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import java.lang.ref.WeakReference
-import java.util.concurrent.TimeUnit
 
 class Playlists : Fragment() {
     var mService: MusicService? = null
@@ -60,6 +62,7 @@ class Playlists : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        EventBus.getDefault().register(this)
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
@@ -74,39 +77,28 @@ class Playlists : Fragment() {
         return inflater.inflate(R.layout.playlists, container, false)
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun importStarted(importStartedEvent: ImportStartedEvent){
+        isImporting = true
+        spotbut.setImageResource(R.drawable.ic_cancle_action)
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun importDone(importDoneEvent: ImportDoneEvent){
+        isImporting = false
+        WorkManager.getInstance(requireContext()).cancelUniqueWork("SpotifyImport")
+        (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
+            playlistAdapter.update(Shared.getPlaylists())
+            spotbut.setImageResource(R.drawable.ic_spot)
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        WorkManager.getInstance(view.context).getWorkInfosForUniqueWorkLiveData("SpotifyImport")
-            .observeForever { itt ->
-                if (itt.isNotEmpty()) {
-                    when (itt.first().state) {
-                        WorkInfo.State.RUNNING -> {
-                            isImporting = true
-                        }
-                        WorkInfo.State.SUCCEEDED -> {
-                            isImporting = false
-                            (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
-                                playlistAdapter.update(Shared.getPlaylists())
-                                spotbut.setImageResource(R.drawable.ic_spot)
-                            }
-                        }
-                        WorkInfo.State.ENQUEUED -> {
-                            isImporting = true
-                            spotbut.setImageResource(R.drawable.ic_cancle_action)
-                        }
-                        WorkInfo.State.CANCELLED -> {
-                            isImporting = false
-                            spotbut.setImageResource(R.drawable.ic_spot)
-                        }
-                        else -> {}
-                    }
-                }
-            }
         playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists(), WeakReference(this@Playlists))
         playlists_rv.layoutManager = LinearLayoutManager(activity as Context)
         var inputId = ""
         spotbut.setOnClickListener {
-            spotbut.playSoundEffect(SoundEffectConstants.CLICK)
             if (!isImporting) {
                 MaterialDialog(activity as Context).show {
                     title(R.string.spot_title)
@@ -134,10 +126,9 @@ class Playlists : Fragment() {
                         WorkManager.getInstance(view.context)
                             .beginUniqueWork(
                                 "SpotifyImport",
-                                ExistingWorkPolicy.KEEP,
+                                ExistingWorkPolicy.REPLACE,
                                 OneTimeWorkRequest.Builder(SpotifyImportService::class.java)
                                     .setInputData(builder.build())
-                                    .setInitialDelay(0, TimeUnit.SECONDS)
                                     .build()
                             ).enqueue()
                         Toast.makeText(
@@ -147,6 +138,7 @@ class Playlists : Fragment() {
                     }
                 }
             } else {
+                EventBus.getDefault().post(ImportDoneEvent())
                 WorkManager.getInstance(view.context).cancelUniqueWork("SpotifyImport")
             }
         }

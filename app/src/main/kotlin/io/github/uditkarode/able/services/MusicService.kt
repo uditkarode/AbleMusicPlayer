@@ -42,7 +42,6 @@ import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
-import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -55,7 +54,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         var currentIndex = -1
         private var onShuffle = false
         private var onRepeat = false
-        var mCurrSongCover: Bitmap? = null
+        private var coverArtHeight: Int? = null
+        var songCoverArt: Bitmap? = null
         var playQueue = ArrayList<Song>()
     }
 
@@ -116,6 +116,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
 
         GlideBitmapPool.initialize(10 * 1024 * 1024)
+
+        if(coverArtHeight == null)
+            coverArtHeight = resources.getDimension(R.dimen.top_art_height).toInt()
 
         mediaSession = MediaSession(this, "AbleSession")
 
@@ -451,6 +454,16 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             wakeLock?.release()
     }
 
+    private fun getAlbumArt(file: File) {
+        val bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
+        songCoverArt = if (bitmap.height > coverArtHeight!! * 2) {
+            val ratio = bitmap.width / bitmap.height.toFloat()
+            Bitmap.createScaledBitmap(bitmap, (coverArtHeight!! * ratio).toInt(), coverArtHeight!!, false)
+        } else {
+            bitmap
+        }
+    }
+
     fun generateAction(
         icon: Int,
         title: String,
@@ -471,7 +484,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             File(Constants.ableSongDir.absolutePath + "/album_art",
                 File(current.filePath).nameWithoutExtension).also {
                 if (it.exists() && it.isFile){
-                    mCurrSongCover = GlideBitmapFactory.decodeFile(it.absolutePath)
+                    getAlbumArt(it)
                 }
             }
         }
@@ -487,14 +500,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             Notification.Builder(this)
         }
 
-        if(mCurrSongCover == null || mCurrSongCover?.isRecycled == true){
-            mCurrSongCover = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
+        if(songCoverArt == null || songCoverArt?.isRecycled == true){
+            songCoverArt = GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart)
         }
 
         builder
             .setSmallIcon(R.drawable.ic_notification)
             .setSubText("Music")
-            .setLargeIcon(mCurrSongCover)
+            .setLargeIcon(songCoverArt)
             .setContentTitle(playQueue[currentIndex].name)
             .setContentText(playQueue[currentIndex].artist)
             .setOngoing(playing)
@@ -557,7 +570,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             notificationManager.notify(1, notification)
         }
 
-        mCurrSongCover?.recycle()
+        songCoverArt?.recycle()
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

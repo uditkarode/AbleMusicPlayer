@@ -33,6 +33,7 @@ import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
@@ -408,7 +409,26 @@ class Player : AppCompatActivity() {
         }
     }
 
-    private fun setBgColor(color: Int){
+    private fun tintControls(rawColor: Int){
+        val color = if(Shared.isColorDark(rawColor))
+            ColorUtils.blendARGB(rawColor, Color.WHITE, 0.9F)
+        else
+            ColorUtils.blendARGB(rawColor, Color.WHITE, 0.3F)
+
+        previous_song.run {
+            this.setImageDrawable(this.drawable.run { this.setTint(color) ; this })
+        }
+
+        player_center_icon.run {
+            this.setImageDrawable(this.drawable.run { this.setTint(color) ; this })
+        }
+
+        next_song.run {
+            this.setImageDrawable(this.drawable.run { this.setTint(color) ; this })
+        }
+    }
+
+    private fun setBgColor(color: Int, lightVibrantColor: Int? = null){
         RevelyGradient
             .linear()
             .colors(
@@ -424,9 +444,23 @@ class Player : AppCompatActivity() {
         if(Shared.isColorDark(color)){
             player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow))
             player_queue.setImageDrawable(getDrawable(R.drawable.playlist))
+            if(lightVibrantColor != null) {
+                if((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0){
+                    player_seekbar.progressDrawable.setTint(0x002171)
+                    player_seekbar.thumb.setTint(0x002171)
+                    tintControls(0x002171)
+                } else {
+                    player_seekbar.progressDrawable.setTint(lightVibrantColor)
+                    player_seekbar.thumb.setTint(lightVibrantColor)
+                    tintControls(lightVibrantColor)
+                }
+            }
         } else {
             player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow_black))
             player_queue.setImageDrawable(getDrawable(R.drawable.playlist_black))
+            player_seekbar.progressDrawable.setTint(color)
+            player_seekbar.thumb.setTint(color)
+            tintControls(color)
         }
     }
 
@@ -475,7 +509,8 @@ class Player : AppCompatActivity() {
 
                         val bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
                         Palette.from(bmp).generate {
-                            setBgColor(it?.getDominantColor(0x002171)?:0x002171)
+                            setBgColor(it?.getDominantColor(0x002171)?:0x002171,
+                                it?.getLightMutedColor(0x002171)?:0x002171)
                         }
                         }
                     } else {
@@ -513,7 +548,8 @@ class Player : AppCompatActivity() {
 
                                 val bmp = drw.toBitmap()
                                 Palette.from(bmp).generate {
-                                    setBgColor(it?.getDominantColor(0x002171)?:0x002171)
+                                    setBgColor(it?.getDominantColor(0x002171)?:0x002171,
+                                        it?.getLightVibrantColor(0x002171)?:0x002171)
                                 }
 
                                 if (img.exists()) img.delete()

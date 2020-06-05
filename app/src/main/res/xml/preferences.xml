@@ -21,6 +21,16 @@
         android:key="source_key"
         />
 
+    <ListPreference
+        android:defaultValue="Download"
+        android:entries="@array/modes"
+        android:entryValues="@array/modes"
+        android:summary="@string/play_mode_sum"
+        app:iconSpaceReserved="false"
+        android:title="@string/play_mode"
+        android:key="mode_key"
+        />
+
     <Preference
         android:title="@string/about"
         app:iconSpaceReserved="false"

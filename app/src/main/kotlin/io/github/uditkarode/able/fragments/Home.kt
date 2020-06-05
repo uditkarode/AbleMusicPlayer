@@ -31,7 +31,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -94,26 +93,6 @@ class Home: Fragment() {
 
         mediaLoader = MediaLoader.getInstance(activity)
         mediaLoader.init(mediaLoaderConfig)
-
-        able_header.setOnClickListener {
-            val sp = requireActivity().getSharedPreferences(Constants.SP_NAME, 0)
-            when(sp.getString("streamMode", MusicMode.download)){
-                MusicMode.download -> {
-                    sp.edit().putString("streamMode", MusicMode.stream).apply()
-                    Toast.makeText(activity, "mode: ${getString(R.string.stream)}" ,Toast.LENGTH_SHORT).show()
-                }
-
-                MusicMode.stream -> {
-                    sp.edit().putString("streamMode", MusicMode.both).apply()
-                    Toast.makeText(activity, "mode: ${getString(R.string.both)}" ,Toast.LENGTH_SHORT).show()
-                }
-
-                MusicMode.both -> {
-                    sp.edit().putString("streamMode", MusicMode.download).apply()
-                    Toast.makeText(activity, "mode: ${getString(R.string.dl)}" ,Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
 
         RevelyGradient
             .linear()

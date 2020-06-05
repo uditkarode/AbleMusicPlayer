@@ -490,103 +490,109 @@ class Player : AppCompatActivity() {
     private fun updateAlbumArt(customSongName: String? = null) {
         img_albart.visibility = View.GONE
         note_ph.visibility = View.VISIBLE
+
         thread {
-            try {
-                val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-                val imageName = File(current.filePath).nameWithoutExtension
+            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
+            val imageName = File(current.filePath).nameWithoutExtension
+            val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
 
-                val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+            if(!img.exists() && current.ytmThumbnail.isNotBlank()){
+                runOnUiThread {
+                    // @todo: load image
+                }
+            } else {
+                try {
+                    if (img.exists() && customSongName == null) {
+                        runOnUiThread {
+                            img_albart.visibility = View.VISIBLE
+                            note_ph.visibility = View.GONE
+                            Glide.with(this@Player)
+                                .load(img)
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
+                                .into(img_albart)
 
-                if (img.exists() && customSongName == null) {
-                    runOnUiThread {
-                        img_albart.visibility = View.VISIBLE
-                        note_ph.visibility = View.GONE
-                        Glide.with(this@Player)
-                            .load(img)
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true)
-                            .into(img_albart)
-
-                        val bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
-                        Palette.from(bmp).generate {
-                            setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                it?.getLightMutedColor(0x002171)?:0x002171)
-                        }
-                        }
-                    } else {
-                    val albumArtRequest = if (customSongName == null) {
-                        Request.Builder()
-                            .url(Constants.DEEZER_API + current.name)
-                            .get()
-                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                            .cacheControl(CacheControl.FORCE_NETWORK)
-                            .build()
-                    } else {
-                        Request.Builder()
-                            .url(Constants.DEEZER_API + customSongName)
-                            .get()
-                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                            .build()
-                    }
-
-                    val response = OkHttpClient().newCall(albumArtRequest).execute().body
-                    try {
-                        if (response != null) {
-                            val imgLink = JSONObject(response.string()).getJSONArray("data")
-                                .getJSONObject(0).getJSONObject("album").getString("cover_big")
-
-                            try {
-                                val drw = Glide
-                                    .with(this@Player)
-                                    .load(imgLink)
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .submit()
-                                    .get()
-
-                                val bmp = drw.toBitmap()
-                                Palette.from(bmp).generate {
-                                    setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                        it?.getLightVibrantColor(0x002171)?:0x002171)
-                                }
-
-                                if (img.exists()) img.delete()
-                                Shared.saveAlbumArtToDisk(bmp, img)
-
-                                runOnUiThread {
-                                    img_albart.setImageDrawable(drw)
-                                    img_albart.visibility = View.VISIBLE
-                                    note_ph.visibility = View.GONE
-                                    if (mService.getMediaPlayer().isPlaying) {
-                                        mService.showNotification(
-                                            mService.generateAction(
-                                                R.drawable.notif_pause,
-                                                getString(R.string.pause),
-                                                "ACTION_PAUSE"
-                                            ), true, bmp
-                                        )
-                                    } else {
-                                        mService.showNotification(
-                                            mService.generateAction(
-                                                R.drawable.notif_play,
-                                                getString(R.string.play),
-                                                "ACTION_PLAY"
-                                            ), false, bmp
-                                        )
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("ERR>", e.toString())
+                            val bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
+                            Palette.from(bmp).generate {
+                                setBgColor(it?.getDominantColor(0x002171)?:0x002171,
+                                    it?.getLightMutedColor(0x002171)?:0x002171)
                             }
                         }
-                    } catch (e: Exception) {
-                        Log.e("ERR>", e.toString())
+                    } else {
+                        val albumArtRequest = if (customSongName == null) {
+                            Request.Builder()
+                                .url(Constants.DEEZER_API + current.name)
+                                .get()
+                                .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                                .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                                .cacheControl(CacheControl.FORCE_NETWORK)
+                                .build()
+                        } else {
+                            Request.Builder()
+                                .url(Constants.DEEZER_API + customSongName)
+                                .get()
+                                .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                                .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                                .build()
+                        }
+
+                        val response = OkHttpClient().newCall(albumArtRequest).execute().body
+                        try {
+                            if (response != null) {
+                                val imgLink = JSONObject(response.string()).getJSONArray("data")
+                                    .getJSONObject(0).getJSONObject("album").getString("cover_big")
+
+                                try {
+                                    val drw = Glide
+                                        .with(this@Player)
+                                        .load(imgLink)
+                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                        .skipMemoryCache(true)
+                                        .submit()
+                                        .get()
+
+                                    val bmp = drw.toBitmap()
+                                    Palette.from(bmp).generate {
+                                        setBgColor(it?.getDominantColor(0x002171)?:0x002171,
+                                            it?.getLightVibrantColor(0x002171)?:0x002171)
+                                    }
+
+                                    if (img.exists()) img.delete()
+                                    Shared.saveAlbumArtToDisk(bmp, img)
+
+                                    runOnUiThread {
+                                        img_albart.setImageDrawable(drw)
+                                        img_albart.visibility = View.VISIBLE
+                                        note_ph.visibility = View.GONE
+                                        if (mService.getMediaPlayer().isPlaying) {
+                                            mService.showNotification(
+                                                mService.generateAction(
+                                                    R.drawable.notif_pause,
+                                                    "Pause",
+                                                    "ACTION_PAUSE"
+                                                ), bmp
+                                            )
+                                        } else {
+                                            mService.showNotification(
+                                                mService.generateAction(
+                                                    R.drawable.notif_play,
+                                                    "Play",
+                                                    "ACTION_PLAY"
+                                                ), bmp
+                                            )
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("ERR>", e.toString())
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("ERR>", e.toString())
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e("ERR>", e.toString())
                 }
-            } catch (e: Exception) {
-                Log.e("ERR>", e.toString())
             }
         }
     }
@@ -610,7 +616,7 @@ class Player : AppCompatActivity() {
                     R.drawable.pause,
                     getString(R.string.pause),
                     "ACTION_PAUSE"
-                ), true
+                )
             )
         } else {
             mService.showNotification(
@@ -618,7 +624,7 @@ class Player : AppCompatActivity() {
                     R.drawable.play,
                     getString(R.string.play),
                     "ACTION_PLAY"
-                ), false
+                )
             )
         }
     }

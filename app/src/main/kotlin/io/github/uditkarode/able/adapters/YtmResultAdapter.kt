@@ -49,6 +49,7 @@ class YtmResultAdapter(private val songList: ArrayList<Song>, private val wr: We
         holder.songAlbumArt.run {
             Glide.with(context)
                 .load(current.ytmThumbnail)
+                .signature(ObjectKey("stream"))
                 .into(this)
         }
 

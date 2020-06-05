@@ -22,6 +22,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -38,6 +39,12 @@ import androidx.recyclerview.widget.RecyclerView
 import co.revely.gradient.RevelyGradient
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.signature.ObjectKey
 import com.vincan.medialoader.MediaLoader
 import com.vincan.medialoader.MediaLoaderConfig
 import com.vincan.medialoader.download.DownloadListener
@@ -46,7 +53,6 @@ import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.HomeLoadingEvent
 import io.github.uditkarode.able.models.Format
-import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
@@ -165,6 +171,33 @@ class Home: Fragment() {
             val url = stream.url
             val bitrate = stream.averageBitrate
             val ext = stream.getFormat().suffix
+
+            if(song.ytmThumbnail.isNotBlank()){
+                Glide.with(requireContext())
+                    .asBitmap()
+                    .load(song.ytmThumbnail)
+                    .signature(ObjectKey("save"))
+                    .listener(object: RequestListener<Bitmap> {
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<Bitmap>?,
+                            isFirstResource: Boolean
+                        ): Boolean { return false }
+
+                        override fun onResourceReady(
+                            resource: Bitmap?,
+                            model: Any?,
+                            target: Target<Bitmap>?,
+                            dataSource: DataSource?,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            if(resource != null)
+                                Shared.saveStreamingAlbumArt(resource, Shared.getIdFromLink(song.youtubeLink))
+                            return false
+                        }
+                    }).submit()
+            }
 
             if(toCache){
                 mediaLoader.addDownloadListener(url, object: DownloadListener {

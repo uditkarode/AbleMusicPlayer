@@ -41,6 +41,7 @@ import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -517,6 +518,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         if (image == null) {
             File(Constants.ableSongDir.absolutePath + "/album_art",
                 File(playQueue[currentIndex].filePath).nameWithoutExtension).also {
+                if (it.exists() && it.isFile){
+                    getAlbumArt(it)
+                }
+            }
+
+            File(Constants.ableSongDir.absolutePath + "/cache",
+                "sCache" + Shared.getIdFromLink(playQueue[currentIndex].youtubeLink)).also {
                 if (it.exists() && it.isFile){
                     getAlbumArt(it)
                 }

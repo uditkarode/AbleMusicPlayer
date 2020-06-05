@@ -94,12 +94,12 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
             Shared.getSongsFromPlaylist(current).also { for (song in it) songNames.add(song.name) }
 
             MaterialDialog(holder.itemView.context).show {
-                title(text = "Choose song to remove")
+                title(text = holder.itemView.context.getString(R.string.rem_song))
                 listItems(items = songNames){ _, index, _ ->
                     Shared.removeFromPlaylist(current, songs[index])
                 }
 
-                negativeButton(text = "Remove Playlist") {
+                negativeButton(text = holder.itemView.context.getString(R.string.rem_playlist)) {
                     File(Constants.playlistFolder.absolutePath + "/" + current.name).delete()
                     playlists = Shared.getPlaylists()
                     notifyDataSetChanged()

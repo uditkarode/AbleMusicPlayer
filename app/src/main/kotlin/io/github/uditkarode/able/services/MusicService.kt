@@ -167,7 +167,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
             (builder as Notification.Builder)
                 .setSmallIcon(R.drawable.ic_notification)
-                .setSubText("Music")
+                .setSubText(getString(R.string.music))
                 .setContentIntent(
                     PendingIntent.getActivity(
                         this,
@@ -213,7 +213,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 showNotification(
                     generateAction(
                         R.drawable.notif_pause,
-                        "Pause",
+                        getString(R.string.pause),
                         "ACTION_PAUSE"
                     ), true
                 )
@@ -223,7 +223,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 showNotification(
                     generateAction(
                         R.drawable.notif_play,
-                        "Play",
+                        getString(R.string.play),
                         "ACTION_PLAY"
                     ), false
                 )
@@ -407,7 +407,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             showNotification(
                 generateAction(
                     R.drawable.notif_pause,
-                    "Pause",
+                    getString(R.string.pause),
                     "ACTION_PAUSE"
                 ), true
             )
@@ -429,7 +429,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         showNotification(
             generateAction(
                 R.drawable.notif_play,
-                "Play",
+                getString(R.string.pause),
                 "ACTION_PLAY"
             ), false
         )
@@ -452,7 +452,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         showNotification(
             generateAction(
                 R.drawable.notif_play,
-                "Play",
+                getString(R.string.pause),
                 "ACTION_PLAY"
             ), false
         )
@@ -539,7 +539,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         builder?.addAction(
             generateAction(
                 R.drawable.notif_previous,
-                "Previous",
+                getString(R.string.prev),
                 "ACTION_PREVIOUS"
             )
         )
@@ -549,7 +549,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         builder?.addAction(
             generateAction(
                 R.drawable.notif_next,
-                "Next",
+                getString(R.string.next),
                 "ACTION_NEXT"
             )
         )
@@ -557,7 +557,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         builder?.addAction(
             generateAction(
                 R.drawable.kill,
-                "Kill",
+                getString(R.string.kill),
                 "ACTION_KILL"
             )
         )
@@ -565,7 +565,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                 "10002",
-                "Music",
+                getString(R.string.music),
                 NotificationManager.IMPORTANCE_LOW
             )
             notificationChannel.enableLights(false)

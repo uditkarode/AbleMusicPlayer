@@ -98,17 +98,17 @@ class Home: Fragment() {
             when(sp.getString("streamMode", MusicMode.download)){
                 MusicMode.download -> {
                     sp.edit().putString("streamMode", MusicMode.stream).apply()
-                    Toast.makeText(activity, "mode: Stream" ,Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "mode: ${getString(R.string.stream)}" ,Toast.LENGTH_SHORT).show()
                 }
 
                 MusicMode.stream -> {
                     sp.edit().putString("streamMode", MusicMode.both).apply()
-                    Toast.makeText(activity, "mode: Both" ,Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "mode: ${getString(R.string.both)}" ,Toast.LENGTH_SHORT).show()
                 }
 
                 MusicMode.both -> {
                     sp.edit().putString("streamMode", MusicMode.download).apply()
-                    Toast.makeText(activity, "mode: Download" ,Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "mode: ${getString(R.string.dl)}" ,Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -174,7 +174,7 @@ class Home: Fragment() {
         thread {
             @Suppress("ControlFlowWithEmptyBody")
             while(!isBound){}
-            mService?.setPlayQueue(arrayListOf(Song(name = "Loading...", artist = "")))
+            mService?.setPlayQueue(arrayListOf(Song(name = getString(R.string.loading), artist = "")))
             mService?.setCurrentIndex(0)
             mService?.showNotif()
 

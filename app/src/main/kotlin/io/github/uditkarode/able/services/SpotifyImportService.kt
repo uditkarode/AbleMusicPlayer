@@ -53,7 +53,7 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
             EventBus.getDefault().postSticky(ImportStartedEvent())
             NotificationManagerCompat.from(applicationContext).apply {
                 builder.setContentText("")
-                builder.setContentTitle("Initializing import...")
+                builder.setContentTitle(applicationContext.getString(R.string.init_import))
                 builder.setProgress(100, 100, true)
                 builder.setOngoing(true)
                 notify(3, builder.build())
@@ -91,9 +91,9 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
             Notification.Builder(applicationContext)
         }
         builder.apply {
-            setContentTitle("Initialising Import")
-            setContentText("Please wait...")
-            setSubText("Spotify Import")
+            setContentTitle(applicationContext.getString(R.string.init_import))
+            setContentText(applicationContext.getString(R.string.pl_wait))
+            setSubText("Spotify ${applicationContext.getString(R.string.imp)}")
             setSmallIcon(R.drawable.ic_download_icon)
             builder.setOngoing(true)
         }

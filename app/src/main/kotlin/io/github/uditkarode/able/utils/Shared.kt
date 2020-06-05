@@ -29,6 +29,7 @@ import com.google.gson.Gson
 import com.tonyodev.fetch2.Fetch
 import com.tonyodev.fetch2.Fetch.Impl.getInstance
 import com.tonyodev.fetch2.FetchConfiguration
+import io.github.uditkarode.able.R
 import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
@@ -208,13 +209,13 @@ class Shared {
                     if(!playlistFile.parentFile.exists()) playlistFile.parentFile.mkdirs()
                     playlistFile.writeText("[]")
 
-                    Toast.makeText(context, "Playlist created", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.playlist_created), Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Playlist name cannot be empty!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.playlist_empty), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: java.lang.Exception){
                 Log.e("ERR>", e.toString())
-                Toast.makeText(context, "Couldn't create playlist :(", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.playlist_fail), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -229,7 +230,7 @@ class Shared {
 
             if(targetIndex == -1)
                 songs.add(song)
-            else Toast.makeText(context, "Playlist already contains this song", Toast.LENGTH_SHORT).show()
+            else Toast.makeText(context, context.getString(R.string.playlist_dup), Toast.LENGTH_SHORT).show()
             modifyPlaylist(playlist.name, ArrayList(songs.sortedBy { it.name }))
         }
     }

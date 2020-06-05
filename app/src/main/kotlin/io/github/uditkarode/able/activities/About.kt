@@ -58,15 +58,8 @@ class About: AppCompatActivity() {
 
         donate.setOnClickListener {
             MaterialDialog(this@About).show {
-                title(text = "Donate")
-                message(text = "Hey everyone! It took a lot of hard work " +
-                        "to turn this project into reality, and I hope you're " +
-                        "enjoying it! If you like the project" +
-                        " and want it to continue, please consider donating. It motivates me" +
-                        " to keep working on it." +
-                        "\n\n\nYou can donate via " +
-                        "<a href=\"https://paypal.me/uditkarode\">PayPal</a>" +
-                        "\nor via the UPI address udit.karode@okaxis"){
+                title(text = this@About.getString(R.string.donate))
+                message(text = this@About.getString(R.string.donate_subtext).format("<a href=\"https://paypal.me/uditkarode\">PayPal</a>", "udit.karode@okaxis")) {
                     html()
                 }
             }

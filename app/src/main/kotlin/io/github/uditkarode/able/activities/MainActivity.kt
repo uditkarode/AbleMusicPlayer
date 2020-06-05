@@ -324,7 +324,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                     .putStringArrayListExtra("song", songL)
                     .putExtra("receiver", mServiceResultReceiver)
                 enqueueDownload(this, serviceIntentService)
-                Toast.makeText(applicationContext, "${song.name} is added to Download Queue", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "${song.name} ${getString(R.string.dl_added)}", Toast.LENGTH_SHORT).show()
                 /*
                     * takes user back to the home screen when download starts *
                     mainContent.currentItem = -1

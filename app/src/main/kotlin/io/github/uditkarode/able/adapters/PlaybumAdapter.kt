@@ -19,9 +19,7 @@
 package io.github.uditkarode.able.adapters
 
 import android.annotation.SuppressLint
-import android.content.Intent
 import android.graphics.Typeface
-import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -32,13 +30,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.AlbumPlaylist
-import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
-import io.github.uditkarode.able.services.MusicService
-import io.github.uditkarode.able.utils.Shared
 import java.lang.ref.WeakReference
-import kotlin.concurrent.thread
 
 class PlaybumAdapter(private val songList: ArrayList<Song>,
                      private val wr: WeakReference<AlbumPlaylist>,

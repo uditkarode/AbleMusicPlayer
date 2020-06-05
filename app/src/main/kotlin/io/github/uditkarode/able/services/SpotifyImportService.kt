@@ -76,7 +76,7 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
     }
 
     @Subscribe
-    fun importDone(importDoneEvent: ImportDoneEvent){
+    fun importDone(@Suppress("UNUSED_PARAMETER") importDoneEvent: ImportDoneEvent){
         this.stop()
         SpotifyImport.isImporting = false
     }

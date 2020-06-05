@@ -78,13 +78,13 @@ class Playlists : Fragment() {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun importStarted(importStartedEvent: ImportStartedEvent){
+    fun importStarted(@Suppress("UNUSED_PARAMETER") importStartedEvent: ImportStartedEvent){
         isImporting = true
         spotbut.setImageResource(R.drawable.ic_cancle_action)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun importDone(importDoneEvent: ImportDoneEvent){
+    fun importDone(@Suppress("UNUSED_PARAMETER") importDoneEvent: ImportDoneEvent){
         isImporting = false
         WorkManager.getInstance(requireContext()).cancelUniqueWork("SpotifyImport")
         (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->

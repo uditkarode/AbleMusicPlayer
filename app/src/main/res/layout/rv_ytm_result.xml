@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/parent_hrvv"
+    android:layout_width="match_parent"
+    android:layout_height="53dp"
+    android:orientation="horizontal"
+    android:layout_marginTop="14dp">
+
+    <com.makeramen.roundedimageview.RoundedImageView
+        android:id="@+id/vid_albart"
+        android:layout_width="53dp"
+        android:layout_height="53dp"
+        app:riv_corner_radius="5dp"
+        android:layout_alignParentStart="true"
+        android:contentDescription="@string/add_song" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@+id/vid_albart"
+        android:layout_centerVertical="true"
+        android:layout_marginStart="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/vid_song"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:singleLine="true"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit ="marquee_forever"
+            android:scrollHorizontally="true"
+            android:textSize="17sp" />
+
+        <TextView
+            android:id="@+id/vid_uploader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#A8A8A7"
+            android:singleLine="true"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit ="marquee_forever"
+            android:scrollHorizontally="true"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+</RelativeLayout>

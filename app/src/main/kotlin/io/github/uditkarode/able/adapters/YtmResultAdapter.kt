@@ -23,39 +23,38 @@ import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.fragments.Search
 import java.lang.ref.WeakReference
 
-class ResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakReference<Search>): RecyclerView.Adapter<ResultAdapter.RVVH>() {
+class YtmResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakReference<Search>): RecyclerView.Adapter<YtmResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
-        RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_result, parent, false))
+        RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
 
     override fun getItemCount() = songList.size
 
     @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: RVVH, position: Int) {
         val current = songList[position]
-        holder.vidName.text = " " + current.name
-        holder.vidChannel.text = " " + current.artist
+        holder.songName.text = current.name
+        holder.songUploader.text = "Song • " + current.artist
 
-        holder.vidName.typeface =
-            Typeface.createFromAsset(holder.vidName.context.assets, "fonts/inter.otf")
+        holder.songAlbumArt.run {
+            Glide.with(context)
+                .load(current.ytmThumbnail)
+                .into(this)
+        }
 
-        holder.vidChannel.typeface =
-            Typeface.createFromAsset(holder.vidName.context.assets, "fonts/inter.otf")
+        holder.songName.typeface =
+            Typeface.createFromAsset(holder.songName.context.assets, "fonts/interbold.otf")
 
-        holder.titleTxt.typeface =
-            Typeface.createFromAsset(holder.vidName.context.assets, "fonts/interbold.otf")
-
-        holder.uploaderTxt.typeface =
-            Typeface.createFromAsset(holder.vidName.context.assets, "fonts/interbold.otf")
-
-        holder.titleTxt.isSelected = true
-        holder.uploaderTxt.isSelected = true
+        holder.songUploader.typeface =
+            Typeface.createFromAsset(holder.songName.context.assets, "fonts/inter.otf")
 
         holder.itemView.setOnClickListener {
             wr.get()?.itemPressed(songList[position])
@@ -63,9 +62,8 @@ class ResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakR
     }
 
     inner class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
-        val vidName = itemView.findViewById<TextView>(R.id.vid_name)!!
-        val vidChannel = itemView.findViewById<TextView>(R.id.vid_uploader)!!
-        val titleTxt = itemView.findViewById<TextView>(R.id.title_txt)!!
-        val uploaderTxt = itemView.findViewById<TextView>(R.id.uploader_txt)!!
+        val songName = itemView.findViewById<TextView>(R.id.vid_song)!!
+        val songUploader = itemView.findViewById<TextView>(R.id.vid_uploader)!!
+        val songAlbumArt = itemView.findViewById<ImageView>(R.id.vid_albart)
     }
 }

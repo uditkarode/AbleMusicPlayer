@@ -11,6 +11,16 @@
         android:key="format_key"
         />
 
+    <ListPreference
+        android:defaultValue="Youtube Music"
+        android:entries="@array/sources"
+        android:entryValues="@array/sources"
+        android:summary="Select your preferred search source."
+        app:iconSpaceReserved="false"
+        android:title="Source"
+        android:key="source_key"
+        />
+
     <Preference
         android:title="About"
         app:iconSpaceReserved="false"

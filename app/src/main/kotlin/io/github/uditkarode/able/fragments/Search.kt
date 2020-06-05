@@ -21,7 +21,6 @@ package io.github.uditkarode.able.fragments
 import android.app.Activity
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -29,6 +28,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
@@ -96,63 +96,51 @@ class Search : Fragment() {
                 val resultArray = ArrayList<Song>()
 
                 try {
-                    if(text.toString().startsWith(",") || text.toString().startsWith("!")){
-                        Log.e("INFO", "Searching YTMusic")
-                        thread {
-                            val query = text
-                                .replaceFirst(Regex("^,\\s*"), "")
-                                .replaceFirst(Regex("^!\\s*"), "")
-                            val extractor = YouTube.getSearchExtractor(query, singletonList(
-                                YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
-                            extractor.fetchPage()
-
-                            for(song in extractor.initialPage.items) {
-                                val ex = song as StreamInfoItem
-                                resultArray.add(Song(
-                                    name = ex.name,
-                                    artist = ex.uploaderName,
-                                    youtubeLink = ex.url,
-                                    ytmThumbnail = song.thumbnailUrl
-                                ))
-                            }
-
-                            activity?.runOnUiThread {
-                                searchRv.adapter =
-                                    ResultAdapter(resultArray, WeakReference(this@Search))
-                                searchRv.layoutManager = LinearLayoutManager(activity as Context)
-                                loading_view.visibility = View.GONE
-                                loading_view.pauseAnimation()
-                                searchRv.alpha = 0f
-                                searchRv.visibility = View.VISIBLE
-                                searchRv.animate().alpha(1f).duration = 200
-                            }
+                    var query = text.toString()
+                    val useYtMusic: Boolean = when {
+                        text.startsWith("!") -> {
+                            query = text.toString().replaceFirst(Regex("^!\\s*"), "")
+                            true
                         }
-                    } else {
-                        thread {
-                            val extractor = YouTube.getSearchExtractor(text.toString(), singletonList(
+
+                        text.startsWith("?") -> {
+                            query = text.toString().replaceFirst(Regex("^?\\s*"), "")
+                            false
+                        }
+
+                        else -> (PreferenceManager.getDefaultSharedPreferences(requireContext())
+                            .getString("source_key", "Youtube Music") == "Youtube Music")
+                    }
+
+                    thread {
+                        val extractor = if(useYtMusic){
+                            YouTube.getSearchExtractor(query, singletonList(
+                                YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
+                        } else {
+                            YouTube.getSearchExtractor(query, singletonList(
                                 YoutubeSearchQueryHandlerFactory.VIDEOS), "")
-                            extractor.fetchPage()
+                        }
+                        extractor.fetchPage()
 
-                            for(song in extractor.initialPage.items) {
-                                val ex = song as StreamInfoItem
-                                resultArray.add(Song(
-                                    name = ex.name,
-                                    artist = ex.uploaderName,
-                                    youtubeLink = ex.url,
-                                    ytmThumbnail = song.thumbnailUrl
-                                ))
-                            }
+                        for(song in extractor.initialPage.items) {
+                            val ex = song as StreamInfoItem
+                            resultArray.add(Song(
+                                name = ex.name,
+                                artist = ex.uploaderName,
+                                youtubeLink = ex.url,
+                                ytmThumbnail = song.thumbnailUrl
+                            ))
+                        }
 
-                            activity?.runOnUiThread {
-                                searchRv.adapter =
-                                    ResultAdapter(resultArray, WeakReference(this@Search))
-                                searchRv.layoutManager = LinearLayoutManager(activity as Context)
-                                loading_view.visibility = View.GONE
-                                loading_view.pauseAnimation()
-                                searchRv.alpha = 0f
-                                searchRv.visibility = View.VISIBLE
-                                searchRv.animate().alpha(1f).duration = 200
-                            }
+                        activity?.runOnUiThread {
+                            searchRv.adapter =
+                                ResultAdapter(resultArray, WeakReference(this@Search))
+                            searchRv.layoutManager = LinearLayoutManager(activity as Context)
+                            loading_view.visibility = View.GONE
+                            loading_view.pauseAnimation()
+                            searchRv.alpha = 0f
+                            searchRv.visibility = View.VISIBLE
+                            searchRv.animate().alpha(1f).duration = 200
                         }
                     }
                 } catch (e: IOException) {

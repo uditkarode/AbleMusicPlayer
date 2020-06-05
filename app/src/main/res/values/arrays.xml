@@ -4,4 +4,9 @@
         <item>webm</item>
         <item>mp3</item>
     </string-array>
+
+    <string-array name="sources">
+        <item>Youtube Music</item>
+        <item>Youtube (Videos)</item>
+    </string-array>
 </resources>

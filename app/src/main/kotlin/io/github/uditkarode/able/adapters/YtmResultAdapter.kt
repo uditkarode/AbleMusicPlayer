@@ -27,6 +27,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.fragments.Search
@@ -64,6 +66,6 @@ class YtmResultAdapter(private val songList: ArrayList<Song>, private val wr: We
     inner class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
         val songName = itemView.findViewById<TextView>(R.id.vid_song)!!
         val songUploader = itemView.findViewById<TextView>(R.id.vid_uploader)!!
-        val songAlbumArt = itemView.findViewById<ImageView>(R.id.vid_albart)
+        val songAlbumArt = itemView.findViewById<ImageView>(R.id.vid_albart)!!
     }
 }

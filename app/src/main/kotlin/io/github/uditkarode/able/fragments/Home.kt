@@ -45,6 +45,7 @@ import com.vincan.medialoader.download.DownloadListener
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.events.HomeLoadingEvent
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
@@ -53,6 +54,7 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.home.*
+import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
@@ -179,7 +181,7 @@ class Home: Fragment() {
             mService?.showNotif()
 
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
-            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+            val stream = streamInfo.audioStreams.run { this[size - 1] }
 
             val url = stream.url
             val bitrate = stream.averageBitrate
@@ -245,6 +247,7 @@ class Home: Fragment() {
             else song.filePath = url
             mService?.setPlayQueue(arrayListOf(song))
             mService?.setIndex(0)
+            EventBus.getDefault().post(HomeLoadingEvent(false))
             mService?.setPlayPause(SongState.playing)
         }
     }

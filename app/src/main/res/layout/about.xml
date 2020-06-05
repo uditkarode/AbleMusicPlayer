@@ -83,7 +83,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0.8"
+                        android:text="0.9"
                         android:textColor="#fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
@@ -116,7 +116,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="EagerLion"
+                        android:text="CatalyticClaws"
                         android:textColor="#fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
@@ -234,6 +234,16 @@
                         android:layout_height="wrap_content"
                         android:text="Product Manager"
                         android:textColor="#80fbfbfb"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Caption"
+                        tools:ignore="HardcodedText" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="Also, huge thanks to the NewPipe team for the extractor."
+                        android:textColor="#80fbfbfb"
+                        android:layout_gravity="center"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                         tools:ignore="HardcodedText" />
 

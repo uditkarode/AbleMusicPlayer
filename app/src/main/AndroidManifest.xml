@@ -42,6 +42,7 @@
         <activity android:name=".activities.Splash" />
         <activity android:name=".activities.Welcome" android:theme="@style/Theme.Intro" />
         <activity android:name=".activities.About" />
+        <activity android:name=".activities.AlbumPlaylist" />
         <activity android:name=".activities.Settings" android:theme="@style/SettingsTheme"
             android:parentActivityName=".activities.MainActivity" />
     </application>

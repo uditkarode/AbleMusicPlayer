@@ -7,25 +7,54 @@
     android:padding="15dp"
     android:background="#212121">
 
-    <EditText
-        android:id="@+id/search_bar"
+    <LinearLayout
+        android:id="@+id/sr_pr"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:textColorHint="#80fbfbfb"
-        android:background="@drawable/rounded_rectangle"
-        android:hint="@string/search"
-        android:paddingStart="12dp"
-        android:maxLines="1"
-        android:textColor="#fbfbfb"
-        android:paddingEnd="12dp"
-        android:inputType="text"
-        android:imeOptions="actionDone"
-        />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/search_bar"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:textColorHint="#80fbfbfb"
+            android:background="@drawable/rounded_rectangle"
+            android:hint="@string/search"
+            android:paddingStart="12dp"
+            android:maxLines="1"
+            android:textColor="#fbfbfb"
+            android:layout_weight="0.9"
+            android:paddingEnd="12dp"
+            android:inputType="text"
+            android:imeOptions="actionDone"
+            android:autofillHints=""
+            android:layout_marginEnd="5dp"
+            />
+
+        <RelativeLayout
+            android:id="@+id/search_mode_pr"
+            android:layout_width="0dp"
+            android:layout_weight="0.13"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/rounded_rectangle"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/search_mode"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:layout_centerInParent="true"
+                android:src="@drawable/mode_music"
+                />
+
+        </RelativeLayout>
+
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/search_rv"
         android:visibility="gone"
-        android:layout_below="@+id/search_bar"
+        android:layout_below="@+id/sr_pr"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fadingEdge="vertical"

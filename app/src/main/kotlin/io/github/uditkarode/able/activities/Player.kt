@@ -443,7 +443,7 @@ class Player : AppCompatActivity() {
 
         if(Shared.isColorDark(color)){
             player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow))
-            player_queue.setImageDrawable(getDrawable(R.drawable.playlist))
+            player_queue.setImageDrawable(getDrawable(R.drawable.mode_playlist))
             if(lightVibrantColor != null) {
                 if((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0){
                     player_seekbar.progressDrawable.setTint(0x002171)

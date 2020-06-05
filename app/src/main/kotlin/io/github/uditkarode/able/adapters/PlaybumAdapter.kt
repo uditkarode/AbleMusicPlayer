@@ -21,6 +21,7 @@ package io.github.uditkarode.able.adapters
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Typeface
+import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,11 +34,15 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.AlbumPlaylist
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.Shared
 import java.lang.ref.WeakReference
+import kotlin.concurrent.thread
 
-class YtmResultAdapter(private val songList: ArrayList<Song>,
-                       private val wr: WeakReference<Search>,
-                       private val mode: String): RecyclerView.Adapter<YtmResultAdapter.RVVH>() {
+class PlaybumAdapter(private val songList: ArrayList<Song>,
+                     private val wr: WeakReference<AlbumPlaylist>,
+                     private val mode: String): RecyclerView.Adapter<PlaybumAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
         RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
 
@@ -63,17 +68,7 @@ class YtmResultAdapter(private val songList: ArrayList<Song>,
             Typeface.createFromAsset(holder.songName.context.assets, "fonts/inter.otf")
 
         holder.itemView.setOnClickListener {
-            if(current.youtubeLink.contains("youtube.com/playlist")){
-                holder.itemView.context.run {
-                    startActivity(Intent(this, AlbumPlaylist::class.java).run {
-                        this.putExtra("name", current.name)
-                        this.putExtra("artist", current.artist)
-                        this.putExtra("link", current.youtubeLink)
-                        this.putExtra("art", current.ytmThumbnail)
-                        this
-                    })
-                }
-            } else wr.get()?.itemPressed(songList[position])
+            wr.get()?.itemPressed(current)
         }
     }
 

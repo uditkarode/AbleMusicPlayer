@@ -38,9 +38,8 @@ class Welcome: MaterialIntroActivity() {
                     )
                 )
                 .image(io.github.dreierf.materialintroscreen.R.drawable.ic_next)
-                .title("Welcome to AbleMusic!")
-                .description("The storage permission is required to proceed. This is needed" +
-                        " for Able to download songs to your storage.")
+                .title(getString(R.string.welcome).format("AbleMusic"))
+                .description(getString(R.string.storage_perm))
                 .build()
         )
     }

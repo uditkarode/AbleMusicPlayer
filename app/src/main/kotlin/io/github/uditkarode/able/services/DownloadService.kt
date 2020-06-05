@@ -116,7 +116,7 @@ class DownloadService : JobIntentService() {
             }
             NotificationManagerCompat.from(applicationContext).apply {
                 builder.setSubText("$currentIndex of ${songQueue.size} ")
-                builder.setContentText("${song.name} starting...")
+                builder.setContentText("${song.name} ${applicationContext.getString(R.string.starting)}")
                 builder.setOngoing(true)
                 notify(2, builder.build())
             }
@@ -155,7 +155,7 @@ class DownloadService : JobIntentService() {
 
                     override fun onCompleted(download: Download) {
                         NotificationManagerCompat.from(applicationContext).apply {
-                            builder.setContentText("Saving...")
+                            builder.setContentText(applicationContext.getString(R.string.saving))
                                 .setProgress(100, 100, true)
                             builder.setOngoing(true)
                             notify(2, builder.build())
@@ -270,7 +270,7 @@ class DownloadService : JobIntentService() {
                             builder.setProgress(100, download.progress, false)
                             builder.setOngoing(true)
                             builder.setSubText("$currentIndex of ${songQueue.size}")
-                            builder.setContentText("${etaInMilliSeconds / 1000}s left")
+                            builder.setContentText("${etaInMilliSeconds / 1000}s ${applicationContext.getString(R.string.left)}")
                             notify(2, builder.build())
                         }
                     }
@@ -315,8 +315,8 @@ class DownloadService : JobIntentService() {
             Notification.Builder(this)
         }
         builder.apply {
-            setContentTitle("Initialising Download")
-            setContentText("Please wait...")
+            setContentTitle(getString(R.string.init_dl))
+            setContentText(getString(R.string.pl_wait))
             setSmallIcon(R.drawable.ic_download_icon)
             builder.setOngoing(true)
         }

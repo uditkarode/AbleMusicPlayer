@@ -42,7 +42,7 @@ class YtmResultAdapter(private val songList: ArrayList<Song>, private val wr: We
     override fun onBindViewHolder(holder: RVVH, position: Int) {
         val current = songList[position]
         holder.songName.text = current.name
-        holder.songUploader.text = "Song • " + current.artist
+        holder.songUploader.text = "${holder.itemView.context.getString(R.string.song)} • " + current.artist
 
         holder.songAlbumArt.run {
             Glide.with(context)

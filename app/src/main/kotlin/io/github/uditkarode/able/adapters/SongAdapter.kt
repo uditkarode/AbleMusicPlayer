@@ -140,8 +140,8 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                         0 -> wr?.get()?.mService!!.addToQueue(current)
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
-                                title(text = "Enter the name of your new playlist")
-                                input("Name"){ _, charSequence ->
+                                title(text = holder.itemView.context.getString(R.string.playlist_namei))
+                                input(holder.itemView.context.getString(R.string.name_s)){ _, charSequence ->
                                     Shared.createPlaylist(charSequence.toString(), holder.itemView.context)
                                     Shared.addToPlaylist(Shared.getPlaylists().filter {
                                         it.name == "$charSequence.json"
@@ -160,9 +160,8 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
 
         holder.deleteFromDisk.setOnClickListener {
             MaterialDialog(holder.itemView.context).show {
-                title(text = "Confirmation")
-                message(text = "Are you sure you want to delete ${current.name} (${current.filePath}) " +
-                        "from disk?")
+                title(text = holder.itemView.context.getString(R.string.confirmation))
+                message(text = holder.itemView.context.getString(R.string.res_confirm_txt).format(current.name, current.filePath))
                 positiveButton(text = "Delete"){
                     val curFile = File(current.filePath)
                     val curArt =
@@ -173,7 +172,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                     songList.removeAt(position)
                     notifyDataSetChanged()
                 }
-                negativeButton(text = "Cancel")
+                negativeButton(text = holder.itemView.context.getString(R.string.cancel))
             }
         }
 

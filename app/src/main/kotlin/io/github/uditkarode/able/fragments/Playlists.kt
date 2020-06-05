@@ -116,7 +116,7 @@ class Playlists : Fragment() {
                             inputId = validUrl[2]
                         }
 
-                        inputField.error = if (isValid) null else "Invalid Playlist URL!"
+                        inputField.error = if (isValid) null else getString(R.string.spot_invalid)
                         dialog.setActionButtonEnabled(WhichButton.POSITIVE, isValid)
                     }
                     getInputLayout().boxBackgroundColor = Color.parseColor("#212121")
@@ -132,8 +132,7 @@ class Playlists : Fragment() {
                                     .build()
                             ).enqueue()
                         Toast.makeText(
-                            activity as Context, "Sit back and relax! We're importing the" +
-                                    "songs right now.", Toast.LENGTH_LONG
+                            activity as Context, getString(R.string.spot_importing), Toast.LENGTH_LONG
                         ).show()
                     }
                 }

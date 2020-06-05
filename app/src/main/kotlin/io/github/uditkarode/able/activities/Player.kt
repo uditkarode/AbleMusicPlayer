@@ -172,8 +172,8 @@ class Player : AppCompatActivity() {
 
         album_art.setOnClickListener {
             MaterialDialog(this@Player).show {
-                title(text = "Enter the song name")
-                input("e.g. Wake Up Eden") { _, charSequence ->
+                title(text = this@Player.getString(R.string.enter_song))
+                input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
                     updateAlbumArt(charSequence.toString())
                 }
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
@@ -183,8 +183,8 @@ class Player : AppCompatActivity() {
         song_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             MaterialDialog(this@Player).show {
-                title(text = "Enter the new song name")
-                input("e.g. Wake Up") { _, charSequence ->
+                title(text = this@Player.getString(R.string.enter_new_song))
+                input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
                     val ext = current.filePath.run {
                         this.substring(this.lastIndexOf(".") + 1)
                     }
@@ -226,8 +226,8 @@ class Player : AppCompatActivity() {
         artist_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             MaterialDialog(this@Player).show {
-                title(text = "Enter the new song artist")
-                input("e.g. Eden") { _, charSequence ->
+                title(text = this@Player.getString(R.string.enter_new_art))
+                input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
                     val ext = current.filePath.run {
                         this.substring(this.lastIndexOf(".") + 1)
                     }
@@ -563,7 +563,7 @@ class Player : AppCompatActivity() {
                                         mService.showNotification(
                                             mService.generateAction(
                                                 R.drawable.notif_pause,
-                                                "Pause",
+                                                getString(R.string.pause),
                                                 "ACTION_PAUSE"
                                             ), true, bmp
                                         )
@@ -571,7 +571,7 @@ class Player : AppCompatActivity() {
                                         mService.showNotification(
                                             mService.generateAction(
                                                 R.drawable.notif_play,
-                                                "Play",
+                                                getString(R.string.play),
                                                 "ACTION_PLAY"
                                             ), false, bmp
                                         )
@@ -608,7 +608,7 @@ class Player : AppCompatActivity() {
             mService.showNotification(
                 mService.generateAction(
                     R.drawable.pause,
-                    "Pause",
+                    getString(R.string.pause),
                     "ACTION_PAUSE"
                 ), true
             )
@@ -616,7 +616,7 @@ class Player : AppCompatActivity() {
             mService.showNotification(
                 mService.generateAction(
                     R.drawable.play,
-                    "Play",
+                    getString(R.string.play),
                     "ACTION_PLAY"
                 ), false
             )

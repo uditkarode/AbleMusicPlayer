@@ -13,7 +13,7 @@ class Settings: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         setContentView(R.layout.settings_view)
-        title = "Settings"
+        title = getString(R.string.settings)
 
         actionBar?.setDisplayHomeAsUpEnabled(true)
         if (Shared.isFirstRun) Shared.isFirstRun = false

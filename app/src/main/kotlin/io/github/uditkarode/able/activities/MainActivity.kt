@@ -36,6 +36,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.HtmlCompat
+import androidx.preference.PreferenceManager
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
@@ -323,8 +324,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     override fun sendItem(song: Song) {
-        val sp = getSharedPreferences(Constants.SP_NAME, 0)
-        when (sp.getString("streamMode", MusicMode.download)) {
+        when (PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            .getString("mode_key", MusicMode.download)) {
             MusicMode.download -> {
                 val songL = ArrayList<String>()
                 songL.add(song.name)

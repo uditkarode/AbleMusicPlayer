@@ -84,4 +84,6 @@ or via the UPI address %2$s</string>
     <string name="deseg_hpm">Head Product Manager</string>
     <string name="deseg_gd">Graphics Designer</string>
     <string name="deseg_pm">Product Manager</string>
+    <string name="play_mode">Mode</string>
+    <string name="play_mode_sum">Choose your desired way of playing songs.</string>
 </resources>

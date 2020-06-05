@@ -33,6 +33,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ResultAdapter
+import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.models.Song
 import kotlinx.android.synthetic.main.search.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
@@ -133,8 +134,12 @@ class Search : Fragment() {
                         }
 
                         activity?.runOnUiThread {
-                            searchRv.adapter =
-                                ResultAdapter(resultArray, WeakReference(this@Search))
+                            if(useYtMusic)
+                                searchRv.adapter =
+                                    YtmResultAdapter(resultArray, WeakReference(this@Search))
+                            else
+                                searchRv.adapter =
+                                    ResultAdapter(resultArray, WeakReference(this@Search))
                             searchRv.layoutManager = LinearLayoutManager(activity as Context)
                             loading_view.visibility = View.GONE
                             loading_view.pauseAnimation()

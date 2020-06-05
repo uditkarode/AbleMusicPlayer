@@ -46,6 +46,7 @@ import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
+import java.lang.reflect.Field
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -58,6 +59,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         private var coverArtHeight: Int? = null
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
+        private var isInstantiated = false
+        private var ps = PlaybackState.Builder()
+        private var builder: Notification.Builder? = null
+        private var wakeLock: PowerManager.WakeLock? = null
+        private lateinit var mediaSession: MediaSession
+        private lateinit var notificationManager: NotificationManager
     }
 
     private val binder = MusicBinder(this@MusicService)
@@ -95,14 +102,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
     }
 
-    private var isInstantiated = false
-    private var ps = PlaybackState.Builder()
-
-    private lateinit var notification: Notification
-    private lateinit var builder: Notification.Builder
-    private var wakeLock: PowerManager.WakeLock? = null
-    private lateinit var mediaSession: MediaSession
-
     private val actions: Long = (PlaybackState.ACTION_PLAY
             or PlaybackState.ACTION_PAUSE
             or PlaybackState.ACTION_PLAY_PAUSE
@@ -120,6 +119,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
         if(coverArtHeight == null)
             coverArtHeight = resources.getDimension(R.dimen.top_art_height).toInt()
+
+        if(!isInstantiated){
+            notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        }
 
         mediaSession = MediaSession(this, "AbleSession")
 
@@ -146,6 +150,35 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
         mediaPlayer.setOnCompletionListener {
             nextSong()
+        }
+
+        if(builder == null){
+            builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, "10002")
+            } else {
+                @Suppress("DEPRECATION")
+                Notification.Builder(this)
+            }
+
+            val intent = Intent(this, MusicService::class.java)
+            intent.action = "ACTION_STOP"
+            val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
+            style.setShowActionsInCompactView(0, 1, 2, 3)
+
+            (builder as Notification.Builder)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setSubText("Music")
+                .setContentIntent(
+                    PendingIntent.getActivity(
+                        this,
+                        0,
+                        Intent(this, Player::class.java),
+                        0
+                    )
+                )
+                .setDeleteIntent(PendingIntent.getService(this, 1, intent, 0))
+                .setOngoing(true)
+                .style = style
         }
     }
 
@@ -485,39 +518,25 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 }
             }
         }
-        val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
-        val intent = Intent(this, MusicService::class.java)
-        intent.action = "ACTION_STOP"
-        builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, "10002")
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
 
         if(songCoverArt == null || songCoverArt?.get()?.isRecycled == true){
             songCoverArt = WeakReference(GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart))
         }
 
-        builder
-            .setSmallIcon(R.drawable.ic_notification)
-            .setSubText("Music")
-            .setLargeIcon(songCoverArt?.get())
-            .setContentTitle(playQueue[currentIndex].name)
-            .setContentText(playQueue[currentIndex].artist)
-            .setOngoing(playing)
-            .setContentIntent(
-                PendingIntent.getActivity(
-                    this,
-                    0,
-                    Intent(this, Player::class.java),
-                    0
-                )
-            )
-            .setDeleteIntent(PendingIntent.getService(this, 1, intent, 0))
-            .style = style
+        builder?.setLargeIcon(songCoverArt?.get())
+        builder?.setContentTitle(playQueue[currentIndex].name)
+        builder?.setContentText(playQueue[currentIndex].artist)
 
-        builder.addAction(
+        /* clear actions */
+        try {
+            val f: Field = builder!!.javaClass.getDeclaredField("mActions")
+            f.isAccessible = true
+            f.set(builder, ArrayList<Notification.Action>())
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+
+        builder?.addAction(
             generateAction(
                 R.drawable.notif_previous,
                 "Previous",
@@ -525,9 +544,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             )
         )
 
-        builder.addAction(action)
+        builder?.addAction(action)
 
-        builder.addAction(
+        builder?.addAction(
             generateAction(
                 R.drawable.notif_next,
                 "Next",
@@ -535,17 +554,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             )
         )
 
-        builder.addAction(
+        builder?.addAction(
             generateAction(
                 R.drawable.kill,
                 "Kill",
                 "ACTION_KILL"
             )
         )
-
-        style.setShowActionsInCompactView(0, 1, 2, 3)
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
@@ -559,11 +574,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notification = builder.setChannelId("10002").build()
-            startForeground(1, notification)
+            startForeground(1, builder?.setChannelId("10002")?.build())
         } else {
-            notification = builder.build()
-            notificationManager.notify(1, notification)
+            notificationManager.notify(1, builder?.build())
         }
 
         songCoverArt?.get()?.recycle()

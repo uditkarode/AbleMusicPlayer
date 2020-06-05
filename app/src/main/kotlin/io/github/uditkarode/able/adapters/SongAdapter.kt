@@ -132,7 +132,7 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
             }
 
             names.add(0, "playing queue")
-            names.add(1, "create playlist")
+            names.add(1, "create mode_playlist")
 
             MaterialDialog(holder.itemView.context).show {
                 listItems(items = names){ _, index, _ ->

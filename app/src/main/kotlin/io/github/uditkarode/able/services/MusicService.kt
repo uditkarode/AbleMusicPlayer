@@ -33,6 +33,12 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
@@ -602,12 +608,40 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     private fun streamAudio() {
         try {
-            val streamInfo = StreamInfo.getInfo(playQueue[currentIndex].youtubeLink)
+            val song = playQueue[currentIndex]
+            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-            val url = stream.url
-            playQueue[currentIndex].filePath = url
-            songChanged()
+            if(song.ytmThumbnail.isNotBlank()){
+                Glide.with(applicationContext)
+                    .asBitmap()
+                    .load(song.ytmThumbnail)
+                    .signature(ObjectKey("save"))
+                    .listener(object: RequestListener<Bitmap> {
+                        override fun onLoadFailed(
+                            e: GlideException?,
+                            model: Any?,
+                            target: Target<Bitmap>?,
+                            isFirstResource: Boolean
+                        ): Boolean { return false }
+
+                        override fun onResourceReady(
+                            resource: Bitmap?,
+                            model: Any?,
+                            target: Target<Bitmap>?,
+                            dataSource: DataSource?,
+                            isFirstResource: Boolean
+                        ): Boolean {
+                            if(resource != null)
+                                Shared.saveStreamingAlbumArt(resource, Shared.getIdFromLink(song.youtubeLink))
+                            return false
+                        }
+                    }).submit()
+
+                val url = stream.url
+                playQueue[currentIndex].filePath = url
+                songChanged()
+            }
         } catch (e: java.lang.Exception) {
             nextSong()
         }

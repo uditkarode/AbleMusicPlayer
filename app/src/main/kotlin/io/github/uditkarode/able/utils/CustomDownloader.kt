@@ -11,6 +11,10 @@ import java.net.URL
 import java.net.URLConnection
 import javax.net.ssl.HttpsURLConnection
 
+/*
+    * Taken from NewPipe TestSuite
+*/
+
 class CustomDownloader: Downloader() {
     private fun setDefaultHeaders(connection: URLConnection) {
         connection.setRequestProperty("User-Agent", USER_AGENT)

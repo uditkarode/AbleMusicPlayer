@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="15dp"
+    android:background="#212121">
+
+    <LinearLayout
+        android:id="@+id/sr_pr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:visibility="gone"
+        android:orientation="vertical">
+
+        <com.makeramen.roundedimageview.RoundedImageView
+            android:id="@+id/playbum_art"
+            android:layout_width="250dp"
+            android:layout_height="250dp"
+            android:layout_gravity="center_horizontal"
+            app:riv_corner_radius="5dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="15dp"
+            android:contentDescription="@string/add_song" />
+
+        <TextView
+            android:id="@+id/playbum_name"
+            fontPath="fonts/interbold.otf"
+            tools:ignore="MissingPrefix"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/app_name"
+            android:textColor="#fbfbfb"
+            android:textSize="27.69sp" />
+
+        <TextView
+            android:id="@+id/playbum_artist"
+            fontPath="fonts/interbold.otf"
+            tools:ignore="MissingPrefix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="@string/app_name"
+            android:textColor="#8a8a8c"
+            android:textSize="22.69sp" />
+
+        <Button
+            android:id="@+id/playbum_play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/play"
+            />
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/ap_rv"
+        android:visibility="gone"
+        android:layout_below="@+id/sr_pr"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fadingEdge="vertical"
+        android:requiresFadingEdge="vertical"
+        android:layout_marginTop="12dp"
+        />
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/loading_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:lottie_renderMode="hardware"
+        android:layout_centerInParent="true"
+        app:lottie_fileName="musicfly.json"
+        app:lottie_progress="0.3080229"
+        app:lottie_loop="true"
+        app:lottie_autoPlay="false" />
+
+</RelativeLayout>

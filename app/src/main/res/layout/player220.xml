@@ -109,7 +109,7 @@
                         android:paddingEnd="5dp"
                         android:maxLines="1"
                         android:ellipsize="end"
-                        android:text="Wake Up"
+                        android:text="@string/song_ex2"
                         android:textColor="#fbfbfb"
                         android:textSize="22sp"
                         tools:ignore="MissingPrefix,RtlSymmetry" />
@@ -122,7 +122,7 @@
                         android:layout_height="wrap_content"
                         android:paddingEnd="5dp"
                         android:paddingBottom="10dp"
-                        android:text="Eden"
+                        android:text="@string/art_ex"
                         android:textColor="#80fbfbfb"
                         android:textSize="20sp"
                         tools:ignore="MissingPrefix" />

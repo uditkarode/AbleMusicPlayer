@@ -7,7 +7,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:cardBackgroundColor="#212121"
-    tools:ignore="HardcodedText"
     >
 
     <ScrollView
@@ -44,7 +43,7 @@
                     android:paddingLeft="16dp"
                     android:paddingRight="16dp"
                     android:textColor="#fbfbfb"
-                    android:text="AbleMusic"
+                    android:text="@string/app_name_full"
                     android:textStyle="bold"
                     fontPath="fonts/interbold.otf"
                     android:textAppearance="@style/TextAppearance.AppCompat.Headline" tools:ignore="MissingPrefix"/>
@@ -74,7 +73,7 @@
                         android:layout_gravity="start|center_vertical"
                         android:paddingBottom="16dp"
                         android:paddingEnd="16dp"
-                        android:text="Info"
+                        android:text="@string/info"
                         fontPath="fonts/interbold.otf"
                         android:textSize="18sp"
                         android:textColor="@color/colorAccent"
@@ -92,7 +91,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="start|center_vertical"
                         android:paddingEnd="16dp"
-                        android:text="Version"
+                        android:text="@string/ver"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                         android:textColor="#80fbfbfb" tools:ignore="RtlSymmetry"/>
 
@@ -116,7 +115,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="CatalyticClaws"
+                        android:text="@string/dunno"
                         android:textColor="#fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
@@ -156,7 +155,7 @@
                         android:textColor="@color/colorAccent"
                         fontPath="fonts/interbold.otf"
                         android:paddingRight="16dp"
-                        android:text="Authors"
+                        android:text="@string/authors"
                         android:textSize="18sp"
                         tools:ignore="MissingPrefix" />
 
@@ -164,7 +163,7 @@
                         android:id="@+id/udit"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Udit Karode"
+                        android:text="@string/dev"
                         android:textColor="#fbfbfb"
                         fontPath="interbold.otf"
                         android:textSize="18sp"
@@ -175,7 +174,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="10sp"
-                        android:text="Developer"
+                        android:text="@string/deseg_dev"
                         android:textColor="#80fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                         tools:ignore="HardcodedText" />
@@ -183,7 +182,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Hyperterminal"
+                        android:text="@string/hpm"
                         android:textColor="#fbfbfb"
                         android:textSize="18sp"
                         fontPath="SanFranciscoM.otf"
@@ -193,7 +192,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Head Product Manager"
+                        android:text="@string/deseg_hpm"
                         android:textColor="#80fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                         tools:ignore="HardcodedText" />
@@ -204,7 +203,7 @@
                         android:layout_height="wrap_content"
                         android:textSize="18sp"
                         android:layout_marginTop="10dp"
-                        android:text="Sajid Shaik"
+                        android:text="@string/graphics_d"
                         android:textColor="#fbfbfb"
                         fontPath="interbold.otf"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
@@ -213,7 +212,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Graphic Designer"
+                        android:text="@string/deseg_gd"
                         android:layout_marginBottom="10sp"
                         android:textColor="#80fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
@@ -222,7 +221,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Safan Sulfikar"
+                        android:text="@string/product_man"
                         android:textColor="#fbfbfb"
                         android:textSize="18sp"
                         fontPath="SanFranciscoM.otf"
@@ -232,7 +231,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Product Manager"
+                        android:text="@string/deseg_pm"
                         android:textColor="#80fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                         tools:ignore="HardcodedText" />
@@ -241,7 +240,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="20dp"
-                        android:text="Also, huge thanks to the NewPipe team for the extractor."
+                        android:text="@string/about_also"
                         android:textColor="#80fbfbfb"
                         android:layout_gravity="center"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
@@ -258,7 +257,7 @@
                             android:id="@+id/support"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Support"
+                            android:text="@string/support"
                             app:backgroundTint="#29b6f6"
                             android:padding="12dp"
                             android:layout_marginEnd="10dp"
@@ -272,7 +271,7 @@
                             android:id="@+id/donate"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Donate"
+                            android:text="@string/donate"
                             app:backgroundTint="#ff5023"
                             android:padding="12dp"
                             android:textSize="18sp"

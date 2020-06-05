@@ -40,6 +40,7 @@ import io.github.uditkarode.able.events.ImportDoneEvent
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.spotifyplaylist.SpotifyPlaylist
+import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Shared.Companion.modifyPlaylist
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -283,32 +284,32 @@ object SpotifyImport {
 
                 Toast.makeText(
                     applicationContext,
-                    "Spotify import successful!",
+                    applicationContext.getString(R.string.spot_suc),
                     Toast.LENGTH_LONG
                 ).show()
 
                 isImporting = false
             } else {
                 NotificationManagerCompat.from(applicationContext).apply {
-                    builder.setContentText("Failed :( sorry!")
+                    builder.setContentText(applicationContext.getString(R.string.spot_fail))
                     builder.setOngoing(false)
                     notify(3, builder.build())
                 }
                 Toast.makeText(
                     applicationContext,
-                    "Couldn't find any songs on YouTube :( sorry!",
+                    applicationContext.getString(R.string.spot_ytfail),
                     Toast.LENGTH_LONG
                 ).show()
             }
         } else {
             NotificationManagerCompat.from(applicationContext).apply {
-                builder.setContentText("Failed :(")
+                builder.setContentText(applicationContext.getString(R.string.spot_fail))
                 builder.setOngoing(false)
                 notify(3, builder.build())
             }
             Toast.makeText(
                 applicationContext,
-                "Something went wrong. Please report this to us!",
+                applicationContext.getString(R.string.unexpected_err),
                 Toast.LENGTH_LONG
             ).show()
         }

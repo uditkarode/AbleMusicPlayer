@@ -495,10 +495,24 @@ class Player : AppCompatActivity() {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             val imageName = File(current.filePath).nameWithoutExtension
             val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+            val cacheImg = File(Constants.ableSongDir.absolutePath + "/cache",
+                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink))
 
-            if(!img.exists() && current.ytmThumbnail.isNotBlank()){
+            if(!img.exists() && cacheImg.exists() && current.ytmThumbnail.isNotBlank()){
                 runOnUiThread {
-                    // @todo: load image
+                    img_albart.visibility = View.VISIBLE
+                    note_ph.visibility = View.GONE
+                    Glide.with(this@Player)
+                        .load(cacheImg)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true)
+                        .into(img_albart)
+
+                    val bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
+                    Palette.from(bmp).generate {
+                        setBgColor(it?.getDominantColor(0x002171)?:0x002171,
+                            it?.getLightMutedColor(0x002171)?:0x002171)
+                    }
                 }
             } else {
                 try {

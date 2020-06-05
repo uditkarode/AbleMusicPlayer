@@ -76,6 +76,30 @@ class Shared {
             }
         }
 
+        fun getIdFromLink(link: String): String {
+            return link.run {
+                substring(lastIndexOf("=") + 1)
+            }
+        }
+
+        fun saveStreamingAlbumArt(image: Bitmap, id: String) {
+            val outputDir = File(Constants.ableSongDir.absolutePath + "/cache")
+            if((outputDir.listFiles()?: arrayOf()).size > 10){
+                outputDir.delete()
+                outputDir.mkdirs()
+            }
+
+            outputDir.run { if (!exists()) mkdirs() }
+
+            try {
+                val fOut: OutputStream = FileOutputStream(File(outputDir, "sCache$id"))
+                image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
+                fOut.close()
+            } catch (e: java.lang.Exception) {
+                e.printStackTrace()
+            }
+        }
+
         fun getPlaylists(): ArrayList<Playlist> {
             val ret: ArrayList<Playlist> = ArrayList()
             for (f in Constants.playlistFolder.listFiles()?:arrayOf()) {

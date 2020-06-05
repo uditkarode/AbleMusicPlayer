@@ -187,10 +187,21 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
-        bb_ProgressBar?.visibility = View.GONE
     }
 
-    @Subscribe
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun loadingEvent(homeLoadingEvent: HomeLoadingEvent){
+        bb_ProgressBar?.visibility = if(homeLoadingEvent.loading) View.VISIBLE else View.GONE
+        if(!homeLoadingEvent.loading){
+            activity_seekbar.visibility = View.VISIBLE
+            bn_parent.invalidate()
+        }
+        else {
+            activity_seekbar.visibility = View.GONE
+            bn_parent.invalidate()
+        }
+    }
+
     private fun bindEvent(@Suppress("UNUSED_PARAMETER") bindServiceEvent: BindServiceEvent) {
         if (!Shared.serviceLinked()) {
             if (Shared.serviceRunning(MusicService::class.java, applicationContext))
@@ -334,6 +345,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             MusicMode.stream -> {
                 home.streamAudio(song, false)
+                loadingEvent(HomeLoadingEvent(true))
             }
 
             MusicMode.both -> {

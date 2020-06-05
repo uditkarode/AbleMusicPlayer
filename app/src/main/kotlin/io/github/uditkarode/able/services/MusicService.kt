@@ -33,7 +33,6 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
-import androidx.annotation.RequiresApi
 import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
@@ -65,6 +64,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         private var wakeLock: PowerManager.WakeLock? = null
         private lateinit var mediaSession: MediaSession
         private lateinit var notificationManager: NotificationManager
+        private var focusRequest: AudioFocusRequest? = null
     }
 
     private val binder = MusicBinder(this@MusicService)
@@ -79,21 +79,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     fun setCurrentIndex(ind: Int){
         currentIndex = ind
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
-        setAudioAttributes(AudioAttributes.Builder().run {
-            setUsage(AudioAttributes.USAGE_MEDIA)
-            setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            build()
-        })
-        setAcceptsDelayedFocusGain(false)
-        setOnAudioFocusChangeListener {
-            if (it == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
-            else if (it == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
-        }
-        build()
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -114,6 +99,22 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         super.onCreate()
 
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
+                setAudioAttributes(AudioAttributes.Builder().run {
+                    setUsage(AudioAttributes.USAGE_MEDIA)
+                    setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    build()
+                })
+                setAcceptsDelayedFocusGain(false)
+                setOnAudioFocusChangeListener {
+                    if (it == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
+                    else if (it == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
+                }
+                build()
+            }
+        }
 
         GlideBitmapPool.initialize(1 * 1024 * 1024)
 
@@ -215,7 +216,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                         R.drawable.notif_pause,
                         "Pause",
                         "ACTION_PAUSE"
-                    ), true
+                    )
                 )
                 setPlayPause(SongState.playing)
             }
@@ -225,7 +226,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                         R.drawable.notif_play,
                         "Play",
                         "ACTION_PLAY"
-                    ), false
+                    )
                 )
                 setPlayPause(SongState.paused)
             }
@@ -369,7 +370,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioManager.requestAudioFocus(focusRequest)
+            audioManager.requestAudioFocus(focusRequest!!)
         } else {
             @Suppress("DEPRECATION")
             audioManager.requestAudioFocus(
@@ -409,7 +410,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                     R.drawable.notif_pause,
                     "Pause",
                     "ACTION_PAUSE"
-                ), true
+                )
             )
             if (!mediaPlayer.isPlaying) {
                 try {
@@ -431,7 +432,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 R.drawable.notif_play,
                 "Play",
                 "ACTION_PLAY"
-            ), false
+            )
         )
     }
 
@@ -440,7 +441,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            audioManager.abandonAudioFocusRequest(focusRequest)
+            audioManager.abandonAudioFocusRequest(focusRequest!!)
         } else {
             @Suppress("DEPRECATION")
             audioManager.abandonAudioFocus {}
@@ -454,7 +455,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 R.drawable.notif_play,
                 "Play",
                 "ACTION_PLAY"
-            ), false
+            )
         )
 
         mediaSession.setPlaybackState(
@@ -509,7 +510,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         return Notification.Action.Builder(icon, title, pendingIntent).build()
     }
 
-    fun showNotification(action: Notification.Action, playing: Boolean, image: Bitmap? = null) {
+    fun showNotification(
+        action: Notification.Action,
+        image: Bitmap? = null
+    ) {
         if (image == null) {
             File(Constants.ableSongDir.absolutePath + "/album_art",
                 File(playQueue[currentIndex].filePath).nameWithoutExtension).also {

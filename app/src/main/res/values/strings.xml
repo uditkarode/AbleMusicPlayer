@@ -86,4 +86,6 @@ or via the UPI address %2$s</string>
     <string name="deseg_pm">Product Manager</string>
     <string name="play_mode">Mode</string>
     <string name="play_mode_sum">Choose your desired way of playing songs.</string>
+    <string name="pq">playing queue</string>
+    <string name="crp">create playlist</string>
 </resources>

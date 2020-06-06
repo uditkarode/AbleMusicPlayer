@@ -108,7 +108,7 @@ class Playlists : Fragment() {
                             textInp.toString().replace("https://", "")
                                 .split("/").toMutableList()
                         var isValid = true
-                        if (validUrl.size <= 2 || validUrl[0] != "open.spotify.com" || validUrl[1] != "mode_playlist") {
+                        if (validUrl.size <= 2 || validUrl[0] != "open.spotify.com" || validUrl[1] != "playlist") {
                             isValid = false
                         } else if (validUrl[2].contains("?")) {
                             inputId = validUrl[2].split("?")[0]

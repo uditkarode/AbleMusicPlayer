@@ -131,8 +131,8 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
                 ArrayList<String>().also { for(playlist in this) it.add(playlist.name.replace(".json", "")) }
             }
 
-            names.add(0, "playing queue")
-            names.add(1, "create mode_playlist")
+            names.add(0, holder.itemView.context.getString(R.string.pq))
+            names.add(1, holder.itemView.context.getString(R.string.crp))
 
             MaterialDialog(holder.itemView.context).show {
                 listItems(items = names){ _, index, _ ->

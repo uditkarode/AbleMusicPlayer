@@ -721,6 +721,11 @@ class Player : AppCompatActivity() {
         super.onStop()
     }
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        finish()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         if(!this.isDestroyed)

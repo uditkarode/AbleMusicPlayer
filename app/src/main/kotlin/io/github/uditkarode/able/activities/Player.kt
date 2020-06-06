@@ -508,11 +508,12 @@ class Player : AppCompatActivity() {
                         .skipMemoryCache(true)
                         .into(img_albart)
 
-                    val bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
-                    Palette.from(bmp).generate {
+                    Shared.bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
+                    Palette.from(Shared.getSharedBitmap()).generate {
                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
                             it?.getLightMutedColor(0x002171)?:0x002171)
                     }
+                    Shared.clearBitmap()
                 }
             } else {
                 try {
@@ -526,11 +527,12 @@ class Player : AppCompatActivity() {
                                 .skipMemoryCache(true)
                                 .into(img_albart)
 
-                            val bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
-                            Palette.from(bmp).generate {
+                            Shared.bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
+                            Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(it?.getDominantColor(0x002171)?:0x002171,
                                     it?.getLightMutedColor(0x002171)?:0x002171)
                             }
+                            Shared.clearBitmap()
                         }
                     } else {
                         val albumArtRequest = if (customSongName == null) {
@@ -565,14 +567,14 @@ class Player : AppCompatActivity() {
                                         .submit()
                                         .get()
 
-                                    val bmp = drw.toBitmap()
-                                    Palette.from(bmp).generate {
+                                    Shared.bmp = drw.toBitmap()
+                                    Palette.from(Shared.getSharedBitmap()).generate {
                                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
                                             it?.getLightVibrantColor(0x002171)?:0x002171)
                                     }
 
                                     if (img.exists()) img.delete()
-                                    Shared.saveAlbumArtToDisk(bmp, img)
+                                    Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
 
                                     runOnUiThread {
                                         img_albart.setImageDrawable(drw)
@@ -584,7 +586,7 @@ class Player : AppCompatActivity() {
                                                     R.drawable.notif_pause,
                                                     "Pause",
                                                     "ACTION_PAUSE"
-                                                ), bmp
+                                                ), Shared.getSharedBitmap()
                                             )
                                         } else {
                                             mService.showNotification(
@@ -592,9 +594,10 @@ class Player : AppCompatActivity() {
                                                     R.drawable.notif_play,
                                                     "Play",
                                                     "ACTION_PLAY"
-                                                ), bmp
+                                                ), Shared.getSharedBitmap()
                                             )
                                         }
+                                        Shared.clearBitmap()
                                     }
                                 } catch (e: Exception) {
                                     Log.e("ERR>", e.toString())
@@ -716,5 +719,10 @@ class Player : AppCompatActivity() {
         if (EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().unregister(this)
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Glide.with(this).clear(img_albart)
     }
 }

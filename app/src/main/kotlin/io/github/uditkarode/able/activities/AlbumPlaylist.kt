@@ -42,6 +42,7 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.albumplaylist.*
+import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.search.loading_view
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -91,7 +92,7 @@ class AlbumPlaylist: AppCompatActivity() {
         playbum_name.text = name
         playbum_artist.text = artist
         Glide
-            .with(this)
+            .with(this@AlbumPlaylist)
             .load(art)
             .diskCacheStrategy(DiskCacheStrategy.NONE)
             .skipMemoryCache(true)
@@ -197,6 +198,7 @@ class AlbumPlaylist: AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Glide.with(this).clear(playbum_art)
+        if(!this.isDestroyed)
+            Glide.with(this).clear(playbum_art)
     }
 }

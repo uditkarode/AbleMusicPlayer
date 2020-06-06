@@ -79,227 +79,242 @@ object SpotifyImport {
 
             val resp2 = okClient.newCall(playR).execute()
             val respPlayList = gson.fromJson(resp2.body?.string(), SpotifyPlaylist::class.java)
-            val songArr: ArrayList<Song> = ArrayList()
-            Constants.playlistSongDir.run {
-                if(!this.exists()) this.mkdirs()
-            }
-            for (i in respPlayList.tracks.items.indices) {
-                val item = respPlayList.tracks.items[i]
-                if (isImporting) {
-                    val songName = "${item.track.name} - ${item.track.artists[0].name}".run {
-                        if(this.length > 25) this.substring(0, 25) + "..." else this
+            if (!Shared.playlistExists("Spotify: ${respPlayList.name}.json")) {
+                val songArr: ArrayList<Song> = ArrayList()
+                Constants.playlistSongDir.run {
+                    if (!this.exists()) this.mkdirs()
+                }
+                for (i in respPlayList.tracks.items.indices) {
+                    val item = respPlayList.tracks.items[i]
+                    if (isImporting) {
+                        val songName = "${item.track.name} - ${item.track.artists[0].name}".run {
+                            if (this.length > 25) this.substring(0, 25) + "..." else this
+                        }
+                        NotificationManagerCompat.from(applicationContext).apply {
+                            builder.setContentText("$i of ${respPlayList.tracks.items.size}")
+                            builder.setContentTitle(songName)
+                            builder.setProgress(100, 100, true)
+                            builder.setOngoing(true)
+                            notify(3, builder.build())
+                        }
+
+                        var downloadDone = false
+
+                        val extractor = ServiceList.YouTube.getSearchExtractor(
+                            "${item.track.name} - ${item.track.artists[0].name}",
+                            Collections.singletonList(
+                                YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
+                            ), ""
+                        )
+                        extractor.fetchPage()
+
+                        if (extractor.initialPage.items.size > 0) {
+                            val toAdd = extractor.initialPage.items[0] as StreamInfoItem
+                            val fileName = toAdd.url.run {
+                                this.substring(this.lastIndexOf("=") + 1)
+                            }
+
+                            val streamInfo = StreamInfo.getInfo(toAdd.url)
+                            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+
+                            thread {
+                                if (toAdd.thumbnailUrl.isNotBlank()) {
+                                    val drw = Glide
+                                        .with(applicationContext)
+                                        .load(toAdd.thumbnailUrl)
+                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                        .skipMemoryCache(true)
+                                        .submit()
+                                        .get()
+
+                                    val img = File(
+                                        Constants.ableSongDir.absolutePath + "/album_art",
+                                        fileName
+                                    )
+                                    Shared.saveAlbumArtToDisk(drw.toBitmap(), img)
+                                }
+                            }
+
+                            val url = stream.url
+                            val bitrate = stream.averageBitrate
+                            val ext = stream.getFormat().suffix
+                            val mediaFile = File(Constants.playlistSongDir, fileName)
+                            var finalExt = "."
+
+                            try {
+                                val request =
+                                    Request(url, mediaFile.absolutePath + ".tmp.$ext").also {
+                                        it.priority = Priority.HIGH
+                                        it.networkType = NetworkType.ALL
+                                    }
+
+                                Shared.fetch.addListener(object : FetchListener {
+                                    override fun onAdded(download: Download) {}
+
+                                    override fun onCancelled(download: Download) {}
+
+                                    override fun onCompleted(download: Download) {
+                                        NotificationManagerCompat.from(applicationContext).apply {
+                                            builder.setContentText((i + 1).toString() + " of ${respPlayList.tracks.items.size}")
+                                            builder.setContentTitle("Saving...")
+                                                .setProgress(100, 100, true)
+                                            builder.setOngoing(true)
+                                            notify(3, builder.build())
+                                        }
+                                        val target = mediaFile.absolutePath.toString() + ".tmp.$ext"
+
+                                        var command = "-i " +
+                                                "\"${target}\" -c copy " +
+                                                "-metadata title=\"${item.track.name}\" " +
+                                                "-metadata artist=\"${item.track.artists[0].name}\" -y "
+                                        val format =
+                                            if (PreferenceManager.getDefaultSharedPreferences(
+                                                    applicationContext
+                                                )
+                                                    .getString("format_key", "webm") == "mp3"
+                                            ) Format.MODE_MP3
+                                            else Format.MODE_WEBM
+                                        if (format == Format.MODE_MP3)
+                                            command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
+
+                                        command += "\"${Constants.playlistSongDir.absolutePath}/$fileName."
+
+                                        command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+                                        finalExt += if (format == Format.MODE_MP3) "mp3" else ext
+
+                                        when (val rc = FFmpeg.execute(command)) {
+                                            Config.RETURN_CODE_SUCCESS -> {
+                                                File(target).delete()
+                                                Shared.fetch.removeListener(this)
+                                                downloadDone = true
+                                            }
+                                            Config.RETURN_CODE_CANCEL -> {
+                                                Log.e(
+                                                    "ERR>",
+                                                    "Command execution cancelled by user."
+                                                )
+                                            }
+                                            else -> {
+                                                Log.e(
+                                                    "ERR>",
+                                                    String.format(
+                                                        "Command execution failed with rc=%d and the output below.",
+                                                        rc
+                                                    )
+                                                )
+                                            }
+                                        }
+
+                                    }
+
+                                    override fun onDeleted(download: Download) {}
+
+                                    override fun onDownloadBlockUpdated(
+                                        download: Download,
+                                        downloadBlock: DownloadBlock,
+                                        totalBlocks: Int
+                                    ) {
+                                    }
+
+                                    override fun onError(
+                                        download: Download,
+                                        error: Error,
+                                        throwable: Throwable?
+                                    ) {
+                                    }
+
+                                    override fun onPaused(download: Download) {}
+
+                                    override fun onProgress(
+                                        download: Download,
+                                        etaInMilliSeconds: Long,
+                                        downloadedBytesPerSecond: Long
+                                    ) {
+                                        NotificationManagerCompat.from(applicationContext).apply {
+                                            builder.setContentText((i + 1).toString() + " of ${respPlayList.tracks.items.size}")
+                                            builder.setContentTitle(songName)
+                                            builder.setProgress(100, download.progress, false)
+                                            builder.setOngoing(true)
+                                            notify(3, builder.build())
+                                        }
+                                    }
+
+                                    override fun onQueued(
+                                        download: Download,
+                                        waitingOnNetwork: Boolean
+                                    ) {
+
+                                    }
+
+                                    override fun onRemoved(download: Download) {
+
+                                    }
+
+                                    override fun onResumed(download: Download) {
+
+                                    }
+
+                                    override fun onStarted(
+                                        download: Download,
+                                        downloadBlocks: List<DownloadBlock>,
+                                        totalBlocks: Int
+                                    ) {
+
+                                    }
+
+                                    override fun onWaitingNetwork(download: Download) {
+
+                                    }
+                                })
+
+                                Shared.fetch.enqueue(request)
+                            } catch (e: Exception) {
+                                Log.e("ERR>", e.toString())
+                            }
+
+                            while (!downloadDone) Thread.sleep(1000)
+
+                            songArr.add(
+                                Song(
+                                    name = toAdd.name,
+                                    artist = toAdd.uploaderName,
+                                    filePath = mediaFile.absolutePath + finalExt,
+                                    youtubeLink = toAdd.url,
+                                    ytmThumbnail = toAdd.thumbnailUrl
+                                )
+                            )
+                        }
+                    } else {
+                        return
                     }
+                }
+
+                if (songArr.size > 0) {
+                    EventBus.getDefault().post(ImportDoneEvent())
+                    modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
+                    (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                        it.cancel(3)
+                    }
+
+                    Toast.makeText(
+                        applicationContext,
+                        applicationContext.getString(R.string.spot_suc),
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    isImporting = false
+                } else {
                     NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentText("$i of ${respPlayList.tracks.items.size}")
-                        builder.setContentTitle(songName)
-                        builder.setProgress(100, 100, true)
-                        builder.setOngoing(true)
+                        builder.setContentText(applicationContext.getString(R.string.spot_fail))
+                        builder.setOngoing(false)
                         notify(3, builder.build())
                     }
-
-                    var downloadDone = false
-
-                    val extractor = ServiceList.YouTube.getSearchExtractor(
-                        "${item.track.name} - ${item.track.artists[0].name}",
-                        Collections.singletonList(
-                            YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
-                        ), "")
-                    extractor.fetchPage()
-
-                    if(extractor.initialPage.items.size > 0){
-                        val toAdd = extractor.initialPage.items[0] as StreamInfoItem
-                        val fileName = toAdd.url.run {
-                            this.substring(this.lastIndexOf("=") + 1)
-                        }
-
-                        val streamInfo = StreamInfo.getInfo(toAdd.url)
-                        val stream = streamInfo.audioStreams.run { this[this.size - 1] }
-
-                        thread {
-                            if(toAdd.thumbnailUrl.isNotBlank()) {
-                                val drw = Glide
-                                    .with(applicationContext)
-                                    .load(toAdd.thumbnailUrl)
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .submit()
-                                    .get()
-
-                                val img = File(Constants.ableSongDir.absolutePath + "/album_art", fileName)
-                                Shared.saveAlbumArtToDisk(drw.toBitmap(), img)
-                            }
-                        }
-
-                        val url = stream.url
-                        val bitrate = stream.averageBitrate
-                        val ext = stream.getFormat().suffix
-                        val mediaFile = File(Constants.playlistSongDir, fileName)
-                        var finalExt = "."
-
-                        try {
-                            val request = Request(url, mediaFile.absolutePath + ".tmp.$ext").also {
-                                it.priority = Priority.HIGH
-                                it.networkType = NetworkType.ALL
-                            }
-
-                            Shared.fetch.addListener(object : FetchListener {
-                                override fun onAdded(download: Download) {}
-
-                                override fun onCancelled(download: Download) {}
-
-                                override fun onCompleted(download: Download) {
-                                    NotificationManagerCompat.from(applicationContext).apply {
-                                        builder.setContentText((i+1).toString() + " of ${respPlayList.tracks.items.size}")
-                                        builder.setContentTitle("Saving...")
-                                            .setProgress(100, 100, true)
-                                        builder.setOngoing(true)
-                                        notify(3, builder.build())
-                                    }
-                                    val target = mediaFile.absolutePath.toString() + ".tmp.$ext"
-
-                                    var command = "-i " +
-                                            "\"${target}\" -c copy " +
-                                            "-metadata title=\"${item.track.name}\" " +
-                                            "-metadata artist=\"${item.track.artists[0].name}\" -y "
-                                    val format =
-                                        if (PreferenceManager.getDefaultSharedPreferences(
-                                                applicationContext
-                                            )
-                                                .getString("format_key", "webm") == "mp3"
-                                        ) Format.MODE_MP3
-                                        else Format.MODE_WEBM
-                                    if (format == Format.MODE_MP3)
-                                        command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
-
-                                    command += "\"${Constants.playlistSongDir.absolutePath}/$fileName."
-
-                                    command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                                    finalExt += if (format == Format.MODE_MP3) "mp3" else ext
-
-                                    when (val rc = FFmpeg.execute(command)) {
-                                        Config.RETURN_CODE_SUCCESS -> {
-                                            File(target).delete()
-                                            Shared.fetch.removeListener(this)
-                                            downloadDone = true
-                                        }
-                                        Config.RETURN_CODE_CANCEL -> {
-                                            Log.e(
-                                                "ERR>",
-                                                "Command execution cancelled by user."
-                                            )
-                                        }
-                                        else -> {
-                                            Log.e(
-                                                "ERR>",
-                                                String.format(
-                                                    "Command execution failed with rc=%d and the output below.",
-                                                    rc
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                }
-
-                                override fun onDeleted(download: Download) {}
-
-                                override fun onDownloadBlockUpdated(
-                                    download: Download,
-                                    downloadBlock: DownloadBlock,
-                                    totalBlocks: Int
-                                ) {}
-
-                                override fun onError(
-                                    download: Download,
-                                    error: Error,
-                                    throwable: Throwable?
-                                ) {}
-
-                                override fun onPaused(download: Download) {}
-
-                                override fun onProgress(
-                                    download: Download,
-                                    etaInMilliSeconds: Long,
-                                    downloadedBytesPerSecond: Long
-                                ) {
-                                    NotificationManagerCompat.from(applicationContext).apply {
-                                        builder.setContentText((i+1).toString() + " of ${respPlayList.tracks.items.size}")
-                                        builder.setContentTitle(songName)
-                                        builder.setProgress(100, download.progress, false)
-                                        builder.setOngoing(true)
-                                        notify(3, builder.build())
-                                    }
-                                }
-
-                                override fun onQueued(download: Download, waitingOnNetwork: Boolean) {
-
-                                }
-
-                                override fun onRemoved(download: Download) {
-
-                                }
-
-                                override fun onResumed(download: Download) {
-
-                                }
-
-                                override fun onStarted(
-                                    download: Download,
-                                    downloadBlocks: List<DownloadBlock>,
-                                    totalBlocks: Int
-                                ) {
-
-                                }
-
-                                override fun onWaitingNetwork(download: Download) {
-
-                                }
-                            })
-
-                            Shared.fetch.enqueue(request)
-                        } catch (e: Exception) {
-                            Log.e("ERR>", e.toString())
-                        }
-
-                        while(!downloadDone) Thread.sleep(1000)
-
-                        songArr.add(Song(
-                            name = toAdd.name,
-                            artist = toAdd.uploaderName,
-                            filePath = mediaFile.absolutePath + finalExt,
-                            youtubeLink = toAdd.url,
-                            ytmThumbnail = toAdd.thumbnailUrl
-                        ))
-                    }
-                } else {
-                    return
+                    Toast.makeText(
+                        applicationContext,
+                        applicationContext.getString(R.string.spot_ytfail),
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
-            }
-            if (songArr.size > 0) {
-                EventBus.getDefault().post(ImportDoneEvent())
-                modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
-                (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-                    it.cancel(3)
-                }
-
-                Toast.makeText(
-                    applicationContext,
-                    applicationContext.getString(R.string.spot_suc),
-                    Toast.LENGTH_LONG
-                ).show()
-
-                isImporting = false
-            } else {
-                NotificationManagerCompat.from(applicationContext).apply {
-                    builder.setContentText(applicationContext.getString(R.string.spot_fail))
-                    builder.setOngoing(false)
-                    notify(3, builder.build())
-                }
-                Toast.makeText(
-                    applicationContext,
-                    applicationContext.getString(R.string.spot_ytfail),
-                    Toast.LENGTH_LONG
-                ).show()
             }
         } else {
             NotificationManagerCompat.from(applicationContext).apply {

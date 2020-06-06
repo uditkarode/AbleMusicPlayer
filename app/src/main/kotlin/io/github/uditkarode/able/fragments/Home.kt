@@ -129,7 +129,7 @@ class Home: Fragment() {
 
         thread {
             songList = Shared.getSongList(Constants.ableSongDir)
-            songAdapter = SongAdapter(songList, WeakReference(this@Home))
+            songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(activity as Context)

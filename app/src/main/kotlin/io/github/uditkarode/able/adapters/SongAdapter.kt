@@ -26,6 +26,7 @@ import android.os.Handler
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -33,6 +34,10 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.signature.ObjectKey
+import com.glidebitmappool.GlideBitmapFactory
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.events.*
@@ -49,7 +54,9 @@ import java.io.File
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
-class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakReference<Home>? = null): RecyclerView.Adapter<SongAdapter.RVVH>() {
+class SongAdapter(private var songList: ArrayList<Song>,
+                  private val wr: WeakReference<Home>? = null,
+                  private val showArt: Boolean = false): RecyclerView.Adapter<SongAdapter.RVVH>() {
     private var registered = false
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH {
@@ -57,7 +64,9 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
             registered = true
             EventBus.getDefault().register(this)
         }
-        return RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_item, parent, false))
+
+        val layoutId = if(showArt) R.layout.song_img else R.layout.rv_item
+        return RVVH(LayoutInflater.from(parent.context).inflate(layoutId, parent, false), showArt)
     }
 
     private var originalLength = songList.size
@@ -71,6 +80,30 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
         val current = songList[position]
         holder.songName.text = current.name
         holder.artistName.text = current.artist
+
+        if(showArt){
+            holder.albumArt.run {
+                if(this != null){
+                    File(Constants.ableSongDir.absolutePath + "/album_art",
+                        File(current.filePath).nameWithoutExtension).also {
+                        if(it.exists())
+                            Glide.with(holder.getContext())
+                                .load(it)
+                                .signature(ObjectKey("home"))
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
+                                .into(this)
+                        else
+                            Glide.with(holder.getContext())
+                                .load(GlideBitmapFactory.decodeResource(holder.getContext().resources, R.drawable.def_albart))
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .signature(ObjectKey("home"))
+                                .skipMemoryCache(true)
+                                .into(this)
+                    }
+                }
+            }
+        }
 
         if(currentIndex > 0 && currentIndex < songList.size && songList.size != 0){
             if(current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
@@ -184,12 +217,15 @@ class SongAdapter(private var songList: ArrayList<Song>, private val wr: WeakRef
         }
     }
 
-    inner class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
+    inner class RVVH(itemView: View, showArt: Boolean): RecyclerView.ViewHolder(itemView) {
         val songName = itemView.findViewById<TextView>(R.id.item_header)!!
         val artistName = itemView.findViewById<TextView>(R.id.item_artist)!!
         val buttonsPanel = itemView.findViewById<LinearLayout>(R.id.buttonsPanel)!!
         val addToPlaylist = itemView.findViewById<MaterialButton>(R.id.add_to_playlist)!!
         val deleteFromDisk = itemView.findViewById<MaterialButton>(R.id.delete_from_disk)!!
+        val albumArt: ImageView? = if(showArt) itemView.findViewById<ImageView>(R.id.song_art) else null
+
+        fun getContext() = itemView.context
     }
 
     fun update(songList: ArrayList<Song>){

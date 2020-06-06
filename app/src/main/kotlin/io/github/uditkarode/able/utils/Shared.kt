@@ -168,6 +168,10 @@ class Shared {
             EventBus.getDefault().post(PlaylistEvent(getPlaylists()))
         }
 
+        fun playlistExists(name: String): Boolean {
+            return File(Constants.playlistFolder.absolutePath + "/" + name).exists()
+        }
+
         fun modifyPlaylist(name: String, songs: ArrayList<Song>? = null){
             try {
                 if(name.isNotBlank()){

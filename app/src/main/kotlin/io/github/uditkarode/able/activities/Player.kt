@@ -512,8 +512,8 @@ class Player : AppCompatActivity() {
                     Palette.from(Shared.getSharedBitmap()).generate {
                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
                             it?.getLightMutedColor(0x002171)?:0x002171)
+                        Shared.clearBitmap()
                     }
-                    Shared.clearBitmap()
                 }
             } else {
                 try {
@@ -531,8 +531,8 @@ class Player : AppCompatActivity() {
                             Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(it?.getDominantColor(0x002171)?:0x002171,
                                     it?.getLightMutedColor(0x002171)?:0x002171)
+                                Shared.clearBitmap()
                             }
-                            Shared.clearBitmap()
                         }
                     } else {
                         val albumArtRequest = if (customSongName == null) {
@@ -723,6 +723,7 @@ class Player : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Glide.with(this).clear(img_albart)
+        if(!this.isDestroyed)
+            Glide.with(this@Player).clear(img_albart)
     }
 }

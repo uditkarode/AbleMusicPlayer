@@ -19,6 +19,7 @@
 package io.github.uditkarode.able.adapters
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Build
@@ -30,6 +31,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.fragments.Playlists
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.SongState
@@ -64,28 +66,12 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
             Typeface.createFromAsset(context.assets, "fonts/inter.otf")
 
         holder.itemView.setOnClickListener {
-            if(!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)){
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    holder.itemView.context.startForegroundService(Intent(holder.itemView.context, MusicService::class.java))
-                } else {
-                    holder.itemView.context.startService(Intent(holder.itemView.context, MusicService::class.java))
-                }
+            holder.getContext().run {
+                startActivity(Intent(this, LocalPlaylist::class.java).run {
+                    this.putExtra("name", current.name)
 
-                wr.get()!!.bindEvent()
-            }
-
-            thread {
-                if(Shared.serviceLinked()) {
-                    wr.get()?.mService = Shared.mService
-                } else {
-                    @Suppress("ControlFlowWithEmptyBody")
-                    while(!wr.get()!!.isBound){}
-                }
-
-                val mService = wr.get()?.mService!!
-                mService.setQueue(Shared.getSongsFromPlaylist(current))
-                mService.setIndex(0)
-                mService.setPlayPause(SongState.playing)
+                    this
+                })
             }
         }
 
@@ -118,5 +104,7 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
     inner class PLVH(itemView: View): RecyclerView.ViewHolder(itemView){
         val playlistNameTv = itemView.findViewById<TextView>(R.id.playlist_name)!!
         val numberSongsTv = itemView.findViewById<TextView>(R.id.number_songs)!!
+
+        fun getContext(): Context = itemView.context
     }
 }

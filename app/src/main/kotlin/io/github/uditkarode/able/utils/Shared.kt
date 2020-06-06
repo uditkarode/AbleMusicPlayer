@@ -111,6 +111,34 @@ class Shared {
             }
         }
 
+        fun getSongsFromPlaylistFile(name: String): ArrayList<Song> {
+            for (f in Constants.playlistFolder.listFiles()?:arrayOf()){
+                if(!f.isDirectory) {
+                    if (f.name != name) continue
+                    else {
+                        val jsonReader = BufferedReader(
+                            InputStreamReader(
+                                f.inputStream()
+                            )
+                        )
+                        val jsonBuilder = StringBuilder()
+                        try {
+                            var line: String?
+                            while (jsonReader.readLine().also { line = it } != null) {
+                                jsonBuilder.append(line).append("\n")
+                            }
+
+                            return getSongsFromPlaylist(Playlist(f.name, JSONArray(jsonBuilder.toString())))
+                        } catch(e: java.lang.Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+            }
+
+            return arrayListOf()
+        }
+
         fun getPlaylists(): ArrayList<Playlist> {
             val ret: ArrayList<Playlist> = ArrayList()
             for (f in Constants.playlistFolder.listFiles()?:arrayOf()) {

@@ -493,8 +493,8 @@ class Player : AppCompatActivity() {
 
         thread {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            val imageName = File(current.filePath).nameWithoutExtension
-            val img = File(Constants.ableSongDir.absolutePath + "/album_art", imageName)
+            val img = File(Constants.ableSongDir.absolutePath + "/album_art",
+                File(current.filePath).nameWithoutExtension)
             val cacheImg = File(Constants.ableSongDir.absolutePath + "/cache",
                 "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink))
 

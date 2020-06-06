@@ -43,10 +43,21 @@ class Shared {
         var isFirstRun = true
         lateinit var fetch: Fetch
 
+        var bmp: Bitmap? = null
+
         lateinit var mService: MusicService
 
         fun serviceLinked(): Boolean{
             return this::mService.isInitialized
+        }
+
+        fun getSharedBitmap(): Bitmap{
+            return bmp as Bitmap
+        }
+
+        fun clearBitmap(){
+            bmp?.recycle()
+            bmp = null
         }
 
         fun isColorDark(color: Int): Boolean {

@@ -30,6 +30,7 @@ import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -92,6 +93,8 @@ class AlbumPlaylist: AppCompatActivity() {
         Glide
             .with(this)
             .load(art)
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
             .into(playbum_art)
         
         playbum_play.setOnClickListener {
@@ -190,5 +193,10 @@ class AlbumPlaylist: AppCompatActivity() {
             mService.setIndex(0)
             mService.setPlayPause(SongState.playing)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Glide.with(this).clear(playbum_art)
     }
 }

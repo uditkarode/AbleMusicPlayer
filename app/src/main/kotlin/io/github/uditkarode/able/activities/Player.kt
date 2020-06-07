@@ -37,6 +37,7 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
+import androidx.preference.PreferenceManager
 import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
@@ -117,10 +118,23 @@ class Player : AppCompatActivity() {
             this.ydpi
         }
 
-        if (ydpi > 400) setContentView(R.layout.player410)
-        else if (ydpi >= 395) setContentView(R.layout.player400)
-        else if (ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
-        else setContentView(R.layout.player220)
+        when (PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            .getString("player_layout_key", "Default")){
+            "Tiny" -> setContentView(R.layout.player220)
+
+            "Small" -> setContentView(R.layout.player320)
+
+            "Normal" -> setContentView(R.layout.player400)
+
+            "Large" -> setContentView(R.layout.player410)
+
+            else -> {
+                if (ydpi > 400) setContentView(R.layout.player410)
+                else if (ydpi >= 395) setContentView(R.layout.player400)
+                else if (ydpi < 395 && ydpi > 230) setContentView(R.layout.player320)
+                else setContentView(R.layout.player220)
+            }
+        }
 
         player_down_arrow?.setOnClickListener {
             finish()
@@ -723,6 +737,7 @@ class Player : AppCompatActivity() {
 
     override fun onBackPressed() {
         super.onBackPressed()
+        Glide.with(this@Player).clear(img_albart)
         finish()
     }
 

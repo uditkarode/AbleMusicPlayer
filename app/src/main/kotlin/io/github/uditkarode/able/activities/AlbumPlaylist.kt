@@ -24,6 +24,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
 import android.util.Log
 import android.view.View
@@ -42,7 +43,6 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.albumplaylist.*
-import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.search.loading_view
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -198,6 +198,10 @@ class AlbumPlaylist: AppCompatActivity() {
 
     override fun onBackPressed() {
         super.onBackPressed()
+        Handler().postDelayed({
+            if(!this.isDestroyed)
+                Glide.with(this).clear(playbum_art)
+        }, 300)
         Glide.with(this).clear(playbum_art)
         finish()
     }

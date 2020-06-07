@@ -198,6 +198,7 @@ class AlbumPlaylist: AppCompatActivity() {
 
     override fun onBackPressed() {
         super.onBackPressed()
+        Glide.with(this).clear(playbum_art)
         finish()
     }
 

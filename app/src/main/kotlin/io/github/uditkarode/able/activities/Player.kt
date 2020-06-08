@@ -128,6 +128,8 @@ class Player : AppCompatActivity() {
 
             "Large" -> setContentView(R.layout.player410)
 
+            "Massive" -> setContentView(R.layout.playermassive)
+
             else -> {
                 if (ydpi > 400) setContentView(R.layout.player410)
                 else if (ydpi >= 395) setContentView(R.layout.player400)

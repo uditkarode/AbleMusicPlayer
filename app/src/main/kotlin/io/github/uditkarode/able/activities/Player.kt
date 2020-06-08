@@ -94,7 +94,6 @@ class Player : AppCompatActivity() {
     private var onRepeat = false
     private var playing = SongState.paused
     private var scheduled = false
-
     private lateinit var timer: Timer
     private lateinit var mService: MusicService
     private lateinit var serviceConn: ServiceConnection
@@ -179,6 +178,8 @@ class Player : AppCompatActivity() {
         player_seekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 mService.seekTo(seekBar.progress)
+                player_seekbar.progress = mService.getMediaPlayer().currentPosition
+                player_current_position.text = getDurationFromMs(player_seekbar.progress)
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
@@ -416,8 +417,9 @@ class Player : AppCompatActivity() {
             timer.schedule(object : TimerTask() {
                 override fun run() {
                     runOnUiThread {
-                        player_seekbar.progress = mService.getMediaPlayer().currentPosition
-                        player_current_position.text = getDurationFromMs(player_seekbar.progress)
+                        val songPosition = mService.getMediaPlayer().currentPosition
+                        player_seekbar.progress = songPosition
+                        player_current_position.text = getDurationFromMs(songPosition)
                     }
                 }
             }, 0, 1000)

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#212121"
     android:orientation="vertical">
@@ -46,15 +47,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/header_btns"
+            android:layout_marginTop="10dp"
             tools:ignore="UselessParent">
 
             <RelativeLayout
                 android:id="@+id/album_art"
-                android:layout_width="364dp"
-                android:layout_height="364dp"
+                android:layout_width="264dp"
+                android:layout_height="264dp"
                 android:layout_centerHorizontal="true"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/rounded_rectangle">
+
+                <ProgressBar
+                    android:id="@+id/youtubeProgressbar"
+                    style="?android:attr/progressBarStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_alignParentBottom="true"
+                    android:layout_marginStart="151dp"
+                    android:layout_marginBottom="157dp" />
 
                 <com.makeramen.roundedimageview.RoundedImageView
                     android:id="@+id/img_albart"
@@ -73,23 +85,13 @@
                     android:layout_centerInParent="true"
                     />
 
-                <ProgressBar
-                    android:id="@+id/youtubeProgressbar"
-                    style="?android:attr/progressBarStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:layout_alignParentTop="true"
-                    android:layout_marginStart="157dp"
-                    android:layout_marginTop="157dp" />
-
             </RelativeLayout>
             <LinearLayout
                 android:id="@+id/controls"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/album_art"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="40dp"
                 android:orientation="vertical">
 
                 <LinearLayout

@@ -51,6 +51,7 @@ import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
+import java.io.FileInputStream
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import kotlin.concurrent.thread
@@ -361,12 +362,16 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 streamAudio()
             }
         } else {
-            mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
-            mediaPlayer.prepare()
-            EventBus.getDefault().post(GetSongChangedEvent())
-            EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-            EventBus.getDefault().post(GetIndexEvent(currentIndex))
-            setPlayPause(SongState.playing)
+            mediaPlayer.setDataSource(FileInputStream(playQueue[currentIndex].filePath).fd)
+            try {
+                mediaPlayer.prepare()
+                EventBus.getDefault().post(GetSongChangedEvent())
+                EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
+                EventBus.getDefault().post(GetIndexEvent(currentIndex))
+                setPlayPause(SongState.playing)
+            } catch (e: java.lang.Exception){
+                Log.e("ERR>", "$e")
+            }
         }
     }
 

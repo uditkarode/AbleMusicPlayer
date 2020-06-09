@@ -195,7 +195,7 @@ class DownloadService : JobIntentService() {
                                     .getString("format_key", "webm") == "mp3"
                             ) Format.MODE_MP3
                             else Format.MODE_WEBM
-                        if (format == Format.MODE_MP3)
+                        if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
                             command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."

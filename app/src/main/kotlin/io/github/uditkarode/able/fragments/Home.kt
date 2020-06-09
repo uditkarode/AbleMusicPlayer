@@ -218,7 +218,7 @@ class Home: Fragment() {
                                     "-metadata title=\"${current.name}\" " +
                                     "-metadata artist=\"${current.artist}\" -y "
 
-                            if (format == Format.MODE_MP3)
+                            if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
                                 command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
                             command += "\"${tempFile.absolutePath.replace(".tmp", "")}/$id."

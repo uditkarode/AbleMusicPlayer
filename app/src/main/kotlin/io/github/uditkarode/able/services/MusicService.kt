@@ -362,7 +362,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 streamAudio()
             }
         } else {
-            mediaPlayer.setDataSource(FileInputStream(playQueue[currentIndex].filePath).fd)
+            mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
             try {
                 mediaPlayer.prepare()
                 EventBus.getDefault().post(GetSongChangedEvent())

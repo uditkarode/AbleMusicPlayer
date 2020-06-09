@@ -19,7 +19,6 @@
 package io.github.uditkarode.able.fragments
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Bitmap
@@ -110,7 +109,7 @@ class Home: Fragment() {
             .on(view.findViewById<TextView>(R.id.able_header))
 
         settings.setOnClickListener {
-            startActivity(Intent((activity as Context), Settings::class.java))
+            startActivity(Intent(requireContext(), Settings::class.java))
         }
 
         serviceConn = object : ServiceConnection {
@@ -132,13 +131,13 @@ class Home: Fragment() {
             songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
-                songs.layoutManager = LinearLayoutManager(activity as Context)
+                songs.layoutManager = LinearLayoutManager(requireContext())
             }
         }
     }
 
     fun bindEvent(){
-        if(Shared.serviceRunning(MusicService::class.java, activity as Context)) {
+        if(Shared.serviceRunning(MusicService::class.java, requireContext())) {
             try {
                 activity?.applicationContext?.bindService(Intent(activity?.applicationContext, MusicService::class.java), serviceConn, 0)
             } catch(e: Exception){
@@ -148,7 +147,7 @@ class Home: Fragment() {
     }
 
     fun streamAudio(song: Song, toCache: Boolean){
-        if(!Shared.serviceRunning(MusicService::class.java, activity as Context)){
+        if(!Shared.serviceRunning(MusicService::class.java, requireContext())){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 requireActivity().startForegroundService(Intent(activity, MusicService::class.java))
             } else {

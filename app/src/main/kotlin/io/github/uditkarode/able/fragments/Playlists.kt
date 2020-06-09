@@ -19,7 +19,6 @@
 package io.github.uditkarode.able.fragments
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Color
@@ -96,11 +95,11 @@ class Playlists : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists(), WeakReference(this@Playlists))
-        playlists_rv.layoutManager = LinearLayoutManager(activity as Context)
+        playlists_rv.layoutManager = LinearLayoutManager(requireContext())
         var inputId = ""
         spotbut.setOnClickListener {
             if (!isImporting) {
-                MaterialDialog(activity as Context).show {
+                MaterialDialog(requireContext()).show {
                     title(R.string.spot_title)
                     input(waitForPositiveButton = false) { dialog, textInp ->
                         val inputField = dialog.getInputField()
@@ -132,25 +131,13 @@ class Playlists : Fragment() {
                                     .build()
                             ).enqueue()
                         Toast.makeText(
-                            activity as Context, getString(R.string.spot_importing), Toast.LENGTH_LONG
+                            requireContext(), getString(R.string.spot_importing), Toast.LENGTH_LONG
                         ).show()
                     }
                 }
             } else {
                 EventBus.getDefault().post(ImportDoneEvent())
                 WorkManager.getInstance(view.context).cancelUniqueWork("SpotifyImport")
-            }
-        }
-    }
-
-    fun bindEvent() {
-        if (Shared.serviceRunning(MusicService::class.java, activity as Context)) {
-            try {
-                (requireActivity().applicationContext).also {
-                    it.bindService(Intent(it, MusicService::class.java), serviceConn, 0)
-                }
-            } catch (e: Exception) {
-                Log.e("ERR>", e.toString())
             }
         }
     }

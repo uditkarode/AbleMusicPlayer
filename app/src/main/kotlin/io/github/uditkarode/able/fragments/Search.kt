@@ -22,7 +22,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -232,7 +231,7 @@ class Search : Fragment() {
                             else
                                 searchRv.adapter =
                                     ResultAdapter(resultArray, WeakReference(this@Search))
-                            searchRv.layoutManager = LinearLayoutManager(activity as Context)
+                            searchRv.layoutManager = LinearLayoutManager(requireContext())
                             loading_view.visibility = View.GONE
                             loading_view.pauseAnimation()
                             searchRv.alpha = 0f
@@ -241,7 +240,7 @@ class Search : Fragment() {
                         }
                     }
                 } catch (e: IOException) {
-                    Toast.makeText(activity as Context, "Something failed!", Toast.LENGTH_SHORT)
+                    Toast.makeText(requireContext(), "Something failed!", Toast.LENGTH_SHORT)
                         .show()
                 }
             }

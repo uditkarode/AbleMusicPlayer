@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         }
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
+    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun loadingEvent(homeLoadingEvent: HomeLoadingEvent){
         bb_ProgressBar?.visibility = if(homeLoadingEvent.loading) View.VISIBLE else View.GONE
         if(!homeLoadingEvent.loading){
@@ -351,6 +351,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             MusicMode.both -> {
                 home.streamAudio(song, true)
+                loadingEvent(HomeLoadingEvent(true))
             }
         }
     }

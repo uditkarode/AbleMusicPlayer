@@ -86,18 +86,7 @@ class Home: Fragment() {
 
         val songs = view.findViewById<RecyclerView>(R.id.songs)
 
-        mediaLoaderConfig = MediaLoaderConfig.Builder(activity)
-            .cacheRootDir(
-                Constants.ableSongDir
-            )
-            .cacheFileNameGenerator {
-                "$songId.tmp.webm"
-            }
-            .downloadThreadPriority(Thread.NORM_PRIORITY)
-            .build()
-
         mediaLoader = MediaLoader.getInstance(activity)
-        mediaLoader.init(mediaLoaderConfig)
 
         RevelyGradient
             .linear()
@@ -170,6 +159,7 @@ class Home: Fragment() {
             val url = stream.url
             val bitrate = stream.averageBitrate
             val ext = stream.getFormat().suffix
+            songId = Shared.getIdFromLink(song.youtubeLink)
 
             if(song.ytmThumbnail.isNotBlank()){
                 Glide.with(requireContext())
@@ -199,10 +189,19 @@ class Home: Fragment() {
             }
 
             if(toCache){
+                mediaLoaderConfig = MediaLoaderConfig.Builder(activity)
+                    .cacheRootDir(
+                        Constants.ableSongDir
+                    )
+                    .cacheFileNameGenerator {
+                        "$songId.tmp.webm"
+                    }
+                    .downloadThreadPriority(Thread.NORM_PRIORITY)
+                    .build()
+
                 mediaLoader.addDownloadListener(url, object: DownloadListener {
                     override fun onProgress(url: String?, file: File?, progress: Int) {
                         if(progress == 100){
-                            val current = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
                             val tempFile = File(Constants.ableSongDir.absolutePath
                                     + "/" + songId + ".tmp.$ext")
                             val format =
@@ -215,13 +214,13 @@ class Home: Fragment() {
 
                             var command = "-i " +
                                     "\"${tempFile.absolutePath}\" -c copy " +
-                                    "-metadata title=\"${current.name}\" " +
-                                    "-metadata artist=\"${current.artist}\" -y "
+                                    "-metadata title=\"${song.name}\" " +
+                                    "-metadata artist=\"${song.artist}\" -y "
 
                             if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
                                 command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
-                            command += "\"${tempFile.absolutePath.replace(".tmp", "")}/$id."
+                            command += "\"${tempFile.absolutePath.replace("tmp.webm", "")}"
 
                             command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
 
@@ -254,11 +253,12 @@ class Home: Fragment() {
                 })
 
                 song.filePath = mediaLoader.getProxyUrl(url)
+                mediaLoader.init(mediaLoaderConfig)
             }
             else song.filePath = url
             mService?.setPlayQueue(arrayListOf(song))
             mService?.setIndex(0)
-            EventBus.getDefault().post(HomeLoadingEvent(false))
+            EventBus.getDefault().postSticky(HomeLoadingEvent(false))
             mService?.setPlayPause(SongState.playing)
         }
     }

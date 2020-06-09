@@ -189,8 +189,11 @@ class Search : Fragment() {
                                 }
 
                                 "Playlists" -> {
-                                    val extractor = YouTube.getSearchExtractor(query, singletonList(
-                                        YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS), "")
+                                    val extractor = if(query.startsWith("https://"))
+                                        YouTube.getPlaylistExtractor(query)
+                                     else
+                                        YouTube.getSearchExtractor(query, singletonList(
+                                            YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS), "")
 
                                     extractor.fetchPage()
 

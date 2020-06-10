@@ -141,6 +141,9 @@ object SpotifyImport {
                             val mediaFile = File(Constants.playlistSongDir, fileName)
                             var finalExt = "."
 
+                            if(File(mediaFile.absolutePath + ".tmp.$ext").exists())
+                                continue
+
                             try {
                                 val request =
                                     Request(url, mediaFile.absolutePath + ".tmp.$ext").also {

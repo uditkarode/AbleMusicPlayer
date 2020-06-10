@@ -245,12 +245,6 @@ class SongAdapter(private var songList: ArrayList<Song>,
         currentIndex = indexEvent.index
     }
 
-    @Subscribe
-    fun metadataUpdate(@Suppress("UNUSED_PARAMETER") metaDataUpdate: GetMetaDataEvent) {
-        songList = Shared.getSongList(Constants.ableSongDir)
-        notifyDataSetChanged()
-    }
-
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun indexUpdate(@Suppress("UNUSED_PARAMETER") sce: GetSongChangedEvent) {
         playingSong = wr?.get()?.mService.run {

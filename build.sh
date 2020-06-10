@@ -6,7 +6,11 @@ curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_
 sed -i s/INSERT_FLURRY_KEY/${FLURRY_KEY}/ app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt
 sed -i s/INSERT_RAPID_KEY/${RAPID_KEY}/ app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt
 sed -i s/Debug/$(echo $TRIGGERING_SHA | cut -c1-8)/ app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt
+git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/uditkarode/AbleMusicPlayer"
 git clone -b builds --single-branch https://github.com/uditkarode/AbleMusicPlayer.git GitBuilds
+git clone "https://x-access-token:${GH_TOKEN}@github.com/uditkarode/AbleMusicKeystore" --depth 1
+mv AbleMusicKeystore/release.keystore app
+rm -rf AbleMusicKeystore
 cd GitBuilds
 git reset --hard 1798529c23bb57742e544e75b030aa2ce16baebb
 git reflog expire --all --expire=now
@@ -21,7 +25,6 @@ cd GitBuilds
 git add .
 git config --global user.name 'Bob The Builder'
 git config --global user.email 'bob@the.builder'
-git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/uditkarode/AbleMusicPlayer"
 git commit -m "bot: build installables <$(echo $TRIGGERING_SHA | cut -c1-8)>"
 git push -u origin builds -f
 curl -s -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" -d chat_id="-1001415196670" \

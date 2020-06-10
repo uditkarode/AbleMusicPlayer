@@ -40,6 +40,7 @@ import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
@@ -169,7 +170,9 @@ class Home: Fragment() {
                 Glide.with(requireContext())
                     .asBitmap()
                     .load(song.ytmThumbnail)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
                     .signature(ObjectKey("save"))
+                    .skipMemoryCache(true)
                     .listener(object: RequestListener<Bitmap> {
                         override fun onLoadFailed(
                             e: GlideException?,
@@ -244,6 +247,11 @@ class Home: Fragment() {
                             when (val rc = FFmpeg.execute(command)) {
                                 Config.RETURN_CODE_SUCCESS -> {
                                     tempFile.delete()
+                                    activity?.runOnUiThread {
+                                        Log.i("INFO>", "Updating RecyclerView")
+                                        songAdapter?.update(Shared.getSongList(Constants.ableSongDir))
+                                        songAdapter?.notifyDataSetChanged()
+                                    }
                                 }
                                 Config.RETURN_CODE_CANCEL -> {
                                     Log.e(

@@ -86,7 +86,7 @@ class Home: Fragment() {
 
         val songs = view.findViewById<RecyclerView>(R.id.songs)
 
-        mediaLoader = MediaLoader.getInstance(activity)
+        mediaLoader = MediaLoader.getInstance(requireContext())
 
         RevelyGradient
             .linear()
@@ -161,6 +161,10 @@ class Home: Fragment() {
             val ext = stream.getFormat().suffix
             songId = Shared.getIdFromLink(song.youtubeLink)
 
+            File(Constants.ableSongDir, "$songId.tmp.webm").run {
+                if(exists()) delete()
+            }
+
             if(song.ytmThumbnail.isNotBlank()){
                 Glide.with(requireContext())
                     .asBitmap()
@@ -181,8 +185,18 @@ class Home: Fragment() {
                             dataSource: DataSource?,
                             isFirstResource: Boolean
                         ): Boolean {
-                            if(resource != null)
-                                Shared.saveStreamingAlbumArt(resource, Shared.getIdFromLink(song.youtubeLink))
+                            if(resource != null) {
+                                if(!toCache)
+                                    Shared.saveStreamingAlbumArt(
+                                        resource,
+                                        Shared.getIdFromLink(song.youtubeLink)
+                                    )
+                                else
+                                    Shared.saveAlbumArtToDisk(
+                                        resource,
+                                        File(Constants.albumArtDir, songId)
+                                    )
+                            }
                             return false
                         }
                     }).submit()
@@ -199,11 +213,14 @@ class Home: Fragment() {
                     .downloadThreadPriority(Thread.NORM_PRIORITY)
                     .build()
 
+                mediaLoader.init(mediaLoaderConfig)
+
                 mediaLoader.addDownloadListener(url, object: DownloadListener {
                     override fun onProgress(url: String?, file: File?, progress: Int) {
                         if(progress == 100){
                             val tempFile = File(Constants.ableSongDir.absolutePath
                                     + "/" + songId + ".tmp.$ext")
+
                             val format =
                                 if (PreferenceManager.getDefaultSharedPreferences(
                                         context
@@ -244,6 +261,7 @@ class Home: Fragment() {
                                     )
                                 }
                             }
+                            mediaLoader.removeDownloadListener(this)
                         }
                     }
 
@@ -253,9 +271,9 @@ class Home: Fragment() {
                 })
 
                 song.filePath = mediaLoader.getProxyUrl(url)
-                mediaLoader.init(mediaLoaderConfig)
             }
             else song.filePath = url
+
             mService?.setPlayQueue(arrayListOf(song))
             mService?.setIndex(0)
             EventBus.getDefault().postSticky(HomeLoadingEvent(false))

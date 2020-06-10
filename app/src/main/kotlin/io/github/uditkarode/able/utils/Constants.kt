@@ -34,6 +34,8 @@ class Constants {
             "AbleMusic")
 
         val playlistSongDir = File(ableSongDir.absolutePath + "/playlist_songs")
+        val albumArtDir = File(ableSongDir.absolutePath + "/album_art")
+        val cacheDir = File(ableSongDir.absolutePath + "/cache")
 
         const val FLURRY_KEY = "INSERT_FLURRY_KEY"
         const val RAPID_API_KEY= "INSERT_RAPID_KEY"

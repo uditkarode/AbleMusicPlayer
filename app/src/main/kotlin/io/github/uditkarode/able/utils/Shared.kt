@@ -75,9 +75,7 @@ class Shared {
         }
 
         fun saveAlbumArtToDisk(image: Bitmap, imageFile: File) {
-            File(Constants.ableSongDir.absolutePath + "/album_art").run {
-                if (!this.exists()) this.mkdirs()
-            }
+            Constants.albumArtDir.run { if (!exists()) mkdirs() }
             try {
                 val fOut: OutputStream = FileOutputStream(imageFile)
                 image.compress(Bitmap.CompressFormat.JPEG, 90, fOut)
@@ -94,10 +92,11 @@ class Shared {
         }
 
         fun saveStreamingAlbumArt(image: Bitmap, id: String) {
-            val outputDir = File(Constants.ableSongDir.absolutePath + "/cache")
+            val outputDir = Constants.cacheDir
             if((outputDir.listFiles()?: arrayOf()).size > 10){
-                outputDir.delete()
-                outputDir.mkdirs()
+                for(child in outputDir.listFiles()?: arrayOf()){
+                    child.delete()
+                }
             }
 
             outputDir.run { if (!exists()) mkdirs() }

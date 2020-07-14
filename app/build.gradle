@@ -86,6 +86,8 @@ dependencies {
     implementation 'androidx.palette:palette:1.0.0'
     implementation 'com.amitshekhar.android:glide-bitmap-pool:0.0.1'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+
+    implementation 'com.github.maxbruecken:jaudiotagger-android:995dd88554'
 }
 
 android.sourceSets {

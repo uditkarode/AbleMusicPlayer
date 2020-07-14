@@ -118,7 +118,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                 setAcceptsDelayedFocusGain(false)
                 setOnAudioFocusChangeListener {
                     if (it == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) pauseAudio()
-                    else if (it == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
+                    else if (it == AudioManager.AUDIOFOCUS_LOSS) pauseAudio()
                 }
                 build()
             }

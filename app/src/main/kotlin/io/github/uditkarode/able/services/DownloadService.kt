@@ -202,7 +202,7 @@ class DownloadService : JobIntentService() {
 
                         command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
                         thread{ //to deal with UI thread Block
-                        when (val rc = FFmpeg.execute(command)) {
+                        when (val rc = FFmpeg.execute(command)) {   
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
                                 if (currentIndex == songQueue.size) {

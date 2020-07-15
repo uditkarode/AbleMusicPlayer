@@ -201,7 +201,8 @@ class DownloadService : JobIntentService() {
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
 
                         command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                        when (val rc = FFmpeg.execute(command)) {
+                        thread{ //to deal with UI thread Block
+                        when (val rc = FFmpeg.execute(command)) {   
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
                                 if (currentIndex == songQueue.size) {
@@ -210,6 +211,8 @@ class DownloadService : JobIntentService() {
                                     }
                                     song.resultReceiver.send(123, bundle)
                                     fetch?.removeListener(this)
+                                    if (format == Format.MODE_MP3)
+                                        Shared.mp3_thumnail_Add(target)
                                     songQueue.clear()
                                     stopSelf()
                                 } else {
@@ -235,8 +238,7 @@ class DownloadService : JobIntentService() {
                                     )
                                 )
                             }
-                        }
-
+                        }}
                     }
 
                     override fun onDeleted(download: Download) {}

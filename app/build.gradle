@@ -63,7 +63,7 @@ dependencies {
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
     implementation 'com.squareup.okhttp3:okhttp:4.8.0'
-    implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.19.5'
+    implementation 'com.github.TeamNewPipe.NewPipeExtractor:NewPipeExtractor:v0.19.6'
     //noinspection GradleDependency
     implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1.LTS'
     implementation 'org.jsoup:jsoup:1.13.1'

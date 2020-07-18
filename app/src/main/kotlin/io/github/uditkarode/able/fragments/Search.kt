@@ -54,7 +54,6 @@ import kotlin.concurrent.thread
 class Search : Fragment() {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences
-    private var isInternetAvailable:Boolean=false //check for Internet Connection
 
     interface SongCallback {
         fun sendItem(song: Song)
@@ -136,8 +135,7 @@ class Search : Fragment() {
     {
             searchBar.setOnEditorActionListener { _, actionId, _ ->
                 if (actionId == 6) {
-                    isInternetAvailable=isInternetConnected()
-                    if(isInternetAvailable){
+                    if(isInternetConnected()){
                         loading_view.progress = 0.3080229f
                         loading_view.playAnimation()
 
@@ -322,8 +320,7 @@ class Search : Fragment() {
     }
 
     fun itemPressed(song: Song) {
-        isInternetAvailable = isInternetConnected()
-        if(isInternetAvailable)
+        if(isInternetConnected())
             itemPressed.sendItem(song)
         else
             Toast.makeText(requireContext(),"No Internet Connection", Toast.LENGTH_LONG).show()

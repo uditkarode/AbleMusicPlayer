@@ -242,7 +242,7 @@ class Search : Fragment() {
                             searchRv.animate().alpha(1f).duration = 200
                         }
                     }
-                } catch (e: IOException) {
+                } catch (e: Exception) {
                     Toast.makeText(requireContext(), "Something failed!", Toast.LENGTH_SHORT)
                         .show()
                 }

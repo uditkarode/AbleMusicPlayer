@@ -21,7 +21,11 @@ package io.github.uditkarode.able.fragments
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -76,9 +80,6 @@ class Search : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val searchBar: EditText = view.findViewById(R.id.search_bar)
-        val searchRv: RecyclerView = view.findViewById(R.id.search_rv)
-
         sp = requireContext().getSharedPreferences("search", 0)
 
         when(sp.getString("mode", "Music")){
@@ -91,168 +92,238 @@ class Search : Fragment() {
             }
         }
 
-        View.OnClickListener {
-            when(sp.getString("mode", "Music")){
-                "Music" -> {
-                    sp.edit().putString("mode", "Album").apply()
-                    search_mode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_album))
-                }
-
-                "Album" -> {
-                    sp.edit().putString("mode", "Playlists").apply()
-                    search_mode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_playlist))
-                }
-
-                "Playlists" -> {
-                    sp.edit().putString("mode", "Music").apply()
-                    search_mode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_music))
-                }
-            }
-        }.also {
-            search_mode.setOnClickListener(it)
-            search_mode_pr.setOnClickListener(it)
-        }
-
-        loading_view.enableMergePathsForKitKatAndAbove(true)
-
-        searchBar.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == 6) {
-                loading_view.progress = 0.3080229f
-                loading_view.playAnimation()
-
-                if(searchRv.visibility == View.VISIBLE){
-                    searchRv.animate().alpha(0f).duration = 200
-                    searchRv.visibility = View.GONE
-                }
-                val text = searchBar.text
-                if(loading_view.visibility == View.GONE){
-                    loading_view.alpha = 0f
-                    loading_view.visibility = View.VISIBLE
-                    loading_view.animate().alpha(1f).duration = 200
-                }
-
-                hideKeyboard(activity as Activity)
-                val resultArray = ArrayList<Song>()
-
-                try {
-                    var query = text.toString()
-                    val useYtMusic: Boolean = when {
-                        text.startsWith("!") -> {
-                            query = text.toString().replaceFirst(Regex("^!\\s*"), "")
-                            true
-                        }
-
-                        text.startsWith("?") -> {
-                            query = text.toString().replaceFirst(Regex("^?\\s*"), "")
-                            false
-                        }
-
-                        else -> (PreferenceManager.getDefaultSharedPreferences(requireContext())
-                            .getString("source_key", "Youtube Music") == "Youtube Music")
+            View.OnClickListener {
+                when (sp.getString("mode", "Music")) {
+                    "Music" -> {
+                        sp.edit().putString("mode", "Album").apply()
+                        search_mode.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                requireContext(),
+                                R.drawable.mode_album
+                            )
+                        )
                     }
 
-                    thread {
-                        if(useYtMusic){
-                            when(sp.getString("mode", "Music")){
-                                "Music" -> {
-                                    val extractor = YouTube.getSearchExtractor(query, singletonList(
-                                        YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
+                    "Album" -> {
+                        sp.edit().putString("mode", "Playlists").apply()
+                        search_mode.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                requireContext(),
+                                R.drawable.mode_playlist
+                            )
+                        )
+                    }
+
+                    "Playlists" -> {
+                        sp.edit().putString("mode", "Music").apply()
+                        search_mode.setImageDrawable(
+                            ContextCompat.getDrawable(
+                                requireContext(),
+                                R.drawable.mode_music
+                            )
+                        )
+                    }
+                }
+            }.also {
+                search_mode.setOnClickListener(it)
+                search_mode_pr.setOnClickListener(it)
+            }
+            loading_view.enableMergePathsForKitKatAndAbove(true)
+            get_Items(view.findViewById(R.id.search_bar),view.findViewById(R.id.search_rv))
+    }
+    private fun get_Items(searchBar:EditText,searchRv:RecyclerView)
+    {
+            searchBar.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == 6) {
+                    if(isInternetConnected()){
+                        loading_view.progress = 0.3080229f
+                        loading_view.playAnimation()
+
+                        if (searchRv.visibility == View.VISIBLE) {
+                            searchRv.animate().alpha(0f).duration = 200
+                            searchRv.visibility = View.GONE
+                        }
+                        val text = searchBar.text
+                        if (loading_view.visibility == View.GONE) {
+                            loading_view.alpha = 0f
+                            loading_view.visibility = View.VISIBLE
+                            loading_view.animate().alpha(1f).duration = 200
+                        }
+
+                        hideKeyboard(activity as Activity)
+                        val resultArray = ArrayList<Song>()
+
+                        try {
+                            var query = text.toString()
+                            if (query.length == 0)
+                                query = "songs"//setting default value as songs
+                            val useYtMusic: Boolean = when {
+                                text.startsWith("!") -> {
+                                    query = text.toString().replaceFirst(Regex("^!\\s*"), "")
+                                    true
+                                }
+
+                                text.startsWith("?") -> {
+                                    query = text.toString().replaceFirst(Regex("^?\\s*"), "")
+                                    false
+                                }
+
+                                else -> (PreferenceManager.getDefaultSharedPreferences(requireContext())
+                                    .getString("source_key", "Youtube Music") == "Youtube Music")
+                            }
+
+                            thread {
+                                if (useYtMusic) {
+                                    when (sp.getString("mode", "Music")) {
+                                        "Music" -> {
+                                            val extractor = YouTube.getSearchExtractor(
+                                                query, singletonList(
+                                                    YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
+                                                ), ""
+                                            )
+
+                                            extractor.fetchPage()
+
+                                            for (song in extractor.initialPage.items) {
+                                                val ex = song as StreamInfoItem
+                                                resultArray.add(
+                                                    Song(
+                                                        name = ex.name,
+                                                        artist = ex.uploaderName,
+                                                        youtubeLink = ex.url,
+                                                        ytmThumbnail = song.thumbnailUrl
+                                                    )
+                                                )
+                                            }
+                                        }
+
+                                        "Album" -> {
+                                            val extractor = YouTube.getSearchExtractor(
+                                                query, singletonList(
+                                                    YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS
+                                                ), ""
+                                            )
+
+                                            extractor.fetchPage()
+
+                                            for (song in extractor.initialPage.items) {
+                                                val ex = song as PlaylistInfoItem
+                                                resultArray.add(
+                                                    Song(
+                                                        name = ex.name,
+                                                        artist = ex.uploaderName,
+                                                        youtubeLink = ex.url,
+                                                        ytmThumbnail = song.thumbnailUrl
+                                                    )
+                                                )
+                                            }
+                                        }
+
+                                        "Playlists" -> {
+                                            val extractor = if (query.startsWith("https://"))
+                                                YouTube.getPlaylistExtractor(query)
+                                            else
+                                                YouTube.getSearchExtractor(
+                                                    query, singletonList(
+                                                        YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS
+                                                    ), ""
+                                                )
+
+                                            extractor.fetchPage()
+
+                                            for (song in extractor.initialPage.items) {
+                                                val ex = song as PlaylistInfoItem
+                                                resultArray.add(
+                                                    Song(
+                                                        name = ex.name,
+                                                        artist = ex.uploaderName,
+                                                        youtubeLink = ex.url,
+                                                        ytmThumbnail = song.thumbnailUrl
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    val extractor = YouTube.getSearchExtractor(
+                                        query, singletonList(
+                                            YoutubeSearchQueryHandlerFactory.VIDEOS
+                                        ), ""
+                                    )
 
                                     extractor.fetchPage()
 
-                                    for(song in extractor.initialPage.items) {
+                                    for (song in extractor.initialPage.items) {
                                         val ex = song as StreamInfoItem
-                                        resultArray.add(Song(
-                                            name = ex.name,
-                                            artist = ex.uploaderName,
-                                            youtubeLink = ex.url,
-                                            ytmThumbnail = song.thumbnailUrl
-                                        ))
+                                        resultArray.add(
+                                            Song(
+                                                name = ex.name,
+                                                artist = ex.uploaderName,
+                                                youtubeLink = ex.url,
+                                                ytmThumbnail = song.thumbnailUrl
+                                            )
+                                        )
                                     }
                                 }
 
-                                "Album" -> {
-                                    val extractor =  YouTube.getSearchExtractor(query, singletonList(
-                                        YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS), "")
-
-                                    extractor.fetchPage()
-
-                                    for(song in extractor.initialPage.items) {
-                                        val ex = song as PlaylistInfoItem
-                                        resultArray.add(Song(
-                                            name = ex.name,
-                                            artist = ex.uploaderName,
-                                            youtubeLink = ex.url,
-                                            ytmThumbnail = song.thumbnailUrl
-                                        ))
-                                    }
-                                }
-
-                                "Playlists" -> {
-                                    val extractor = if(query.startsWith("https://"))
-                                        YouTube.getPlaylistExtractor(query)
-                                     else
-                                        YouTube.getSearchExtractor(query, singletonList(
-                                            YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS), "")
-
-                                    extractor.fetchPage()
-
-                                    for(song in extractor.initialPage.items) {
-                                        val ex = song as PlaylistInfoItem
-                                        resultArray.add(Song(
-                                            name = ex.name,
-                                            artist = ex.uploaderName,
-                                            youtubeLink = ex.url,
-                                            ytmThumbnail = song.thumbnailUrl
-                                        ))
-                                    }
+                                activity?.runOnUiThread {
+                                    if (useYtMusic)
+                                        searchRv.adapter =
+                                            YtmResultAdapter(
+                                                resultArray,
+                                                WeakReference(this@Search),
+                                                sp.getString("mode", "Music") ?: "Music"
+                                            )
+                                    else
+                                        searchRv.adapter =
+                                            ResultAdapter(resultArray, WeakReference(this@Search))
+                                    searchRv.layoutManager = LinearLayoutManager(requireContext())
+                                    loading_view.visibility = View.GONE
+                                    loading_view.pauseAnimation()
+                                    searchRv.alpha = 0f
+                                    searchRv.visibility = View.VISIBLE
+                                    searchRv.animate().alpha(1f).duration = 200
                                 }
                             }
-                        } else {
-                            val extractor = YouTube.getSearchExtractor(query, singletonList(
-                                YoutubeSearchQueryHandlerFactory.VIDEOS), "")
-
-                            extractor.fetchPage()
-
-                            for(song in extractor.initialPage.items) {
-                                val ex = song as StreamInfoItem
-                                resultArray.add(Song(
-                                    name = ex.name,
-                                    artist = ex.uploaderName,
-                                    youtubeLink = ex.url,
-                                    ytmThumbnail = song.thumbnailUrl
-                                ))
-                            }
-                        }
-
-                        activity?.runOnUiThread {
-                            if(useYtMusic)
-                                searchRv.adapter =
-                                    YtmResultAdapter(resultArray,
-                                        WeakReference(this@Search),
-                                        sp.getString("mode", "Music")?:"Music")
-                            else
-                                searchRv.adapter =
-                                    ResultAdapter(resultArray, WeakReference(this@Search))
-                            searchRv.layoutManager = LinearLayoutManager(requireContext())
-                            loading_view.visibility = View.GONE
-                            loading_view.pauseAnimation()
-                            searchRv.alpha = 0f
-                            searchRv.visibility = View.VISIBLE
-                            searchRv.animate().alpha(1f).duration = 200
+                        } catch (e: Exception) {
+                            Toast.makeText(requireContext(), "Something failed!", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     }
-                } catch (e: IOException) {
-                    Toast.makeText(requireContext(), "Something failed!", Toast.LENGTH_SHORT)
-                        .show()
+                    else
+                        Toast.makeText(requireContext(),"No Internet Connection", Toast.LENGTH_LONG).show()
                 }
+                false
             }
-            false
+        }
+    private fun isInternetConnected():Boolean {
+
+        val connectivityManager =
+            requireContext()?.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+                    as ConnectivityManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val networkCapabilities = connectivityManager.activeNetwork ?: return false
+            val activeNetwork =
+                connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
+
+            return when {
+
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+                        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                else -> false
+            }
+        } else {
+            return connectivityManager.activeNetworkInfo != null &&
+                    connectivityManager.activeNetworkInfo!!.isConnectedOrConnecting
         }
     }
 
     fun itemPressed(song: Song) {
-        itemPressed.sendItem(song)
+        if(isInternetConnected())
+            itemPressed.sendItem(song)
+        else
+            Toast.makeText(requireContext(),"No Internet Connection", Toast.LENGTH_LONG).show()
     }
 
     private fun hideKeyboard(activity: Activity) {

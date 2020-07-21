@@ -21,9 +21,7 @@ package io.github.uditkarode.able.utils
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.media.MediaScannerConnection
 import android.util.Log
 import android.widget.Toast
 import com.arthenica.mobileffmpeg.FFprobe
@@ -41,10 +39,8 @@ import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.images.AndroidArtwork
-import org.jaudiotagger.tag.images.Artwork
 import org.json.JSONArray
 import java.io.*
-import kotlin.concurrent.thread
 
 class Shared {
     companion object {
@@ -92,19 +88,19 @@ class Shared {
                 e.printStackTrace()
             }
         }
-        fun mp3_thumnail_Add(imageFile: String)
-        {
+
+        fun addMp3Thumbnail(imageFile: String) {
             try {
-                var id = imageFile.substring(imageFile.lastIndexOf("/"))
-                var album_Art = File(Constants.albumArtDir, id);
-                var song = File(imageFile + ".mp3")
-                var audioFile: AudioFile = AudioFileIO.read(song);
-                var tag = audioFile.tag;
+                val id = imageFile.substring(imageFile.lastIndexOf("/"))
+                val albumArt = File(Constants.albumArtDir, id)
+                val song = File("$imageFile.mp3")
+                val audioFile: AudioFile = AudioFileIO.read(song)
+                val tag = audioFile.tag
                 tag.setField(
                     FieldKey.ALBUM,
                     id
-                ); //the song needs to have a unique album name as Android MediaStore stores thumnail based on album name.
-                var artwork: AndroidArtwork = AndroidArtwork.createArtworkFromFile(album_Art)
+                )
+                val artwork: AndroidArtwork = AndroidArtwork.createArtworkFromFile(albumArt)
                 tag.setField(artwork)
                 audioFile.commit()
             }

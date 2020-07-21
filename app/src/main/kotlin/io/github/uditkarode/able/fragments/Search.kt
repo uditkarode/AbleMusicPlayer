@@ -25,7 +25,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -46,7 +45,6 @@ import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
-import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Collections.singletonList
 import kotlin.concurrent.thread
@@ -129,10 +127,10 @@ class Search : Fragment() {
                 search_mode_pr.setOnClickListener(it)
             }
             loading_view.enableMergePathsForKitKatAndAbove(true)
-            get_Items(view.findViewById(R.id.search_bar),view.findViewById(R.id.search_rv))
+            getItems(view.findViewById(R.id.search_bar),view.findViewById(R.id.search_rv))
     }
-    private fun get_Items(searchBar:EditText,searchRv:RecyclerView)
-    {
+
+    private fun getItems(searchBar:EditText, searchRv:RecyclerView){
             searchBar.setOnEditorActionListener { _, actionId, _ ->
                 if (actionId == 6) {
                     if(isInternetConnected()){
@@ -155,8 +153,8 @@ class Search : Fragment() {
 
                         try {
                             var query = text.toString()
-                            if (query.length == 0)
-                                query = "songs"//setting default value as songs
+                            if (query.isEmpty())
+                                query = "songs"
                             val useYtMusic: Boolean = when {
                                 text.startsWith("!") -> {
                                     query = text.toString().replaceFirst(Regex("^!\\s*"), "")
@@ -296,27 +294,37 @@ class Search : Fragment() {
                 false
             }
         }
-    private fun isInternetConnected():Boolean {
 
+    @Suppress("DEPRECATION")
+    private fun isInternetConnected(): Boolean {
+        var result = false
         val connectivityManager =
-            requireContext()?.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
-                    as ConnectivityManager
+            requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val networkCapabilities = connectivityManager.activeNetwork ?: return false
-            val activeNetwork =
+            val actNw =
                 connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
-
-            return when {
-
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
-                        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            result = when {
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
                 else -> false
             }
         } else {
-            return connectivityManager.activeNetworkInfo != null &&
-                    connectivityManager.activeNetworkInfo!!.isConnectedOrConnecting
+            connectivityManager.run {
+                connectivityManager.activeNetworkInfo?.run {
+                    result = when (type) {
+                        ConnectivityManager.TYPE_WIFI -> true
+                        ConnectivityManager.TYPE_MOBILE -> true
+                        ConnectivityManager.TYPE_ETHERNET -> true
+                        else -> false
+                    }
+
+                }
+            }
         }
+
+        return result
     }
 
     fun itemPressed(song: Song) {

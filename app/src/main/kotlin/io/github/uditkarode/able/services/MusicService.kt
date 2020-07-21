@@ -51,7 +51,6 @@ import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
-import java.io.FileInputStream
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import kotlin.concurrent.thread

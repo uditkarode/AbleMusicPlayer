@@ -19,6 +19,7 @@
 package io.github.uditkarode.able.adapters
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
@@ -225,7 +226,7 @@ class SongAdapter(private var songList: ArrayList<Song>,
         val deleteFromDisk = itemView.findViewById<MaterialButton>(R.id.delete_from_disk)!!
         val albumArt: ImageView? = if(showArt) itemView.findViewById<ImageView>(R.id.song_art) else null
 
-        fun getContext() = itemView.context
+        fun getContext(): Context = itemView.context
     }
 
     fun update(songList: ArrayList<Song>){

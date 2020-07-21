@@ -42,7 +42,6 @@ class Constants {
         const val VERSION = "Debug"
 
         const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
-        const val SP_NAME = "able"
         const val CHANNEL_ID = "AbleMusicDownload"
     }
 }

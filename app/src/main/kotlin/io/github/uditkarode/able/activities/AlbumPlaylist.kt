@@ -49,6 +49,10 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
+/**
+ * The activity that shows up when a user taps on an album or playlist
+ * from the search results.
+ */
 class AlbumPlaylist: AppCompatActivity() {
     var mService: MusicService? = null
     var isBound = false
@@ -170,6 +174,9 @@ class AlbumPlaylist: AppCompatActivity() {
         }
     }
 
+    /**
+     * invoked when an item is pressed in the recyclerview.
+     */
     fun itemPressed(song: Song){
         if(!Shared.serviceRunning(MusicService::class.java, this)){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

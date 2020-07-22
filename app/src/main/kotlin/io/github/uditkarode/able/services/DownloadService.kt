@@ -48,6 +48,10 @@ import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
 
+/**
+ * The JobIntentService that downloads songs when the play mode is set to download mode
+ * and a user taps on a search result.
+ */
 class DownloadService: JobIntentService() {
     companion object {
         private var songQueue = ArrayList<DownloadableSong>()

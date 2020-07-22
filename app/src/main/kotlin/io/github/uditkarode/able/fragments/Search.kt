@@ -37,7 +37,7 @@ import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.adapters.ResultAdapter
+import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.models.Song
 import kotlinx.android.synthetic.main.search.*
@@ -49,6 +49,9 @@ import java.lang.ref.WeakReference
 import java.util.Collections.singletonList
 import kotlin.concurrent.thread
 
+/**
+ * The second fragment. Used to search for songs.
+ */
 class Search : Fragment() {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences
@@ -274,7 +277,7 @@ class Search : Fragment() {
                                             )
                                     else
                                         searchRv.adapter =
-                                            ResultAdapter(resultArray, WeakReference(this@Search))
+                                            YtResultAdapter(resultArray, WeakReference(this@Search))
                                     searchRv.layoutManager = LinearLayoutManager(requireContext())
                                     loading_view.visibility = View.GONE
                                     loading_view.pauseAnimation()

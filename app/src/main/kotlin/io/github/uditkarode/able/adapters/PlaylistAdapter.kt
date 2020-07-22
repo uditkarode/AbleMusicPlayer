@@ -37,6 +37,9 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import java.io.File
 
+/**
+ * Lists the playlists in the playlist fragment.
+ */
 class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
     : RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {

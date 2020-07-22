@@ -23,6 +23,9 @@ import android.os.Handler
 import androidx.appcompat.app.AppCompatActivity
 import io.github.uditkarode.able.R
 
+/**
+ * The splash screen.
+ */
 class Splash: AppCompatActivity() {
     private var seen = false
 

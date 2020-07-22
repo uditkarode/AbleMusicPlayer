@@ -24,6 +24,9 @@ import io.github.dreierf.materialintroscreen.MaterialIntroActivity
 import io.github.dreierf.materialintroscreen.SlideFragmentBuilder
 import io.github.uditkarode.able.R
 
+/**
+ * The welcome screen that shows up when the required permissions haven't been granted.
+ */
 class Welcome: MaterialIntroActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

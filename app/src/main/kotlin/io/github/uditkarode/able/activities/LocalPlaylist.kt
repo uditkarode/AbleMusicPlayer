@@ -45,6 +45,10 @@ import kotlinx.android.synthetic.main.search.loading_view
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
+/**
+ * The activity that shows up when a user taps on a local playlist from the
+ * playlist fragment.
+ */
 class LocalPlaylist: AppCompatActivity() {
     var mService: MusicService? = null
     var isBound = false

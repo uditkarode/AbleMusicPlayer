@@ -25,6 +25,9 @@ import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.fragments.Playlists
 
+/**
+ * Adapter for ViewPager on MainActivity.
+ */
 class ViewPagerAdapter(fm: FragmentManager, private val home: Home):
     FragmentPagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
     override fun getItem(position: Int): Fragment {

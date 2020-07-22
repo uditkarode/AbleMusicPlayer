@@ -52,11 +52,16 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 
+/**
+ * The third fragment. Used to view/edit/play locally stored playlists.
+ * Playlists are stored in the JSON format.
+ */
 class Playlists : Fragment() {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var isImporting = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?

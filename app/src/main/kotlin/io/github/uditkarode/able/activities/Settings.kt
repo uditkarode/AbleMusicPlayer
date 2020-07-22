@@ -8,6 +8,9 @@ import com.takisoft.preferencex.PreferenceFragmentCompat
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Shared
 
+/**
+ * The settings page.
+ */
 class Settings: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -16,7 +19,7 @@ class Settings: AppCompatActivity() {
         title = getString(R.string.settings)
 
         actionBar?.setDisplayHomeAsUpEnabled(true)
-        if (Shared.isFirstRun) Shared.isFirstRun = false
+        if (Shared.isFirstOpen) Shared.isFirstOpen = false
 
         supportFragmentManager.beginTransaction()
             .replace(

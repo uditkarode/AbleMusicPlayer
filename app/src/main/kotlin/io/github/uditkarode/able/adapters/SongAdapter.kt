@@ -55,6 +55,9 @@ import java.io.File
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
+/**
+ * Shows songs on the Home fragment.
+ */
 class SongAdapter(private var songList: ArrayList<Song>,
                   private val wr: WeakReference<Home>? = null,
                   private val showArt: Boolean = false): RecyclerView.Adapter<SongAdapter.RVVH>() {
@@ -224,7 +227,7 @@ class SongAdapter(private var songList: ArrayList<Song>,
         val buttonsPanel = itemView.findViewById<LinearLayout>(R.id.buttonsPanel)!!
         val addToPlaylist = itemView.findViewById<MaterialButton>(R.id.add_to_playlist)!!
         val deleteFromDisk = itemView.findViewById<MaterialButton>(R.id.delete_from_disk)!!
-        val albumArt: ImageView? = if(showArt) itemView.findViewById<ImageView>(R.id.song_art) else null
+        val albumArt: ImageView? = if(showArt) itemView.findViewById(R.id.song_art) else null
 
         fun getContext(): Context = itemView.context
     }
@@ -232,7 +235,6 @@ class SongAdapter(private var songList: ArrayList<Song>,
     fun update(songList: ArrayList<Song>){
         this.songList = songList
         originalLength = songList.size
-        EventBus.getDefault().post(GetQueueEvent(songList))
         notifyDataSetChanged()
     }
 
@@ -254,14 +256,9 @@ class SongAdapter(private var songList: ArrayList<Song>,
         notifyDataSetChanged()
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun songUpdate(getSong: GetSongEvent) {
-        playingSong = getSong.song
-        Handler().postDelayed({ notifyDataSetChanged() }, 100)
-    }
 
     @Subscribe
     fun getQueueUpdate(songEvent: GetQueueEvent){
-        songList = songEvent.queue
+        if(!showArt) songList = songEvent.queue
     }
 }

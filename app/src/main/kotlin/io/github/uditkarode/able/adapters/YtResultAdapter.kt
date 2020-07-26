@@ -20,6 +20,9 @@ package io.github.uditkarode.able.adapters
 
 import android.annotation.SuppressLint
 import android.graphics.Typeface
+import android.os.Build
+import android.text.method.ScrollingMovementMethod
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -39,7 +42,7 @@ class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: Wea
 
     override fun getItemCount() = songList.size
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "ClickableViewAccessibility")
     override fun onBindViewHolder(holder: RVVH, position: Int) {
         val current = songList[position]
         holder.vidName.text = " " + current.name
@@ -59,9 +62,17 @@ class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: Wea
 
         holder.titleTxt.isSelected = true
         holder.uploaderTxt.isSelected = true
-
         holder.itemView.setOnClickListener {
             wr.get()?.itemPressed(songList[position])
+        }
+        /* Will Show Full Name
+            for the Song held.
+         */
+        holder.itemView.setOnLongClickListener {
+            holder.vidName.isSingleLine=false
+           // holder.vidName.setLines(Int.MAX_VALUE)
+            notifyItemChanged(position)
+            true
         }
     }
 
@@ -72,3 +83,4 @@ class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: Wea
         val uploaderTxt = itemView.findViewById<TextView>(R.id.uploader_txt)!!
     }
 }
+

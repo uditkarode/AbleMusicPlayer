@@ -1,30 +1,98 @@
 package io.github.uditkarode.able.utils
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.*
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.*
 import androidx.recyclerview.widget.RecyclerView
-
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.input.getInputLayout
+import com.afollestad.materialdialogs.input.input
+import com.afollestad.materialdialogs.list.listItems
+import io.github.uditkarode.able.R
+import io.github.uditkarode.able.models.Song
+import java.io.File
 
 internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
-abstract class SwipeControllerActions {
-    fun onLeftClicked(position: Int) {}
-    fun onRightClicked(position: Int) {}
+class SwipeControllerActions {
+    private var songList = ArrayList<Song>()
+
+    fun onLeftClicked(context: Context?,position: Int) {
+        songList = Shared.getSongList(Constants.ableSongDir)
+        val playlists = Shared.getPlaylists()
+        val names = playlists.run {
+            ArrayList<String>().also {
+                for (playlist in this) it.add(
+                    playlist.name.replace(
+                        ".json",
+                        ""
+                    )
+                )
+            }
+        }
+
+        names.add(0, context!!.getString(R.string.pq))
+        names.add(1, context.getString(R.string.crp))
+        val current=songList[position]
+        MaterialDialog(context).show {
+            listItems(items = names) { _, index, _ ->
+                when(index)
+                {
+                    0 -> Shared.mService.addToQueue(current)
+                    1 -> {
+                        MaterialDialog(context).show {
+                            title(text = context.getString(R.string.playlist_namei))
+                            input(context.getString(R.string.name_s)){ _, charSequence ->
+                                Shared.createPlaylist(charSequence.toString(), context)
+                                Shared.addToPlaylist(Shared.getPlaylists().filter {
+                                    it.name == "$charSequence.json"
+                                }[0], current,context)
+                            }
+                            getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+                        }
+                    }
+                    else -> {
+                        Shared.addToPlaylist(playlists[index-2], current, context)
+                    }
+                }
+            }
+        }
+    }
+    fun onRightClicked(context: Context?,position: Int) {
+        songList = Shared.getSongList(Constants.ableSongDir)
+        val current=songList[position]
+        MaterialDialog(context!!).show {
+            title(text = context.getString(R.string.confirmation))
+            message(text = context.getString(R.string.res_confirm_txt).format(current.name, current.filePath))
+            positiveButton(text = "Delete"){
+                val curFile = File(current.filePath)
+                val curArt =
+                    File(Constants.ableSongDir.absolutePath + "/album_art", curFile.nameWithoutExtension)
+
+                curFile.delete()
+                curArt.delete()
+                songList.removeAt(position)
+            }
+            negativeButton(text = context.getString(R.string.cancel))
+        }
+    }
 }
+@Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
-public class SwipeController :
+class SwipeController(private val context: Context?) :
     ItemTouchHelper.Callback() {
     private var swipeBack = false
     private var buttonShowedState = ButtonsState.GONE
     private var buttonInstance: RectF? = null
-    private var currentItemViewHolder: RecyclerView.ViewHolder? = null
-    private var buttonsActions: SwipeControllerActions? = null
+    private val buttonsActions=SwipeControllerActions()
+    private val buttonWidth = 200f
+
+
     override fun getMovementFlags(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder
@@ -46,7 +114,7 @@ public class SwipeController :
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
     override fun convertToAbsoluteDirection(flags: Int, layoutDirection: Int): Int {
         if (swipeBack) {
-            swipeBack = buttonShowedState != ButtonsState.GONE
+            swipeBack = false
             return 0
         }
         return super.convertToAbsoluteDirection(flags, layoutDirection)
@@ -61,122 +129,37 @@ public class SwipeController :
         actionState: Int,
         isCurrentlyActive: Boolean
     ) {
-        var dX = dX
         if (actionState == ACTION_STATE_SWIPE) {
-            if (buttonShowedState != ButtonsState.GONE) {
-                if (buttonShowedState == ButtonsState.LEFT_VISIBLE) dX =
-                    Math.max(dX, buttonWidth)
-                if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) dX =
-                    Math.min(dX, -buttonWidth)
-                super.onChildDraw(
-                    c,
-                    recyclerView,
-                    viewHolder,
-                    dX,
-                    dY,
-                    actionState,
-                    isCurrentlyActive
-                )
-                onDraw(c)
-            } else {
-                setTouchListener(
-                    c,
-                    recyclerView,
-                    viewHolder,
-                    dX,
-                    dY,
-                    actionState,
-                    isCurrentlyActive
-                )
-            }
+               setTouchListener(recyclerView, viewHolder, dX)
         }
-        if (buttonShowedState == ButtonsState.GONE) {
-            super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+        buttonShowedState = when {
+            dX<-50 -> ButtonsState.RIGHT_VISIBLE
+            dX>50 -> ButtonsState.LEFT_VISIBLE
+            else -> ButtonsState.GONE
         }
-        currentItemViewHolder = viewHolder
+        drawButtons(c,viewHolder)
+        super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
     }
 
     private fun setTouchListener(
-        c: Canvas,
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder,
-        dX: Float,
-        dY: Float,
-        actionState: Int,
-        isCurrentlyActive: Boolean
+        dX: Float
     ) {
         recyclerView.setOnTouchListener { _, event ->
-            swipeBack =
-                event.action == MotionEvent.ACTION_CANCEL || event.action == MotionEvent.ACTION_UP
+            swipeBack = event.action == MotionEvent.ACTION_CANCEL || event.action == MotionEvent.ACTION_UP
             if (swipeBack) {
-                if (dX < -buttonWidth) buttonShowedState =
-                    ButtonsState.RIGHT_VISIBLE
-                else if (dX > buttonWidth) buttonShowedState =
-                    ButtonsState.LEFT_VISIBLE
-                if (buttonShowedState != ButtonsState.GONE) {
-                    setTouchUpListener(
-                        c,
-                        recyclerView,
-                        viewHolder,
-                        dX,
-                        dY,
-                        actionState,
-                        isCurrentlyActive
-                    )
-                    setItemsClickable(recyclerView, false)
-                }
-            }
-            false
-        }
-    }
-
-    private fun setTouchUpListener(
-        c: Canvas,
-        recyclerView: RecyclerView,
-        viewHolder: RecyclerView.ViewHolder,
-        dX: Float,
-        dY: Float,
-        actionState: Int,
-        isCurrentlyActive: Boolean
-    ) {
-        recyclerView.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                super@SwipeController.onChildDraw(
-                    c,
-                    recyclerView,
-                    viewHolder,
-                    0.0f,
-                    dY,
-                    actionState,
-                    isCurrentlyActive
-                )
-                recyclerView.setOnTouchListener { _, _ -> false }
-                setItemsClickable(recyclerView, true)
-                swipeBack = false
-                if (buttonsActions != null && buttonInstance != null && buttonInstance!!.contains(
-                        event.x,
-                        event.y
-                    )
-                ) {
-                    if (buttonShowedState == ButtonsState.LEFT_VISIBLE) {
-                        buttonsActions!!.onLeftClicked(viewHolder.adapterPosition)
-                    } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
-                        buttonsActions!!.onRightClicked(viewHolder.adapterPosition)
+                if (dX < -buttonWidth)
+                    {
+                        buttonShowedState = ButtonsState.RIGHT_VISIBLE
+                        buttonsActions.onRightClicked(context,viewHolder.adapterPosition)
                     }
+                else if (dX > buttonWidth){
+                    buttonShowedState = ButtonsState.LEFT_VISIBLE
+                    buttonsActions.onLeftClicked(context,viewHolder.adapterPosition)
                 }
-                buttonShowedState = ButtonsState.GONE
-                currentItemViewHolder = null
             }
             false
-        }
-    }
-
-    private fun setItemsClickable(
-        recyclerView: RecyclerView,
-        isClickable: Boolean
-    ) {
-        for (i in 0 until recyclerView.childCount) {
-            recyclerView.getChildAt(i).isClickable = isClickable
         }
     }
 
@@ -184,7 +167,6 @@ public class SwipeController :
         c: Canvas,
         viewHolder: RecyclerView.ViewHolder
     ) {
-        Log.d("values",buttonShowedState.name)
         val buttonWidthWithoutPadding = buttonWidth - 20
         val corners = 16f
         val itemView: View = viewHolder.itemView
@@ -192,27 +174,29 @@ public class SwipeController :
         buttonInstance = null
         if (buttonShowedState == ButtonsState.LEFT_VISIBLE) {
             val leftButton = RectF(
-                itemView.getLeft().toFloat(),
-                itemView.getTop().toFloat(),
-                itemView.getLeft().toFloat() + buttonWidthWithoutPadding,
-                itemView.getBottom().toFloat()
+                itemView.left.toFloat(),
+                itemView.top.toFloat(),
+                itemView.left.toFloat() + buttonWidthWithoutPadding,
+                itemView.bottom.toFloat()
             )
-            p.color = Color.BLUE
+            p.color = Color.argb(255, 148, 188, 227)
             c.drawRoundRect(leftButton, corners, corners, p)
             drawText("Playlist", c, leftButton, p)
             buttonInstance = leftButton
-        } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
+        }
+        else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
             val rightButton = RectF(
-                itemView.getRight() - buttonWidthWithoutPadding,
-                itemView.getTop().toFloat(),
-                itemView.getRight().toFloat(),
-                itemView.getBottom().toFloat()
+                itemView.right - buttonWidthWithoutPadding,
+                itemView.top.toFloat(),
+                itemView.right.toFloat(),
+                itemView.bottom.toFloat()
             )
-            p.color = Color.RED
+            p.color = Color.argb(255, 183, 28, 28)
             c.drawRoundRect(rightButton, corners, corners, p)
             drawText("DELETE", c, rightButton, p)
             buttonInstance = rightButton
         }
+        buttonShowedState=ButtonsState.GONE
     }
 
     private fun drawText(
@@ -227,19 +211,5 @@ public class SwipeController :
         p.textSize = textSize
         val textWidth = p.measureText(text)
         c.drawText(text, button.centerX() - textWidth / 2, button.centerY() + textSize / 2, p)
-    }
-
-    fun onDraw(c: Canvas) {
-        if (currentItemViewHolder != null) {
-            drawButtons(c, currentItemViewHolder!!)
-        }
-    }
-
-    companion object {
-        private const val buttonWidth = 200f
-    }
-
-    init {
-        this.buttonsActions = buttonsActions
     }
 }

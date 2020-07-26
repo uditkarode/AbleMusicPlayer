@@ -212,12 +212,13 @@ class SongAdapter(private var songList: ArrayList<Song>,
                 negativeButton(text = holder.itemView.context.getString(R.string.cancel))
             }
         }
-
-        holder.itemView.setOnLongClickListener {
-            holder.buttonsPanel.visibility =
-                if(holder.buttonsPanel.visibility == View.VISIBLE) View.GONE
-                else View.VISIBLE
-            true
+        if(!showArt) {
+            holder.itemView.setOnLongClickListener {
+                holder.buttonsPanel.visibility =
+                    if (holder.buttonsPanel.visibility == View.VISIBLE) View.GONE
+                    else View.VISIBLE
+                true
+            }
         }
     }
 

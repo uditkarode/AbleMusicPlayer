@@ -128,7 +128,7 @@ class Home: Fragment() {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(requireContext())
 
-                val itemTouchHelper= ItemTouchHelper(SwipeController())
+                val itemTouchHelper= ItemTouchHelper(SwipeController(context))
                 itemTouchHelper.attachToRecyclerView(songs)
             }
         }

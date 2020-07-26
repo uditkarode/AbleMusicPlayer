@@ -37,6 +37,9 @@ import io.github.uditkarode.able.utils.Constants
 import java.io.File
 import java.lang.ref.WeakReference
 
+/**
+ * Lists songs in a local playlist.
+ */
 class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
                            private val wr: WeakReference<LocalPlaylist>): RecyclerView.Adapter<LocalPlaylistAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =

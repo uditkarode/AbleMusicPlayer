@@ -69,6 +69,9 @@ import org.schabi.newpipe.extractor.NewPipe
 import java.util.*
 import kotlin.concurrent.thread
 
+/**
+ * First activity that shows up when the user opens the application
+ */
 class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultReceiver.Receiver {
     private lateinit var okClient: OkHttpClient
     private lateinit var bottomNavigation: BottomNavigationView
@@ -86,7 +89,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (!Shared.serviceRunning(MusicService::class.java, applicationContext)
-            && Shared.isFirstRun
+            && Shared.isFirstOpen
         ) {
             if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED
@@ -131,6 +134,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 }
             }
         }
+        // extend the touchable area for the play button, since it's so small.
         (bb_icon.parent as View).post {
             val rect = Rect().also {
                 bb_icon.getHitRect(it)
@@ -176,6 +180,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(applicationContext, Player::class.java))
         }
 
+        // bind to the service.
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
@@ -203,7 +208,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         }
     }
 
-    private fun bindEvent(@Suppress("UNUSED_PARAMETER") bindServiceEvent: BindServiceEvent) {
+    private fun bindService() {
         if (!Shared.serviceLinked()) {
             if (Shared.serviceRunning(MusicService::class.java, applicationContext))
                 bindService(
@@ -267,32 +272,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         }
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songSet(songEvent: GetSongEvent) {
-        activity_seekbar.progress = 0
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            bb_song.text = Html.fromHtml(
-                "${songEvent.song.name} <font color=\"#5e92f3\">•</font> ${songEvent.song.artist}",
-                HtmlCompat.FROM_HTML_MODE_LEGACY
-            )
-        }
-    }
-
     @Subscribe
     fun durationUpdate(durationEvent: GetDurationEvent) {
         activity_seekbar.max = durationEvent.duration
     }
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun youtubeLinkEvent(youtubeLinkEvent: YoutubeLinkEvent) {
-      if ( youtubeLinkEvent.isGettingFromYoutube) {
-          bb_ProgressBar?.visibility =  View.VISIBLE
-          activity_seekbar.visibility = View.GONE
-      } else {
-          bb_ProgressBar?.visibility = View.GONE
-          activity_seekbar.visibility = View.VISIBLE
-      }
-    }
+
     override fun attachBaseContext(newBase: Context?) {
         super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!))
     }
@@ -309,7 +293,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     override fun onResume() {
         super.onResume()
-        bindEvent(BindServiceEvent())
+        bindService()
         if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
     }

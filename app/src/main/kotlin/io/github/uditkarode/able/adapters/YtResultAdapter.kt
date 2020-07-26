@@ -30,7 +30,10 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.fragments.Search
 import java.lang.ref.WeakReference
 
-class ResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakReference<Search>): RecyclerView.Adapter<ResultAdapter.RVVH>() {
+/**
+ * Shows results in the search fragment when the search mode is set to regular YouTube.
+ */
+class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakReference<Search>): RecyclerView.Adapter<YtResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
         RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_result, parent, false))
 

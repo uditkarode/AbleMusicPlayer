@@ -48,7 +48,11 @@ import java.io.File
 import java.io.IOException
 import kotlin.concurrent.thread
 
-class DownloadService : JobIntentService() {
+/**
+ * The JobIntentService that downloads songs when the play mode is set to download mode
+ * and a user taps on a search result.
+ */
+class DownloadService: JobIntentService() {
     companion object {
         private var songQueue = ArrayList<DownloadableSong>()
         private const val JOB_ID = 1000
@@ -212,7 +216,7 @@ class DownloadService : JobIntentService() {
                                     song.resultReceiver.send(123, bundle)
                                     fetch?.removeListener(this)
                                     if (format == Format.MODE_MP3)
-                                        Shared.mp3_thumnail_Add(target)
+                                        Shared.addMp3Thumbnail(target)
                                     songQueue.clear()
                                     stopSelf()
                                 } else {

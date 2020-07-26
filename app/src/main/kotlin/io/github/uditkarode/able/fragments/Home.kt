@@ -65,6 +65,9 @@ import java.io.File
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
+/**
+ * The first fragment. Shows a list of songs present on the user's device.
+ */
 class Home: Fragment() {
     private var songList = ArrayList<Song>()
     private var songAdapter: SongAdapter? = null

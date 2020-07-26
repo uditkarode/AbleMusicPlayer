@@ -32,6 +32,9 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Constants
 import kotlinx.android.synthetic.main.about.*
 
+/**
+ * The about page.
+ */
 class About: AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?){

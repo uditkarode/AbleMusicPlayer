@@ -34,6 +34,9 @@ import io.github.uditkarode.able.utils.SpotifyImport
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 
+/**
+ * The service that handles import of Spotify songs.
+ */
 class SpotifyImportService(context: Context, workerParams: WorkerParameters) : Worker(
     context,
     workerParams

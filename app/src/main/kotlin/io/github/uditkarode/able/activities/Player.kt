@@ -89,6 +89,9 @@ import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
+/**
+ * The Player UI activity.
+ */
 class Player : AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
@@ -428,6 +431,10 @@ class Player : AppCompatActivity() {
         }
     }
 
+    /**
+     * @param rawColor a color in Integer form (hex).
+     * Tints the control buttons to rawColor.
+     */
     private fun tintControls(rawColor: Int){
         val color = if(Shared.isColorDark(rawColor))
             ColorUtils.blendARGB(rawColor, Color.WHITE, 0.9F)
@@ -447,6 +454,11 @@ class Player : AppCompatActivity() {
         }
     }
 
+    /**
+     * @param color the color to set on the background as a gradient.
+     * @param lightVibrantColor the color to set on the seekbar, usually
+     * derived from the album art.
+     */
     private fun setBgColor(color: Int, lightVibrantColor: Int? = null){
         RevelyGradient
             .linear()
@@ -696,14 +708,7 @@ class Player : AppCompatActivity() {
         player_seekbar.max = durationEvent.duration
         complete_position.text = getDurationFromMs(durationEvent.duration)
     }
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun youtubeLinkEvent(youtubeLinkEvent: YoutubeLinkEvent) {
-        youtubeProgressbar?.visibility = if (youtubeLinkEvent.isGettingFromYoutube) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-    }
+
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
     fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) {
         finish()

@@ -51,12 +51,14 @@ import io.github.uditkarode.able.utils.Shared
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
-import java.io.FileInputStream
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
+/**
+ * The service that plays music.
+ */
 class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     companion object {
         val mediaPlayer = MediaPlayer()
@@ -252,28 +254,44 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
     }
 
+    /**
+     * @param song the song to be added to the play queue.
+     */
     fun addToQueue(song: Song) {
         addToPlayQueue(song)
         EventBus.getDefault().post(GetQueueEvent(playQueue))
     }
 
+    /**
+     * @param queue an ArrayList of Song objects to be set as the new queue.
+     */
     fun setQueue(queue: ArrayList<Song>) {
         playQueue = queue
         EventBus.getDefault().post(GetQueueEvent(playQueue))
     }
 
+    /**
+     * @param shuffle boolean value for turning shuffle on/off.
+     * @param repeat value for turning repeat on/off.
+     */
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
         setShuffle(shuffle)
         onRepeat = repeat
         EventBus.getDefault().post(GetShuffleRepeatEvent(onShuffle, onRepeat))
     }
 
+    /**
+     * @param index sets the new index to play from the queue.
+     */
     fun setIndex(index: Int) {
         currentIndex = index
         songChanged()
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
     }
 
+    /**
+     * @param state a SongState object used to play or pause audio.
+     */
     fun setPlayPause(state: SongState) {
         if (state == SongState.playing) playAudio()
         else pauseAudio()
@@ -281,6 +299,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         EventBus.getDefault().post(GetPlayPauseEvent(state))
     }
 
+    /**
+     * @param next changes to the next song if true, previous song if false.
+     */
     fun setNextPrevious(next: Boolean) {
         if (next) nextSong()
         else previousSong()
@@ -288,6 +309,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     /* Music Related Helper Functions Here */
 
+    /**
+     * @param enabled enables or disables shuffle.
+     */
     private fun setShuffle(enabled: Boolean) {
         if (enabled) {
             val detachedSong = playQueue[currentIndex]
@@ -307,6 +331,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
     }
 
+    /**
+     * changes to the previous song
+     */
     private fun previousSong() {
         if (mediaPlayer.currentPosition > 2000) {
             seekTo(0)
@@ -318,6 +345,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
     }
 
+    /**
+     * changes to the next song
+     */
     private fun nextSong() {
         if (onRepeat) seekTo(0)
         if (currentIndex + 1 < playQueue.size) {
@@ -331,11 +361,17 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
     }
 
+    /**
+     * @param song the song to be added to the play queue.
+     */
     private fun addToPlayQueue(song: Song) {
         if (currentIndex != playQueue.size - 1) playQueue.add(currentIndex + 1, song)
         else playQueue.add(song)
     }
 
+    /**
+     * @param position the position to seek the current song to.
+     */
     fun seekTo(position: Int) {
         mediaPlayer.seekTo(position)
         mediaSession.setPlaybackState(
@@ -349,6 +385,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         )
     }
 
+    /**
+     * changes the current song to playQueue[currentIndex] and starts playing it.
+     */
     private fun songChanged() {
         if (!isInstantiated) isInstantiated = true
         else {
@@ -356,7 +395,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             mediaPlayer.reset()
         }
         if (playQueue[currentIndex].filePath == "") {
-            EventBus.getDefault().post(YoutubeLinkEvent(true))
             thread {
                 streamAudio()
             }
@@ -374,8 +412,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
     }
 
-    @SuppressLint("WakelockTimeout")
     /* user might sleep with songs on, let it jam */
+    @SuppressLint("WakelockTimeout")
+
+    /**
+     * Starts playing audio (after pause).
+     * Acquires a wakelock in the progress.
+     */
     private fun playAudio() {
         val audioManager =
             getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -447,6 +490,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         )
     }
 
+    /**
+     * used to pause audio play. Abandons audio focus and releases held wakelock.
+     */
     private fun pauseAudio() {
         val audioManager =
             getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -486,6 +532,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }))
     }
 
+    /**
+     * releases the media session and wakelock and gets ready to die.
+     */
     private fun cleanUp() {
         EventBus.getDefault().post(ExitEvent())
         EventBus.getDefault().unregister(this)
@@ -498,6 +547,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             wakeLock?.release()
     }
 
+    /**
+     * @param file the File object pointing to the album art image.
+     *
+     */
     private fun getAlbumArt(file: File) {
         val bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
         songCoverArt = WeakReference(if (bitmap.height > coverArtHeight!! * 2) {
@@ -610,6 +663,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
     }
 
+    /**
+     * if the filePath of the current song is empty,
+     * it is assumed that it contains a youtubeLink.
+     * fetches the album art and streams the song.
+     */
     private fun streamAudio() {
         try {
             val song = playQueue[currentIndex]

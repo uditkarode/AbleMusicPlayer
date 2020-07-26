@@ -18,4 +18,7 @@
 
 package io.github.uditkarode.able.events
 
+/**
+ * Used to notify the UI when shuffle/repeat property is changed.
+ */
 class GetShuffleRepeatEvent(val onShuffle: Boolean, val onRepeat: Boolean)

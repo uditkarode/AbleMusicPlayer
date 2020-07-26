@@ -22,28 +22,26 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
-import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
-import io.github.uditkarode.able.fragments.Playlists
 import io.github.uditkarode.able.models.Playlist
-import io.github.uditkarode.able.models.SongState
-import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import java.io.File
-import java.lang.ref.WeakReference
-import kotlin.concurrent.thread
 
-class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
-                      private val wr: WeakReference<Playlists>) : RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
+/**
+ * Lists the playlists in the playlist fragment.
+ */
+class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
+    : RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {
         return PLVH(LayoutInflater.from(parent.context).inflate(R.layout.playlist_item, parent, false))
     }
@@ -69,7 +67,6 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
             holder.getContext().run {
                 startActivity(Intent(this, LocalPlaylist::class.java).run {
                     this.putExtra("name", current.name)
-
                     this
                 })
             }
@@ -83,6 +80,10 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>,
                 title(text = holder.itemView.context.getString(R.string.rem_song))
                 listItems(items = songNames){ _, index, _ ->
                     Shared.removeFromPlaylist(current, songs[index])
+                    Toast.makeText(context, "Song removed from playlist", Toast.LENGTH_SHORT).show()
+                    playlists = Shared.getPlaylists()
+                    notifyDataSetChanged()
+                    dismiss()
                 }
 
                 negativeButton(text = holder.itemView.context.getString(R.string.rem_playlist)) {

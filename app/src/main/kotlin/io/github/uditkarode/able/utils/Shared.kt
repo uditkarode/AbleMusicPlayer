@@ -21,9 +21,7 @@ package io.github.uditkarode.able.utils
 import android.app.ActivityManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.media.MediaScannerConnection
 import android.util.Log
 import android.widget.Toast
 import com.arthenica.mobileffmpeg.FFprobe
@@ -32,48 +30,68 @@ import com.tonyodev.fetch2.Fetch
 import com.tonyodev.fetch2.Fetch.Impl.getInstance
 import com.tonyodev.fetch2.FetchConfiguration
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.events.PlaylistEvent
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
-import org.greenrobot.eventbus.EventBus
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.images.AndroidArtwork
-import org.jaudiotagger.tag.images.Artwork
 import org.json.JSONArray
 import java.io.*
-import kotlin.concurrent.thread
 
 class Shared {
     companion object {
-        var isFirstRun = true
+        /** To only show the splash screen on the first launch of
+         *  the MainActivity in a session.
+         * */
+        var isFirstOpen = true
+
         lateinit var fetch: Fetch
-
         var bmp: Bitmap? = null
-
         lateinit var mService: MusicService
 
+        /**
+         * @return if the lateinit variable mService has been initialised.
+         */
         fun serviceLinked(): Boolean{
             return this::mService.isInitialized
         }
 
+        /**
+         * @return the variable bmp.
+         * This is used to prevent memory leaks caused by bitmaps
+         * by using a single shared bitmap instance.
+         */
         fun getSharedBitmap(): Bitmap{
             return bmp as Bitmap
         }
 
+        /**
+         * Recycles and assigns null to the variable bmp.
+         * This is to get the GC to more quickly free memory
+         * associated with it.
+         */
         fun clearBitmap(){
             bmp?.recycle()
             bmp = null
         }
 
+        /**
+         * @param color a color in form of Integer.
+         * @return if the color is 'dark' (light colors to be used on it to make them visible),
+         * or 'light' (dark colors to be used on it to make them visible).
+         */
         fun isColorDark(color: Int): Boolean {
             val darkness: Double =
                 1-(0.299*Color.red(color) + 0.587*Color.green(color) + 0.114* Color.blue(color))/255
             return darkness >= 0.5
         }
 
+        /**
+         * @param context a valid Context object
+         * initialises the shared Fetch instance (fetch).
+         */
         fun setupFetch(context: Context){
             fetch = getInstance(
                 FetchConfiguration.Builder(context)
@@ -82,6 +100,10 @@ class Shared {
             )
         }
 
+        /**
+         * @param image the bitmap to save to disk.
+         * @param imageFile the File object (used for path) to save the image to.
+         */
         fun saveAlbumArtToDisk(image: Bitmap, imageFile: File) {
             Constants.albumArtDir.run { if (!exists()) mkdirs() }
             try {
@@ -92,32 +114,47 @@ class Shared {
                 e.printStackTrace()
             }
         }
-        fun mp3_thumnail_Add(imageFile: String)
-        {
+
+        /**
+         * @param imageFile the File object that points to the thumbnail.
+         * The ID will be extracted from the image path and the mp3 with the same filename
+         * will have the image added to it as artwork in the metadata.
+         */
+        fun addMp3Thumbnail(imageFile: String) {
             try {
-                var id = imageFile.substring(imageFile.lastIndexOf("/"))
-                var album_Art = File(Constants.albumArtDir, id);
-                var song = File(imageFile + ".mp3")
-                var audioFile: AudioFile = AudioFileIO.read(song);
-                var tag = audioFile.tag;
-                tag.setField(
+                val id = imageFile.substring(imageFile.lastIndexOf("/"))
+                val albumArt = File(Constants.albumArtDir, id)
+                val audioFile: AudioFile = AudioFileIO.read(File("$imageFile.mp3"))
+                audioFile.tag.setField(
                     FieldKey.ALBUM,
                     id
-                ); //the song needs to have a unique album name as Android MediaStore stores thumnail based on album name.
-                var artwork: AndroidArtwork = AndroidArtwork.createArtworkFromFile(album_Art)
-                tag.setField(artwork)
+                )
+                audioFile.tag.setField(AndroidArtwork.createArtworkFromFile(albumArt))
                 audioFile.commit()
             }
             catch (e:java.lang.Exception){
                 e.printStackTrace()
             }
         }
+
+        /**
+         * @param link a URL.
+         * @return YouTube ID of the video from the link param.
+         */
         fun getIdFromLink(link: String): String {
             return link.run {
                 substring(lastIndexOf("=") + 1)
             }
         }
 
+        /**
+         * @param image a Bitmap object (album art).
+         * @param id the YouTube ID of the song that's being streamed.
+         * This is used to temporarily store the album art of the song being streamed.
+         * The album art is stored to cache in case the user streams the same song
+         * again. Once the cache reaches a maximum of 10 images, all images in the cache
+         * are deleted.
+         */
         fun saveStreamingAlbumArt(image: Bitmap, id: String) {
             val outputDir = Constants.cacheDir
             if((outputDir.listFiles()?: arrayOf()).size > 10){
@@ -137,6 +174,11 @@ class Shared {
             }
         }
 
+        /**
+         * @param name the filename of the playlist json file.
+         * @return an ArrayList containing the songs that the playlist
+         * json file contains.
+         */
         fun getSongsFromPlaylistFile(name: String): ArrayList<Song> {
             for (f in Constants.playlistFolder.listFiles()?:arrayOf()){
                 if(!f.isDirectory) {
@@ -165,6 +207,10 @@ class Shared {
             return arrayListOf()
         }
 
+        /**
+         * @return an ArrayList of Playlist objects containing
+         * all playlists stored on the device.
+         */
         fun getPlaylists(): ArrayList<Playlist> {
             val ret: ArrayList<Playlist> = ArrayList()
             for (f in Constants.playlistFolder.listFiles()?:arrayOf()) {
@@ -192,6 +238,10 @@ class Shared {
             return ret
         }
 
+        /**
+         * @param playlist a Playlist object.
+         * @return an ArrayList containing all songs that the playlist contains.
+         */
         fun getSongsFromPlaylist(playlist: Playlist): ArrayList<Song> {
             val songs = ArrayList<Song>()
             val gson = Gson()
@@ -206,6 +256,11 @@ class Shared {
             return songs
         }
 
+        /**
+         * @param playlist the Playlist object to remove from.
+         * @param delTarget the Song object to remove from the Playlist.
+         * Removes songs from a playlist.
+         */
         fun removeFromPlaylist(playlist: Playlist, delTarget: Song){
             val songs = getSongsFromPlaylist(playlist)
             var targetIndex = -1
@@ -219,13 +274,21 @@ class Shared {
                 songs.removeAt(targetIndex)
 
             modifyPlaylist(playlist.name, songs)
-            EventBus.getDefault().post(PlaylistEvent(getPlaylists()))
         }
 
+        /**
+         * @param name the filename of a potentially existing JSON file.
+         * @return if a playlist with the same filename exists on the device.
+         */
         fun playlistExists(name: String): Boolean {
             return File(Constants.playlistFolder.absolutePath + "/" + name).exists()
         }
 
+        /**
+         * @param name the filename of the playlist to modify.
+         * @param songs optional ArrayList containing the songs that the playlist should have.
+         * When the songs param is not specified, the playlist is cleared.
+         */
         fun modifyPlaylist(name: String, songs: ArrayList<Song>? = null){
             try {
                 if(name.isNotBlank()){
@@ -243,6 +306,11 @@ class Shared {
             }
         }
 
+        /**
+         * @param serviceClass the service class to check.
+         * @param context a valid Context object.
+         * Checks if the service provided is running.
+         */
         fun serviceRunning(serviceClass: Class<*>, context: Context): Boolean {
             val manager =
                 context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -255,6 +323,11 @@ class Shared {
             return false
         }
 
+        /**
+         * @param musicFolder the File object pointing to a folder to check for songs in.
+         * @return an ArrayList of Song objects containing all the Songs that the musicFolder
+         * contains.
+         */
         fun getSongList(musicFolder: File): ArrayList<Song> {
             var songs: ArrayList<Song> = ArrayList()
             var name = "???"
@@ -294,6 +367,10 @@ class Shared {
             return songs
         }
 
+        /**
+         * @param name the name of the new playlist.
+         * @param context a valid Context object.
+         */
         fun createPlaylist(name: String, context: Context) {
             try {
                 if(name.isNotBlank()){
@@ -312,6 +389,11 @@ class Shared {
             }
         }
 
+        /**
+         * @param song the song to add to a playlist.
+         * @param playlist the Playlist object to add the song to.
+         * @param context a valid Context object.
+         */
         fun addToPlaylist(playlist: Playlist, song: Song, context: Context){
             val songs = getSongsFromPlaylist(playlist)
             var targetIndex = -1

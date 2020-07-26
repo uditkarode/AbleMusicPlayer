@@ -20,4 +20,7 @@ package io.github.uditkarode.able.events
 
 import io.github.uditkarode.able.models.Song
 
+/**
+ * Notifies the UI when the queue is changed, used in the Player queue.
+ */
 class GetQueueEvent(val queue: ArrayList<Song>)

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Able</string>
+    <string name="app_name_full">AbleMusic</string>
+    <string name="about">Informazioni</string>
+    <string name="add_song">Aggiungi Brano</string>
+    <string name="up_txt">Uploader:</string>
+    <string name="t_txt">Titolo:</string>
+    <string name="search">Cerca</string>
+    <string name="home">Home</string>
+    <string name="playlists">Playlist</string>
+    <string name="settings">Impostazioni</string>
+    <string name="welcome">Benvenuto su %1$s!</string>
+    <string name="storage_perm">Il permesso per l\'archiviazione è necessario per procedere.
+Questo è necessario per scaricare brani nella memoria interna.</string>
+    <string name="spot_adding">Attendi! Importando la playlist</string>
+    <string name="spot_title">Importa Playlist Spotify</string>
+    <string name="pos">Invia</string>
+    <string name="playlist_created">Playlist creata</string>
+    <string name="playlist_addto">Aggiungi alla playlist</string>
+    <string name="playlist_empty">Il nome della playlist non può essere vuoto!</string>
+    <string name="playlist_fail">Impossibile creare la playlist :(</string>
+    <string name="playlist_namei">"Inserisci il nome della tua nuova playlist"</string>
+    <string name="playlist_dup">La playlist contiene di già questa canzone</string>
+    <string name="spot_suc">Importazione da Spotify riuscita!</string>
+    <string name="spot_invalid">URL della playlist invalido!</string>
+    <string name="spot_fail">Non riuscito :( scusa!</string>
+    <string name="spot_importing">Siediti e rilassati! Stiamo importando i brani proprio ora.</string>
+    <string name="spot_ytfail">Impossibile trovare alcun brano su YouTube :( sorry!</string>
+    <string name="init_import">Iniziando l\'importazione…</string>
+    <string name="unexpected_err">Qualcosa è andato storto. Per favore segnalacelo!</string>
+    <string name="pref_fmt">Seleziona il formato audio predefinito per salvare i brani.</string>
+    <string name="pref_search">Seleziona la tua sorgente di ricerca preferita.</string>
+    <string name="pref_about">Dai un\'occhiata alle persone che stanno dietro Able!</string>
+    <string name="fmt">Formato</string>
+    <string name="src">Fonte</string>
+    <string name="starting">iniziando…</string>
+    <string name="saving">Salvataggio…</string>
+    <string name="left">sinistra</string>
+    <string name="init_dl">Inizializzazione download</string>
+    <string name="pl_wait">Per favore attendi…</string>
+    <string name="music">Musica</string>
+    <string name="pause">Pausa</string>
+    <string name="play">Riproduci</string>
+    <string name="prev">Precedente</string>
+    <string name="next">Successivo</string>
+    <string name="kill">Termina</string>
+    <string name="imp">Importa</string>
+    <string name="authors">Autori</string>
+    <string name="stream">Stream</string>
+    <string name="info">Informazioni</string>
+    <string name="ver">Versione</string>
+    <string name="dunno">CatalyticClaws</string>
+    <string name="both">Entrambi</string>
+    <string name="dl">Scarica</string>
+    <string name="support">Supporto</string>
+    <string name="welc">Benvenuto!</string>
+    <string name="cancel">Annulla</string>
+    <string name="loading">Caricamento…</string>
+    <string name="name_s">Nome</string>
+    <string name="confirmation">Conferma</string>
+    <string name="song">Brano</string>
+    <string name="donate">Dona</string>
+    <string name="donate_subtext">Ehi tutti! Ci è voluto molto tempo per trasformare questo progetto in realtà, e spero che te lo stia godendo! Se ti piace il progetto e vuoi che continui, ti preghiamo di considerare una donazione. Mi motiva a continuare a lavorarci.
+
+
+Puoi donare tramite %1$s
+o tramite l\'indirizzo UPI %2$s</string>
+    <string name="enter_song">Inserisci il nome del brano</string>
+    <string name="enter_new_song">Inserisci il nome del nuovo brano</string>
+    <string name="enter_new_art">Inserisci il nome del nuovo artista</string>
+    <string name="song_ex">es. Wake Up Eden</string>
+    <string name="song_ex2">es. Wake Up</string>
+    <string name="art_ex">es. Eden</string>
+    <string name="res_confirm_txt">Sei sicuro di voler eliminare %1$s (%2$s) dal disco?</string>
+    <string name="rem_song">Scegli il brano da rimuovere</string>
+    <string name="rem_disk">Elimina Dal Disco</string>
+    <string name="rem_playlist">Rimuovi Playlist</string>
+    <string name="dl_added">è stato aggiunto alla coda di download</string>
+    <string name="about_also">Inoltre, mille grazie al team NewPipe per l\'estrattore.</string>
+    <string name="dev">Udit Karode</string>
+    <string name="hpm">Hyperterminal</string>
+    <string name="graphics_d">Sajid Shaik</string>
+    <string name="product_man">Safan Sufikar</string>
+    <string name="deseg_dev">Sviluppatore</string>
+    <string name="deseg_hpm">Head Product Manager</string>
+    <string name="deseg_gd">Designer Grafico</string>
+    <string name="deseg_pm">Product Manager</string>
+</resources>

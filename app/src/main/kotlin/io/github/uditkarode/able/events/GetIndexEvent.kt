@@ -18,4 +18,8 @@
 
 package io.github.uditkarode.able.events
 
+/**
+ * Used to notify the UI of index changes, so that the SongAdapter on the home screen
+ * can highlight the playing song.
+ */
 class GetIndexEvent(val index: Int)

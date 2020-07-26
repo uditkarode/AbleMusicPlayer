@@ -54,6 +54,9 @@ import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
+/**
+ * object that takes care of inner workings of Spotify songs import.
+ */
 object SpotifyImport {
     private const val auth =
         "https://open.spotify.com/get_access_token?reason=transport&productType=web_player"

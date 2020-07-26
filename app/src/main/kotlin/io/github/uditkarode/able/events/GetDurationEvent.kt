@@ -18,4 +18,8 @@
 
 package io.github.uditkarode.able.events
 
+/**
+ * Used to notify the UI when song progress is changed.
+ * (Could be changed from the notification while the Player is open)
+ */
 class GetDurationEvent(val duration: Int)

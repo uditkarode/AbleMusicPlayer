@@ -18,20 +18,16 @@
 
 package io.github.uditkarode.able.activities
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
-import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.utils.Constants
-import kotlinx.android.synthetic.main.splash.*
 
+/**
+ * The splash screen.
+ */
 class Splash: AppCompatActivity() {
-
-    var seen = false
+    private var seen = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

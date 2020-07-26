@@ -30,7 +30,10 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.*
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
@@ -48,13 +51,17 @@ import kotlinx.android.synthetic.main.playlists.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
-import java.lang.ref.WeakReference
 
+/**
+ * The third fragment. Used to view/edit/play locally stored playlists.
+ * Playlists are stored in the JSON format.
+ */
 class Playlists : Fragment() {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var isImporting = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -92,7 +99,7 @@ class Playlists : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists(), WeakReference(this@Playlists))
+        playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists())
         playlists_rv.layoutManager = LinearLayoutManager(requireContext())
         var inputId = ""
         spotbut.setOnClickListener {

@@ -18,4 +18,7 @@
 
 package io.github.uditkarode.able.events
 
+/**
+ * Used to notify the UI when song is changed, so that it can fetch new details.
+ */
 class GetSongChangedEvent

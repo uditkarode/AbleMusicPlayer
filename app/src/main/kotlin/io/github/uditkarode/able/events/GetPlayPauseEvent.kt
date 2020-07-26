@@ -20,4 +20,7 @@ package io.github.uditkarode.able.events
 
 import io.github.uditkarode.able.models.SongState
 
+/**
+ * Used to notify the UI about the playing/paused state of music.
+ */
 class GetPlayPauseEvent(val state: SongState)

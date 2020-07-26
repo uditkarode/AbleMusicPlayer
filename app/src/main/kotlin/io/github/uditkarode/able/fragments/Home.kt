@@ -33,6 +33,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import co.revely.gradient.RevelyGradient
@@ -58,6 +59,7 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.home.*
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -125,6 +127,9 @@ class Home: Fragment() {
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(requireContext())
+
+                val itemTouchHelper= ItemTouchHelper(SwipeController())
+                itemTouchHelper.attachToRecyclerView(songs)
             }
         }
     }

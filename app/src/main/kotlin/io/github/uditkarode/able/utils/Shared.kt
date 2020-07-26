@@ -1,17 +1,13 @@
 /*
     Copyright 2020 Udit Karode <udit.karode@gmail.com>
-
     This file is part of AbleMusicPlayer.
-
     AbleMusicPlayer is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, version 3 of the License.
-
     AbleMusicPlayer is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
@@ -339,16 +335,15 @@ class Shared {
                         || (f.extension != "webm" && f.extension != "mp3")){
                         continue
                     }
-
                     val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
                     if(mediaInfo != null){
-                        val metadata = mediaInfo.metadataEntries
-                        for(map in metadata){
-                            if(map.key == "title")
-                                name = map.value
-                            else if(map.key == "ARTIST" || map.key == "artist")
-                                artist = map.value
-                        }
+                        val metadata=mediaInfo.tags
+                        if(metadata.optString("title").isNotEmpty())
+                            name=metadata.optString("title")
+                        if(metadata.optString("ARTIST").isEmpty())
+                            artist=metadata.optString("artist")
+                        else if(metadata.optString("artist").isEmpty())
+                            artist=metadata.optString("ARTIST")
                         if(name != "???"){
                             songs.add(
                                 Song(

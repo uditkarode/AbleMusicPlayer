@@ -13,6 +13,7 @@ import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import java.io.File
 
@@ -73,10 +74,10 @@ class SwipeControllerActions {
                 val curFile = File(current.filePath)
                 val curArt =
                     File(Constants.ableSongDir.absolutePath + "/album_art", curFile.nameWithoutExtension)
-
                 curFile.delete()
                 curArt.delete()
                 songList.removeAt(position)
+                Home.songAdapter?.update(songList)
             }
             negativeButton(text = context.getString(R.string.cancel))
         }

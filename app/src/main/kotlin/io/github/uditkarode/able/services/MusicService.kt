@@ -398,9 +398,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             thread {
                 streamAudio()
             }
-        } else {
-            mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
-            try {
+        }
+        else {
+            try {             //To Handle incase File is deleted but still shows in songList
+                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
                 mediaPlayer.prepare()
                 EventBus.getDefault().post(GetSongChangedEvent())
                 EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))

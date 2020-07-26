@@ -72,14 +72,15 @@ import kotlin.concurrent.thread
  */
 class Home: Fragment() {
     private var songList = ArrayList<Song>()
-    private var songAdapter: SongAdapter? = null
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var songId: String = "temp"
     private lateinit var mediaLoaderConfig: MediaLoaderConfig
     private lateinit var mediaLoader: MediaLoader
-
+    companion object{
+        var songAdapter: SongAdapter? = null
+    }
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? =
         inflater.inflate(

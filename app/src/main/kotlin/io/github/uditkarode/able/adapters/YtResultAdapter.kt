@@ -20,17 +20,14 @@ package io.github.uditkarode.able.adapters
 
 import android.annotation.SuppressLint
 import android.graphics.Typeface
-import android.os.Build
-import android.text.method.ScrollingMovementMethod
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.fragments.Search
+import io.github.uditkarode.able.models.Song
 import java.lang.ref.WeakReference
 
 /**

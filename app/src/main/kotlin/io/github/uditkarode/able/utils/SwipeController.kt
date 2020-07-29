@@ -17,6 +17,8 @@ import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import java.io.File
 import java.lang.Exception
+import java.util.*
+import kotlin.collections.ArrayList
 
 internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
@@ -39,7 +41,7 @@ class SwipeControllerActions {
             }
         }
 
-        names.add(0, context!!.getString(R.string.pq))
+        names.add(0, context.getString(R.string.pq))
         names.add(1, context.getString(R.string.crp))
         val current=songList[position]
         MaterialDialog(context).show {
@@ -69,8 +71,8 @@ class SwipeControllerActions {
     fun onRightClicked(context: Context?,position: Int) {
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(context!!))
-        songList= ArrayList(songList.sortedBy { it.name.toUpperCase() })
-        val current=songList[position]
+        songList = ArrayList(songList.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
+        val current = songList[position]
         MaterialDialog(context).show {
             title(text = context.getString(R.string.confirmation))
             message(text = context.getString(R.string.res_confirm_txt).format(current.name, current.filePath))

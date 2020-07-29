@@ -8,7 +8,7 @@
     the Free Software Foundation, version 3 of the License.
 
     AbleMusicPlayer is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    but WITHOUT ANY WARRANTY without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
@@ -44,7 +44,6 @@ import androidx.preference.PreferenceManager
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
-import com.glidebitmappool.GlideBitmapFactory
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
@@ -105,12 +104,13 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             } else startActivity(Intent(applicationContext, Splash::class.java))
         }
         thread {  //gets and stores the default Bitmap in a small size
-            Shared.defBitmap = (ResourcesCompat.getDrawable(this.resources, R.drawable.def_albart, null) as BitmapDrawable).bitmap
-            val bytearrayoutputstream = ByteArrayOutputStream()
-            Shared.defBitmap.compress(Bitmap.CompressFormat.JPEG, 20, bytearrayoutputstream);
-            val BYTE: ByteArray
-            BYTE = bytearrayoutputstream.toByteArray();
-            Shared.defBitmap  = BitmapFactory.decodeByteArray(BYTE, 0, BYTE.size);
+            Shared.defBitmap = (ResourcesCompat.getDrawable(this.resources,
+                R.drawable.def_albart, null) as BitmapDrawable).bitmap
+            val outputStream = ByteArrayOutputStream()
+            Shared.defBitmap.compress(Bitmap.CompressFormat.JPEG, 20, outputStream)
+            val byte = outputStream.toByteArray()
+            Shared.defBitmap  = BitmapFactory.decodeByteArray(byte,
+                0, byte.size)
         }
         thread {
             NewPipe.init(CustomDownloader.instance)
@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         FlurryAgent.Builder()
             .withLogEnabled(false)
             .build(this, Constants.FLURRY_KEY)
-        home = Home(applicationContext)
+        home = Home(this)
         ViewPump.init(
             ViewPump.builder()
                 .addInterceptor(

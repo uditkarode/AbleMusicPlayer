@@ -66,6 +66,8 @@ import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
 /**
@@ -127,7 +129,8 @@ class Home(private val cntxt: Context): Fragment() {
         thread {
             songList = Shared.getSongList(Constants.ableSongDir)
             songList.addAll(Shared.getLocalSongs(requireContext()))
-            if(!songList.isEmpty())songList = ArrayList(songList.sortedBy { it.name.toUpperCase() })
+            if(songList.isNotEmpty()) songList = ArrayList(songList.sortedBy { it.name.toUpperCase(
+                Locale.getDefault()) })
             songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
             activity?.runOnUiThread {
                 songs.adapter = songAdapter

@@ -14,19 +14,16 @@
 
 package io.github.uditkarode.able.utils
 
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
-import androidx.core.database.getLongOrNull
 import com.arthenica.mobileffmpeg.FFprobe
 import com.google.gson.Gson
 import com.tonyodev.fetch2.Fetch
@@ -42,6 +39,8 @@ import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.images.AndroidArtwork
 import org.json.JSONArray
 import java.io.*
+import java.util.*
+import kotlin.collections.ArrayList
 
 
 class Shared {
@@ -333,7 +332,7 @@ class Shared {
          * contains.
          */
         fun getSongList(musicFolder: File): ArrayList<Song> {
-            var songs: ArrayList<Song> = ArrayList()
+            val songs: ArrayList<Song> = ArrayList()
             var name = "???"
             var artist = "???"
             for (f in musicFolder.listFiles()?:arrayOf()) {
@@ -369,10 +368,9 @@ class Shared {
 
             return songs
         }
-        @Suppress("DEPRECATION")
-        @SuppressLint("Recycle")
+
         fun getLocalSongs(context: Context):ArrayList<Song>{
-            var songs: ArrayList<Song> = ArrayList()
+            val songs: ArrayList<Song> = ArrayList()
 
             val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
             val contentResolver: ContentResolver = context.contentResolver
@@ -448,7 +446,7 @@ class Shared {
             if(targetIndex == -1)
                 songs.add(song)
             else Toast.makeText(context, context.getString(R.string.playlist_dup), Toast.LENGTH_SHORT).show()
-            modifyPlaylist(playlist.name, ArrayList(songs.sortedBy { it.name.toUpperCase() }))
+            modifyPlaylist(playlist.name, ArrayList(songs.sortedBy { it.name.toUpperCase(Locale.getDefault()) }))
         }
     }
 }

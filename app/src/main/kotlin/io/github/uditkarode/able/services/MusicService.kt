@@ -25,7 +25,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.media.*
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
@@ -34,32 +33,28 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
-import androidx.core.content.res.ResourcesCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.load.resource.SimpleResource
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.activities.MainActivity
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
@@ -320,7 +315,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         } else {
             onShuffle = false
             val currSong = playQueue[currentIndex]
-            playQueue = ArrayList(playQueue.sortedBy { it.name.toUpperCase() })
+            playQueue = ArrayList(playQueue.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
             currentIndex = playQueue.indexOf(currSong)
         }
 

@@ -19,13 +19,10 @@
 package io.github.uditkarode.able.adapters
 
 import android.app.Activity
-import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.net.Uri
 import android.os.Build
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -39,25 +36,19 @@ import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.activities.MainActivity
 import io.github.uditkarode.able.events.GetIndexEvent
 import io.github.uditkarode.able.events.GetQueueEvent
 import io.github.uditkarode.able.events.GetShuffleRepeatEvent
 import io.github.uditkarode.able.events.GetSongChangedEvent
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -99,15 +90,14 @@ class SongAdapter(private var songList: ArrayList<Song>,
                 if(this != null){
                     File(Constants.ableSongDir.absolutePath + "/album_art",
                         File(current.filePath).nameWithoutExtension).also {
-                        if(it.exists())
-                            Glide.with(holder.getContext())
+                        when {
+                            it.exists() -> Glide.with(holder.getContext())
                                 .load(it)
                                 .signature(ObjectKey("home"))
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(this)
-                        else if(current.filePath.contains("Able"))
-                            Glide.with(holder.getContext())
+                            current.filePath.contains("Able") -> Glide.with(holder.getContext())
                                 .load(
                                     GlideBitmapFactory.decodeResource(
                                         holder.getContext().resources,
@@ -118,13 +108,13 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 .signature(ObjectKey("home"))
                                 .skipMemoryCache(true)
                                 .into(this)
-                        else
-                            Glide.with(holder.getContext())
+                            else -> Glide.with(holder.getContext())
                                 .load(Shared.defBitmap)
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .signature(ObjectKey("home"))
                                 .skipMemoryCache(true)
                                 .into(this)
+                        }
                     }
                 }
             }

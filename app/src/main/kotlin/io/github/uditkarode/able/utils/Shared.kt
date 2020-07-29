@@ -345,13 +345,13 @@ class Shared {
                     }
                     val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
                     if(mediaInfo != null){
-                        val metadata=mediaInfo.tags
-                        if(metadata.optString("title").isNotEmpty())
-                            name=metadata.optString("title")
-                        if(metadata.optString("ARTIST").isEmpty())
-                            artist=metadata.optString("artist")
-                        else if(metadata.optString("artist").isEmpty())
-                            artist=metadata.optString("ARTIST")
+                        val metadata = mediaInfo.metadataEntries
+                        for(map in metadata){
+                            if(map.key == "title")
+                                name = map.value
+                            else if(map.key == "ARTIST" || map.key == "artist")
+                                artist = map.value
+                        }
                         if(name != "???"){
                             songs.add(
                                 Song(

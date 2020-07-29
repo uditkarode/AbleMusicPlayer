@@ -93,6 +93,7 @@ import kotlin.concurrent.thread
 /**
  * The Player UI activity.
  */
+@Suppress("DEPRECATION")
 class Player : AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
@@ -460,7 +461,7 @@ class Player : AppCompatActivity() {
      * @param lightVibrantColor the color to set on the seekbar, usually
      * derived from the album art.
      */
-    private fun setBgColor(color: Int, lightVibrantColor: Int? = null){
+    private fun setBgColor(color: Int, lightVibrantColor: Int? = null, titleColor: Int? = null){
         RevelyGradient
             .linear()
             .colors(
@@ -478,8 +479,8 @@ class Player : AppCompatActivity() {
             player_queue.setImageDrawable(getDrawable(R.drawable.pl_playlist))
             if(lightVibrantColor != null) {
                 if((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0){
-                    player_seekbar.progressDrawable.setTint(0x002171)
-                    player_seekbar.thumb.setTint(0x002171)
+                    player_seekbar.progressDrawable.setTint(titleColor!!)
+                    player_seekbar.thumb.setTint(titleColor)
                     tintControls(0x002171)
                 } else {
                     player_seekbar.progressDrawable.setTint(lightVibrantColor)
@@ -543,7 +544,8 @@ class Player : AppCompatActivity() {
                     Shared.bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
                     Palette.from(Shared.getSharedBitmap()).generate {
                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                            it?.getLightMutedColor(0x002171)?:0x002171)
+                            it?.getLightMutedColor(0x002171)?:0x002171,
+                                             it?.lightMutedSwatch?.titleTextColor)
                         Shared.clearBitmap()
                     }
                 }
@@ -562,11 +564,20 @@ class Player : AppCompatActivity() {
                             Shared.bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
                             Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                    it?.getLightMutedColor(0x002171)?:0x002171)
+                                    it?.getLightMutedColor(0x002171)?:0x002171,
+                                                    it?.dominantSwatch?.bodyTextColor?:0x002171)
                                 Shared.clearBitmap()
                             }
                         }
-                    } else {
+                    }
+                    else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
+                    {
+                        setBgColor(0x002171)
+                        player_seekbar.progressDrawable.setTint(resources.getColor(R.color.thatAccent))
+                        player_seekbar.thumb.setTint(resources.getColor(R.color.colorPrimary))
+                        tintControls(0x002171)
+                    }
+                    else {
                         val albumArtRequest = if (customSongName == null) {
                             Request.Builder()
                                 .url(Constants.DEEZER_API + current.name)
@@ -602,7 +613,8 @@ class Player : AppCompatActivity() {
                                     Shared.bmp = drw.toBitmap()
                                     Palette.from(Shared.getSharedBitmap()).generate {
                                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                            it?.getLightVibrantColor(0x002171)?:0x002171)
+                                            it?.getLightVibrantColor(0x002171)?:0x002171,
+                                                            it?.lightMutedSwatch?.titleTextColor)
                                     }
 
                                     if (img.exists()) img.delete()

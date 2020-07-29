@@ -74,7 +74,7 @@ import kotlin.concurrent.thread
  * The first fragment. Shows a list of songs present on the user's device.
  */
 @Suppress("NAME_SHADOWING")
-class Home(private val cntxt: Context): Fragment() {
+class Home: Fragment() {
     private var songList = ArrayList<Song>()
     var mService: MusicService? = null
     var isBound = false
@@ -155,9 +155,9 @@ class Home(private val cntxt: Context): Fragment() {
     fun streamAudio(song: Song, toCache: Boolean){
         if(!Shared.serviceRunning(MusicService::class.java, requireContext())){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                requireActivity().startForegroundService(Intent(cntxt, MusicService::class.java))
+                requireActivity().startForegroundService(Intent(requireContext(), MusicService::class.java))
             } else {
-                requireActivity().startService(Intent(cntxt, MusicService::class.java))
+                requireActivity().startService(Intent(requireContext(), MusicService::class.java))
             }
 
             bindEvent()

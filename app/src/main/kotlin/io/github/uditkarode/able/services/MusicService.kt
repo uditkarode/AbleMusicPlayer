@@ -159,7 +159,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         mediaPlayer.setOnErrorListener { _, _, _ ->
             true
         }
-        mediaPlayer.setOnSeekCompleteListener {
+        mediaPlayer.setOnCompletionListener() {
             nextSong()
         }
 
@@ -458,9 +458,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
             if (!mediaPlayer.isPlaying) {
                 try {
-                    thread {
                         mediaPlayer.start()
-                    }
                 } catch (e: Exception) {
                     Log.e("ERR>", "-$e-")
                 }

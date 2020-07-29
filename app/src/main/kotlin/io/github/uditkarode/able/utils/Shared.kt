@@ -378,8 +378,7 @@ class Shared {
             val projection = arrayOf(
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.ARTIST,
-                MediaStore.Audio.Media.DATA,
-                MediaStore.Audio.Media.ALBUM_ID
+                MediaStore.Audio.Media.DATA
                 )
             val songCursor: Cursor? = contentResolver.query(
                 songUri,

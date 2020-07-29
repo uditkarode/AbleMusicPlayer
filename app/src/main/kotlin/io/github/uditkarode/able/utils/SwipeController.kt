@@ -142,8 +142,6 @@ class SwipeController(private val context: Context?, private val list:String?) :
     private var swipeBack = false
     private var buttonShowedState = ButtonsState.GONE
     private var buttonInstance: RectF? = null
-    private var mode: String? = PreferenceManager.getDefaultSharedPreferences(context)
-        .getString("mode_key", MusicMode.download)
     private lateinit var buttonsActions:SwipeControllerActions
     private val buttonWidth = 200f
 
@@ -261,6 +259,8 @@ class SwipeController(private val context: Context?, private val list:String?) :
             if(list.equals("Home"))
                 drawText("DELETE", c, rightButton, p)
             else {
+                val mode: String? = PreferenceManager.getDefaultSharedPreferences(context)
+                    .getString("mode_key", MusicMode.download)
                 val currentMode:String = if (mode == MusicMode.download) {
                     drawText(MusicMode.stream, c, rightButton, p)
                     MusicMode.stream

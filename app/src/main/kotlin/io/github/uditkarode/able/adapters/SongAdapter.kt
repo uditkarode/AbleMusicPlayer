@@ -125,14 +125,12 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 .signature(ObjectKey("home"))
                                 .skipMemoryCache(true)
                                 .into(this)
-                            //holder.albumArt?.setImageBitmap(null)
                     }
                 }
             }
 
         }
-
-        if(currentIndex > 0 && currentIndex < songList.size && songList.size != 0){
+        if(currentIndex >= 0 && currentIndex < songList.size && songList.size != 0){
             if(current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
                 if(Shared.serviceLinked()){
@@ -276,7 +274,8 @@ class SongAdapter(private var songList: ArrayList<Song>,
         playingSong = wr?.get()?.mService.run {
             this!!.getPlayQueue()[this.getCurrentIndex()]
         }
-        notifyDataSetChanged()
+        notifyItemChanged(Shared.mService.getPreviousIndex())
+        notifyItemChanged(Shared.mService.getCurrentIndex())
     }
 
 

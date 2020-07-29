@@ -70,6 +70,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     companion object {
         val mediaPlayer = MediaPlayer()
         var currentIndex = -1
+        var previousIndex=-1
         private var onShuffle = false
         private var onRepeat = false
         private var coverArtHeight: Int? = null
@@ -89,7 +90,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     fun getMediaPlayer() = mediaPlayer
     fun getPlayQueue() = playQueue
     fun getCurrentIndex() = currentIndex
-
+    fun getPreviousIndex() = previousIndex
     fun setPlayQueue(arrayList: ArrayList<Song>){
         playQueue = arrayList
     }
@@ -278,6 +279,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      * @param index sets the new index to play from the queue.
      */
     fun setIndex(index: Int) {
+        previousIndex= currentIndex
         currentIndex = index
         songChanged()
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
@@ -297,6 +299,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      * @param next changes to the next song if true, previous song if false.
      */
     fun setNextPrevious(next: Boolean) {
+        previousIndex= currentIndex
         if (next) nextSong()
         else previousSong()
     }

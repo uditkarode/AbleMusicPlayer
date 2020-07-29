@@ -33,6 +33,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import co.revely.gradient.RevelyGradient
@@ -58,6 +59,7 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.home.*
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -70,20 +72,22 @@ import kotlin.concurrent.thread
  */
 class Home: Fragment() {
     private var songList = ArrayList<Song>()
-    private var songAdapter: SongAdapter? = null
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var songId: String = "temp"
     private lateinit var mediaLoaderConfig: MediaLoaderConfig
     private lateinit var mediaLoader: MediaLoader
-
+    companion object{
+        var songAdapter: SongAdapter? = null
+    }
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? =
         inflater.inflate(
             R.layout.home,
             container, false
         )
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -121,10 +125,15 @@ class Home: Fragment() {
 
         thread {
             songList = Shared.getSongList(Constants.ableSongDir)
+            songList.addAll(Shared.getLocalSongs(requireContext()))
+            if(!songList.isEmpty())songList = ArrayList(songList.sortedBy { it.name.toUpperCase() })
             songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(requireContext())
+
+                val itemTouchHelper= ItemTouchHelper(SwipeController(context))
+                itemTouchHelper.attachToRecyclerView(songs)
             }
         }
     }
@@ -252,8 +261,11 @@ class Home: Fragment() {
                                     tempFile.delete()
                                     activity?.runOnUiThread {
                                         Log.i("INFO>", "Updating RecyclerView")
-                                        songAdapter?.update(Shared.getSongList(Constants.ableSongDir))
+                                        val songList2 = Shared.getSongList(Constants.ableSongDir)
+                                        songList2.addAll(Shared.getLocalSongs(context!!))
+                                        songAdapter?.update(songList2)
                                         songAdapter?.notifyDataSetChanged()
+                                        songList2.clear()
                                     }
                                 }
                                 Config.RETURN_CODE_CANCEL -> {
@@ -295,6 +307,7 @@ class Home: Fragment() {
     /* download to videoId.webm.tmp, add metadata and save to videoId.webm */
     fun downloadVideo(){
         songList = Shared.getSongList(Constants.ableSongDir)
+        songList.addAll(Shared.getLocalSongs(requireContext()))
         activity?.runOnUiThread {
             songAdapter?.update(songList)
         }

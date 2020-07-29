@@ -58,6 +58,7 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
@@ -647,7 +648,9 @@ class Player : AppCompatActivity() {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent) {
-        mService.setPlayQueue(Shared.getSongList(Constants.ableSongDir))
+        val songs:ArrayList<Song> = Shared.getSongList(Constants.ableSongDir)
+        songs.addAll(Shared.getLocalSongs(applicationContext))
+        mService.setPlayQueue(songs)
 
         if (metaDataEvent.name != null) {
             song_name.text = metaDataEvent.name

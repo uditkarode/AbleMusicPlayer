@@ -25,6 +25,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.media.*
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
@@ -33,21 +34,27 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import androidx.core.content.res.ResourcesCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.load.resource.SimpleResource
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.activities.MainActivity
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -63,6 +70,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     companion object {
         val mediaPlayer = MediaPlayer()
         var currentIndex = -1
+        var previousIndex=-1
         private var onShuffle = false
         private var onRepeat = false
         private var coverArtHeight: Int? = null
@@ -82,7 +90,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     fun getMediaPlayer() = mediaPlayer
     fun getPlayQueue() = playQueue
     fun getCurrentIndex() = currentIndex
-
+    fun getPreviousIndex() = previousIndex
     fun setPlayQueue(arrayList: ArrayList<Song>){
         playQueue = arrayList
     }
@@ -109,7 +117,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         super.onCreate()
 
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
                 setAudioAttributes(AudioAttributes.Builder().run {
@@ -160,6 +167,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
         mediaPlayer.setOnCompletionListener {
             nextSong()
+
         }
 
         if(builder == null){
@@ -220,23 +228,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         val action = intent.action
         when {
             action.equals("ACTION_PLAY", ignoreCase = true) -> {
-                showNotification(
-                    generateAction(
-                        R.drawable.notif_pause,
-                        getString(R.string.pause),
-                        "ACTION_PAUSE"
-                    )
-                )
+                mediaSessionPlay()
                 setPlayPause(SongState.playing)
             }
             action.equals("ACTION_PAUSE", ignoreCase = true) -> {
-                showNotification(
-                    generateAction(
-                        R.drawable.notif_play,
-                        getString(R.string.play),
-                        "ACTION_PLAY"
-                    )
-                )
                 setPlayPause(SongState.paused)
             }
             action.equals("ACTION_PREVIOUS", ignoreCase = true) -> {
@@ -284,6 +279,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      * @param index sets the new index to play from the queue.
      */
     fun setIndex(index: Int) {
+        previousIndex= currentIndex
         currentIndex = index
         songChanged()
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
@@ -303,6 +299,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      * @param next changes to the next song if true, previous song if false.
      */
     fun setNextPrevious(next: Boolean) {
+        previousIndex= currentIndex
         if (next) nextSong()
         else previousSong()
     }
@@ -323,7 +320,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         } else {
             onShuffle = false
             val currSong = playQueue[currentIndex]
-            playQueue = ArrayList(playQueue.sortedBy { it.name })
+            playQueue = ArrayList(playQueue.sortedBy { it.name.toUpperCase() })
             currentIndex = playQueue.indexOf(currSong)
         }
 
@@ -374,6 +371,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      */
     fun seekTo(position: Int) {
         mediaPlayer.seekTo(position)
+        mediaSessionPlay()
+    }
+    private fun mediaSessionPlay()
+    {
         mediaSession.setPlaybackState(
             ps
                 .setActions(actions)
@@ -398,14 +399,18 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             thread {
                 streamAudio()
             }
-        } else {
-            mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
+        }
+        else {
             try {
-                mediaPlayer.prepare()
+                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
+                mediaPlayer.prepareAsync()
                 EventBus.getDefault().post(GetSongChangedEvent())
-                EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
                 EventBus.getDefault().post(GetIndexEvent(currentIndex))
-                setPlayPause(SongState.playing)
+                mediaPlayer.setOnPreparedListener{
+                    EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
+                    mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
+                    setPlayPause(SongState.playing)
+                }
             } catch (e: java.lang.Exception){
                 Log.e("ERR>", "$e")
             }
@@ -443,15 +448,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                     }
             }
 
-            mediaSession.setPlaybackState(
-                ps
-                    .setActions(actions)
-                    .setState(
-                        PlaybackState.STATE_PLAYING,
-                        mediaPlayer.currentPosition.toLong(), 1f
-                    )
-                    .build()
-            )
 
             mediaSession.setMetadata(
                 MediaMetadata.Builder()
@@ -459,13 +455,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                     .build()
             )
 
-            showNotification(
+           showNotification(
                 generateAction(
                     R.drawable.notif_pause,
                     getString(R.string.pause),
                     "ACTION_PAUSE"
                 )
             )
+
             if (!mediaPlayer.isPlaying) {
                 try {
                     thread {
@@ -578,27 +575,42 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         action: Notification.Action,
         image: Bitmap? = null
     ) {
-        if (image == null) {
-            File(Constants.ableSongDir.absolutePath + "/album_art",
-                File(playQueue[currentIndex].filePath).nameWithoutExtension).also {
-                if (it.exists() && it.isFile){
-                    getAlbumArt(it)
+        try {
+            if (image == null) {
+                File(
+                    Constants.ableSongDir.absolutePath + "/album_art",
+                    File(playQueue[currentIndex].filePath).nameWithoutExtension
+                ).also {
+                    if (it.exists() && it.isFile) {
+                        getAlbumArt(it)
+                    }
                 }
-            }
 
-            File(Constants.ableSongDir.absolutePath + "/cache",
-                "sCache" + Shared.getIdFromLink(playQueue[currentIndex].youtubeLink)).also {
-                if (it.exists() && it.isFile){
-                    getAlbumArt(it)
+                File(
+                    Constants.ableSongDir.absolutePath + "/cache",
+                    "sCache" + Shared.getIdFromLink(playQueue[currentIndex].youtubeLink)
+                ).also {
+                    if (it.exists() && it.isFile) {
+                        getAlbumArt(it)
+                    }
                 }
+                builder?.setLargeIcon(songCoverArt?.get())
             }
         }
-
-        if(songCoverArt == null || songCoverArt?.get()?.isRecycled == true){
-            songCoverArt = WeakReference(GlideBitmapFactory.decodeResource(this.resources, R.drawable.def_albart))
+        catch(e:java.lang.Exception){
+            e.printStackTrace()
         }
 
-        builder?.setLargeIcon(songCoverArt?.get())
+        if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true) {
+           /* songCoverArt = WeakReference(
+                GlideBitmapFactory.decodeResource(
+                    this.resources,
+                     R.drawable.def_albart
+                )
+            )   Reason: Freezes Notification for 1sec as it fetches the bitmap everytime */
+            builder?.setLargeIcon(Shared.defBitmap) //Reduces ram usage as we already have the Bitmap
+        }
+
         builder?.setContentTitle(playQueue[currentIndex].name)
         builder?.setContentText(playQueue[currentIndex].artist)
 

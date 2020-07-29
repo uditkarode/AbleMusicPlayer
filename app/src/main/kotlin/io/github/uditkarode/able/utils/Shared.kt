@@ -1,29 +1,32 @@
 /*
     Copyright 2020 Udit Karode <udit.karode@gmail.com>
-
     This file is part of AbleMusicPlayer.
-
     AbleMusicPlayer is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, version 3 of the License.
-
     AbleMusicPlayer is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package io.github.uditkarode.able.utils
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.content.ContentResolver
 import android.content.Context
+import android.database.Cursor
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
+import androidx.core.database.getLongOrNull
 import com.arthenica.mobileffmpeg.FFprobe
 import com.google.gson.Gson
 import com.tonyodev.fetch2.Fetch
@@ -40,6 +43,7 @@ import org.jaudiotagger.tag.images.AndroidArtwork
 import org.json.JSONArray
 import java.io.*
 
+
 class Shared {
     companion object {
         /** To only show the splash screen on the first launch of
@@ -49,8 +53,8 @@ class Shared {
 
         lateinit var fetch: Fetch
         var bmp: Bitmap? = null
+        lateinit var defBitmap: Bitmap
         lateinit var mService: MusicService
-
         /**
          * @return if the lateinit variable mService has been initialised.
          */
@@ -339,16 +343,15 @@ class Shared {
                         || (f.extension != "webm" && f.extension != "mp3")){
                         continue
                     }
-
                     val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
                     if(mediaInfo != null){
-                        val metadata = mediaInfo.metadataEntries
-                        for(map in metadata){
-                            if(map.key == "title")
-                                name = map.value
-                            else if(map.key == "ARTIST" || map.key == "artist")
-                                artist = map.value
-                        }
+                        val metadata=mediaInfo.tags
+                        if(metadata.optString("title").isNotEmpty())
+                            name=metadata.optString("title")
+                        if(metadata.optString("ARTIST").isEmpty())
+                            artist=metadata.optString("artist")
+                        else if(metadata.optString("artist").isEmpty())
+                            artist=metadata.optString("ARTIST")
                         if(name != "???"){
                             songs.add(
                                 Song(
@@ -362,8 +365,47 @@ class Shared {
                 }
             }
 
-            if(songs.isNotEmpty()) songs = ArrayList(songs.sortedBy { it.name })
+            //if(songs.isNotEmpty()) songs = ArrayList(songs.sortedBy { it.name })
 
+            return songs
+        }
+        @Suppress("DEPRECATION")
+        @SuppressLint("Recycle")
+        fun getLocalSongs(context: Context):ArrayList<Song>{
+            var songs: ArrayList<Song> = ArrayList()
+
+            val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
+            val contentResolver: ContentResolver = context.contentResolver
+            val songUri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            val projection = arrayOf(
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.ALBUM_ID
+                )
+            val songCursor: Cursor? = contentResolver.query(
+                songUri,
+                projection,
+                selection,
+                null,
+                MediaStore.Audio.Media.DEFAULT_SORT_ORDER + " ASC"
+            )
+            if(songCursor!=null && songCursor.moveToFirst())
+            {
+                do{
+                    val path:String=songCursor.getString(2)
+                    if(!path.contains("Able") && !path.contains("WhatsApp")) {
+                        songs.add(
+                            Song(
+                                songCursor.getString(0),
+                                songCursor.getString(1),
+                                filePath = songCursor.getString(2)
+                            )
+                        )
+                    }
+                }while (songCursor.moveToNext())
+            }
+            songCursor?.close()
             return songs
         }
 
@@ -406,7 +448,7 @@ class Shared {
             if(targetIndex == -1)
                 songs.add(song)
             else Toast.makeText(context, context.getString(R.string.playlist_dup), Toast.LENGTH_SHORT).show()
-            modifyPlaylist(playlist.name, ArrayList(songs.sortedBy { it.name }))
+            modifyPlaylist(playlist.name, ArrayList(songs.sortedBy { it.name.toUpperCase() }))
         }
     }
 }

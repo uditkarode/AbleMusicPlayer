@@ -201,95 +201,99 @@ class Player : AppCompatActivity() {
 
         song_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            if(current.filePath.contains("Able") && (current.filePath.contains("mp3")|| current.filePath.contains
+            when {
+                current.filePath.contains("Able") && (current.filePath.contains("mp3")|| current.filePath.contains
                     ("webm"))
-            ) {
-                MaterialDialog(this@Player).show {
-                    title(text = this@Player.getString(R.string.enter_new_song))
-                    input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
-                        val ext = current.filePath.run {
-                            this.substring(this.lastIndexOf(".") + 1)
-                        }
-                        when (val rc = FFmpeg.execute(
-                            "-i " +
-                                    "\"${current.filePath}\" -c copy " +
-                                    "-metadata title=\"$charSequence\" " +
-                                    "-metadata artist=\"${current.artist}\"" +
-                                    " \"${current.filePath}.new.$ext\""
-                        )) {
-                            Config.RETURN_CODE_SUCCESS -> {
-                                File(current.filePath).delete()
-                                File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                                EventBus.getDefault()
-                                    .post(GetMetaDataEvent(name = charSequence.toString()))
+                -> {
+                    MaterialDialog(this@Player).show {
+                        title(text = this@Player.getString(R.string.enter_new_song))
+                        input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
+                            val ext = current.filePath.run {
+                                this.substring(this.lastIndexOf(".") + 1)
                             }
-                            Config.RETURN_CODE_CANCEL -> {
-                                Log.e(
-                                    "ERR>",
-                                    "Command execution cancelled by user."
-                                )
-                            }
-                            else -> {
-                                Log.e(
-                                    "ERR>",
-                                    String.format(
-                                        "Command execution failed with rc=%d and the output below.",
-                                        rc
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${current.filePath}\" -c copy " +
+                                        "-metadata title=\"$charSequence\" " +
+                                        "-metadata artist=\"${current.artist}\"" +
+                                        " \"${current.filePath}.new.$ext\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(current.filePath).delete()
+                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                    EventBus.getDefault()
+                                        .post(GetMetaDataEvent(name = charSequence.toString()))
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
                                     )
-                                )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
+                                }
                             }
                         }
+                        getInputField().setText(current.name)
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
-                    getInputField().setText(current.name)
-                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
             }
         }
 
         artist_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            if (current.filePath.contains("Able") && (current.filePath.contains("mp3") || current.filePath.contains(
+            when {
+                current.filePath.contains("Able") && (current.filePath.contains("mp3") || current.filePath.contains(
                     "webm"
                 ))
-            ) {
-                MaterialDialog(this@Player).show {
-                    title(text = this@Player.getString(R.string.enter_new_art))
-                    input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
-                        val ext = current.filePath.run {
-                            this.substring(this.lastIndexOf(".") + 1)
-                        }
-                        when (val rc = FFmpeg.execute(
-                            "-i " +
-                                    "\"${current.filePath}\" -c copy " +
-                                    "-metadata title=\"${current.name}\" " +
-                                    "-metadata artist=\"$charSequence\"" +
-                                    " \"${current.filePath}.new.$ext\""
-                        )) {
-                            Config.RETURN_CODE_SUCCESS -> {
-                                File(current.filePath).delete()
-                                File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                                EventBus.getDefault()
-                                    .post(GetMetaDataEvent(artist = charSequence.toString()))
+                -> {
+                    MaterialDialog(this@Player).show {
+                        title(text = this@Player.getString(R.string.enter_new_art))
+                        input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
+                            val ext = current.filePath.run {
+                                this.substring(this.lastIndexOf(".") + 1)
                             }
-                            Config.RETURN_CODE_CANCEL -> {
-                                Log.e(
-                                    "ERR>",
-                                    "Command execution cancelled by user."
-                                )
-                            }
-                            else -> {
-                                Log.e(
-                                    "ERR>",
-                                    String.format(
-                                        "Command execution failed with rc=%d and the output below.",
-                                        rc
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${current.filePath}\" -c copy " +
+                                        "-metadata title=\"${current.name}\" " +
+                                        "-metadata artist=\"$charSequence\"" +
+                                        " \"${current.filePath}.new.$ext\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(current.filePath).delete()
+                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                    EventBus.getDefault()
+                                        .post(GetMetaDataEvent(artist = charSequence.toString()))
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
                                     )
-                                )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
+                                }
                             }
                         }
+                        getInputField().setText(current.artist)
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
-                    getInputField().setText(current.artist)
-                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
             }
         }

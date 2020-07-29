@@ -73,6 +73,7 @@ import kotlin.concurrent.thread
 /**
  * The first fragment. Shows a list of songs present on the user's device.
  */
+@Suppress("NAME_SHADOWING")
 class Home(private val cntxt: Context): Fragment() {
     private var songList = ArrayList<Song>()
     var mService: MusicService? = null
@@ -135,8 +136,7 @@ class Home(private val cntxt: Context): Fragment() {
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(requireContext())
-
-                val itemTouchHelper= ItemTouchHelper(SwipeController(context))
+                val itemTouchHelper= ItemTouchHelper(SwipeController(context,"Home"))
                 itemTouchHelper.attachToRecyclerView(songs)
             }
         }

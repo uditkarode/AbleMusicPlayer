@@ -1,10 +1,12 @@
 package io.github.uditkarode.able.utils
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.graphics.*
 import android.view.MotionEvent
 import android.view.View
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.ItemTouchHelper.*
 import androidx.recyclerview.widget.RecyclerView
@@ -14,6 +16,8 @@ import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Home
+import io.github.uditkarode.able.fragments.Search
+import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
 import java.io.File
 import java.lang.Exception
@@ -23,95 +27,124 @@ import kotlin.collections.ArrayList
 internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
-class SwipeControllerActions {
+class SwipeControllerActions(private var mode: String) {
     private var songList = ArrayList<Song>()
+    private lateinit var itemPressed: Search.SongCallback
 
-    fun onLeftClicked(context: Context?,position: Int) {
+    private fun initialiseSongCallback(context: Context?){
+        try {
+            itemPressed = context as Activity as Search.SongCallback
+        } catch (e: ClassCastException) {
+            e.printStackTrace()
+        }
+    }
+    private fun getSongList(context: Context?)
+    {
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(context!!))
-        val playlists = Shared.getPlaylists()
-        val names = playlists.run {
-            ArrayList<String>().also {
-                for (playlist in this) it.add(
-                    playlist.name.replace(
-                        ".json",
-                        ""
-                    )
-                )
-            }
-        }
+        songList = ArrayList(songList.sortedBy { it.name.toUpperCase(
+            Locale.getDefault()) })
+    }
 
-        names.add(0, context.getString(R.string.pq))
-        names.add(1, context.getString(R.string.crp))
-        val current=songList[position]
-        MaterialDialog(context).show {
-            listItems(items = names) { _, index, _ ->
-                when(index)
-                {
-                    0 -> Shared.mService.addToQueue(current)
-                    1 -> {
-                        MaterialDialog(context).show {
-                            title(text = context.getString(R.string.playlist_namei))
-                            input(context.getString(R.string.name_s)){ _, charSequence ->
-                                Shared.createPlaylist(charSequence.toString(), context)
-                                Shared.addToPlaylist(Shared.getPlaylists().filter {
-                                    it.name == "$charSequence.json"
-                                }[0], current,context)
-                            }
-                            getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
-                        }
-                    }
-                    else -> {
-                        Shared.addToPlaylist(playlists[index-2], current, context)
+    fun onLeftClicked(context: Context?,position: Int) {
+        when {
+            mode.isEmpty() -> {
+                getSongList(context!!)
+                val playlists = Shared.getPlaylists()
+                val names = playlists.run {
+                    ArrayList<String>().also {
+                        for (playlist in this) it.add(
+                            playlist.name.replace(
+                                ".json",
+                                ""
+                            )
+                        )
                     }
                 }
+
+                names.add(0, context.getString(R.string.pq))
+                names.add(1, context.getString(R.string.crp))
+                val current = songList[position]
+                MaterialDialog(context).show {
+                    listItems(items = names) { _, index, _ ->
+                        when (index) {
+                            0 -> Shared.mService.addToQueue(current)
+                            1 -> {
+                                MaterialDialog(context).show {
+                                    title(text = context.getString(R.string.playlist_namei))
+                                    input(context.getString(R.string.name_s)) { _, charSequence ->
+                                        Shared.createPlaylist(charSequence.toString(), context)
+                                        Shared.addToPlaylist(Shared.getPlaylists().filter {
+                                            it.name == "$charSequence.json"
+                                        }[0], current, context)
+                                    }
+                                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+                                }
+                            }
+                            else -> {
+                                Shared.addToPlaylist(playlists[index - 2], current, context)
+                            }
+                        }
+                    }
+                }
+            }
+            else -> {
+                initialiseSongCallback(context!!)
+                itemPressed.sendItem(Search.resultArray[position], MusicMode.both)
             }
         }
     }
     fun onRightClicked(context: Context?,position: Int) {
-        songList = Shared.getSongList(Constants.ableSongDir)
-        songList.addAll(Shared.getLocalSongs(context!!))
-        songList = ArrayList(songList.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
-        val current = songList[position]
-        MaterialDialog(context).show {
-            title(text = context.getString(R.string.confirmation))
-            message(text = context.getString(R.string.res_confirm_txt).format(current.name, current.filePath))
-            positiveButton(text = "Delete"){
-                val curFile = File(current.filePath)
-                if(curFile.absolutePath.contains("Able")) {
-                    val curArt =
-                        File(
-                            Constants.ableSongDir.absolutePath + "/album_art",
-                            curFile.nameWithoutExtension
-                        )
-                    curFile.delete()
-                    curArt.delete()
-                }
-                else
-                {
-                    try{
-                        curFile.delete()
+        when {
+            mode.isEmpty() -> {
+                getSongList(context!!)
+                val current = songList[position]
+                MaterialDialog(context).show {
+                    title(text = context.getString(R.string.confirmation))
+                    message(
+                        text = context.getString(R.string.res_confirm_txt)
+                            .format(current.name, current.filePath)
+                    )
+                    positiveButton(text = "Delete") {
+                        val curFile = File(current.filePath)
+                        if (curFile.absolutePath.contains("Able")) {
+                            val curArt =
+                                File(
+                                    Constants.ableSongDir.absolutePath + "/album_art",
+                                    curFile.nameWithoutExtension
+                                )
+                            curFile.delete()
+                            curArt.delete()
+                        } else {
+                            try {
+                                curFile.delete()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                        songList.removeAt(position)
+                        Home.songAdapter?.update(songList)
                     }
-                    catch (e:Exception)
-                    {
-                        e.printStackTrace()
-                    }
+                    negativeButton(text = context.getString(R.string.cancel))
                 }
-                songList.removeAt(position)
-                Home.songAdapter?.update(songList)
             }
-            negativeButton(text = context.getString(R.string.cancel))
+            else -> {
+                initialiseSongCallback(context!!)
+                itemPressed.sendItem(Search.resultArray[position], mode)
+            }
         }
     }
 }
 @Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
-class SwipeController(private val context: Context?) :
+class SwipeController(private val context: Context?, private val list:String?) :
     ItemTouchHelper.Callback() {
     private var swipeBack = false
     private var buttonShowedState = ButtonsState.GONE
     private var buttonInstance: RectF? = null
-    private val buttonsActions=SwipeControllerActions()
+    private var mode: String? = PreferenceManager.getDefaultSharedPreferences(context)
+        .getString("mode_key", MusicMode.download)
+    private lateinit var buttonsActions:SwipeControllerActions
     private val buttonWidth = 200f
 
 
@@ -133,7 +166,8 @@ class SwipeController(private val context: Context?) :
         return false
     }
 
-    override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+    override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+    }
     override fun convertToAbsoluteDirection(flags: Int, layoutDirection: Int): Int {
         if (swipeBack) {
             swipeBack = false
@@ -151,8 +185,9 @@ class SwipeController(private val context: Context?) :
         actionState: Int,
         isCurrentlyActive: Boolean
     ) {
+
         if (actionState == ACTION_STATE_SWIPE) {
-               setTouchListener(recyclerView, viewHolder, dX)
+            setTouchListener(recyclerView, viewHolder, dX)
         }
         buttonShowedState = when {
             dX<-50 -> ButtonsState.RIGHT_VISIBLE
@@ -172,10 +207,10 @@ class SwipeController(private val context: Context?) :
             swipeBack = event.action == MotionEvent.ACTION_CANCEL || event.action == MotionEvent.ACTION_UP
             if (swipeBack) {
                 if (dX < -buttonWidth)
-                    {
-                        buttonShowedState = ButtonsState.RIGHT_VISIBLE
-                        buttonsActions.onRightClicked(context,viewHolder.adapterPosition)
-                    }
+                {
+                    buttonShowedState = ButtonsState.RIGHT_VISIBLE
+                    buttonsActions.onRightClicked(context,viewHolder.adapterPosition)
+                }
                 else if (dX > buttonWidth){
                     buttonShowedState = ButtonsState.LEFT_VISIBLE
                     buttonsActions.onLeftClicked(context,viewHolder.adapterPosition)
@@ -203,7 +238,15 @@ class SwipeController(private val context: Context?) :
             )
             p.color = Color.argb(255, 148, 188, 227)
             c.drawRoundRect(leftButton, corners, corners, p)
-            drawText("Playlist", c, leftButton, p)
+            if(list.equals("Home"))
+                drawText("Playlist", c, leftButton, p)
+            else
+                drawText(MusicMode.both,c,leftButton,p)
+            buttonsActions = when(list){
+                "Search"->
+                    SwipeControllerActions(MusicMode.both)
+                else-> SwipeControllerActions("")
+            }
             buttonInstance = leftButton
         }
         else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
@@ -215,7 +258,22 @@ class SwipeController(private val context: Context?) :
             )
             p.color = Color.argb(255, 183, 28, 28)
             c.drawRoundRect(rightButton, corners, corners, p)
-            drawText("DELETE", c, rightButton, p)
+            if(list.equals("Home"))
+                drawText("DELETE", c, rightButton, p)
+            else {
+                val currentMode:String = if (mode == MusicMode.download) {
+                    drawText(MusicMode.stream, c, rightButton, p)
+                    MusicMode.stream
+                } else {
+                    drawText(MusicMode.download, c, rightButton, p)
+                    MusicMode.download
+                }
+                buttonsActions = when(list){
+                    "Search"->
+                        SwipeControllerActions(currentMode)
+                    else-> SwipeControllerActions("")
+                }
+            }
             buttonInstance = rightButton
         }
         buttonShowedState=ButtonsState.GONE
@@ -227,7 +285,9 @@ class SwipeController(private val context: Context?) :
         button: RectF,
         p: Paint
     ) {
-        val textSize = 50f
+        var textSize = 50f
+        if(text == MusicMode.download)
+            textSize=35f
         p.color = Color.WHITE
         p.isAntiAlias = true
         p.textSize = textSize

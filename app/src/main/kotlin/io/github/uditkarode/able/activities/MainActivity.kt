@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         FlurryAgent.Builder()
             .withLogEnabled(false)
             .build(this, Constants.FLURRY_KEY)
-        home = Home()
+        home = Home(applicationContext)
         ViewPump.init(
             ViewPump.builder()
                 .addInterceptor(

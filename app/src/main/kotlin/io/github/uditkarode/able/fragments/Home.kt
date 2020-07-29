@@ -19,6 +19,7 @@
 package io.github.uditkarode.able.fragments
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Bitmap
@@ -70,7 +71,7 @@ import kotlin.concurrent.thread
 /**
  * The first fragment. Shows a list of songs present on the user's device.
  */
-class Home: Fragment() {
+class Home(private val cntxt: Context): Fragment() {
     private var songList = ArrayList<Song>()
     var mService: MusicService? = null
     var isBound = false
@@ -151,9 +152,9 @@ class Home: Fragment() {
     fun streamAudio(song: Song, toCache: Boolean){
         if(!Shared.serviceRunning(MusicService::class.java, requireContext())){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                requireActivity().startForegroundService(Intent(activity, MusicService::class.java))
+                requireActivity().startForegroundService(Intent(cntxt, MusicService::class.java))
             } else {
-                requireActivity().startService(Intent(activity, MusicService::class.java))
+                requireActivity().startService(Intent(cntxt, MusicService::class.java))
             }
 
             bindEvent()

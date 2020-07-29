@@ -16,6 +16,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import java.io.File
+import java.lang.Exception
 
 internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
@@ -25,6 +26,7 @@ class SwipeControllerActions {
 
     fun onLeftClicked(context: Context?,position: Int) {
         songList = Shared.getSongList(Constants.ableSongDir)
+        songList.addAll(Shared.getLocalSongs(context!!))
         val playlists = Shared.getPlaylists()
         val names = playlists.run {
             ArrayList<String>().also {
@@ -66,16 +68,33 @@ class SwipeControllerActions {
     }
     fun onRightClicked(context: Context?,position: Int) {
         songList = Shared.getSongList(Constants.ableSongDir)
+        songList.addAll(Shared.getLocalSongs(context!!))
+        songList= ArrayList(songList.sortedBy { it.name.toUpperCase() })
         val current=songList[position]
-        MaterialDialog(context!!).show {
+        MaterialDialog(context).show {
             title(text = context.getString(R.string.confirmation))
             message(text = context.getString(R.string.res_confirm_txt).format(current.name, current.filePath))
             positiveButton(text = "Delete"){
                 val curFile = File(current.filePath)
-                val curArt =
-                    File(Constants.ableSongDir.absolutePath + "/album_art", curFile.nameWithoutExtension)
-                curFile.delete()
-                curArt.delete()
+                if(curFile.absolutePath.contains("Able")) {
+                    val curArt =
+                        File(
+                            Constants.ableSongDir.absolutePath + "/album_art",
+                            curFile.nameWithoutExtension
+                        )
+                    curFile.delete()
+                    curArt.delete()
+                }
+                else
+                {
+                    try{
+                        curFile.delete()
+                    }
+                    catch (e:Exception)
+                    {
+                        e.printStackTrace()
+                    }
+                }
                 songList.removeAt(position)
                 Home.songAdapter?.update(songList)
             }

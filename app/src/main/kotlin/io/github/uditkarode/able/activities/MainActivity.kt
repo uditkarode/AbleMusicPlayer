@@ -25,7 +25,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Rect
+import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -35,11 +38,13 @@ import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
 import androidx.preference.PreferenceManager
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
 import com.flurry.android.FlurryAgent
+import com.glidebitmappool.GlideBitmapFactory
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
@@ -66,7 +71,9 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.schabi.newpipe.extractor.NewPipe
+import java.io.ByteArrayOutputStream
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.concurrent.thread
 
 /**
@@ -97,7 +104,14 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(applicationContext, Welcome::class.java))
             } else startActivity(Intent(applicationContext, Splash::class.java))
         }
-
+        thread {  //gets and stores the default Bitmap in a small size
+            Shared.defBitmap = (ResourcesCompat.getDrawable(this.resources, R.drawable.def_albart, null) as BitmapDrawable).bitmap
+            val bytearrayoutputstream = ByteArrayOutputStream()
+            Shared.defBitmap.compress(Bitmap.CompressFormat.JPEG, 20, bytearrayoutputstream);
+            val BYTE: ByteArray
+            BYTE = bytearrayoutputstream.toByteArray();
+            Shared.defBitmap  = BitmapFactory.decodeByteArray(BYTE, 0, BYTE.size);
+        }
         thread {
             NewPipe.init(CustomDownloader.instance)
             Shared.setupFetch(this@MainActivity)

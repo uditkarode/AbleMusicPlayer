@@ -19,11 +19,13 @@
 package io.github.uditkarode.able.adapters
 
 import android.app.Activity
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
-import android.os.Handler
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -37,17 +39,25 @@ import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.activities.MainActivity
+import io.github.uditkarode.able.events.GetIndexEvent
+import io.github.uditkarode.able.events.GetQueueEvent
+import io.github.uditkarode.able.events.GetShuffleRepeatEvent
+import io.github.uditkarode.able.events.GetSongChangedEvent
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -84,7 +94,6 @@ class SongAdapter(private var songList: ArrayList<Song>,
         val current = songList[position]
         holder.songName.text = current.name
         holder.artistName.text = current.artist
-
         if(showArt){
             holder.albumArt.run {
                 if(this != null){
@@ -97,16 +106,30 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(this)
-                        else
+                        else if(current.filePath.contains("Able"))
                             Glide.with(holder.getContext())
-                                .load(GlideBitmapFactory.decodeResource(holder.getContext().resources, R.drawable.def_albart))
+                                .load(
+                                    GlideBitmapFactory.decodeResource(
+                                        holder.getContext().resources,
+                                        R.drawable.def_albart
+                                    )
+                                )
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .signature(ObjectKey("home"))
                                 .skipMemoryCache(true)
                                 .into(this)
+                        else
+                            Glide.with(holder.getContext())
+                                .load(Shared.defBitmap)
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .signature(ObjectKey("home"))
+                                .skipMemoryCache(true)
+                                .into(this)
+                            //holder.albumArt?.setImageBitmap(null)
                     }
                 }
             }
+
         }
 
         if(currentIndex > 0 && currentIndex < songList.size && songList.size != 0){
@@ -152,10 +175,9 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 currentIndex = position
                                 mService.setQueue(songList)
                                 mService.setIndex(position)
-                                mService.setPlayPause(SongState.playing)
+                            //    mService.setPlayPause(SongState.playing) //Reason:setIndex call setSong which then calls setPlayPause, so no need of this,
                             }
-
-                            notifyDataSetChanged()
+                          //  notifyDataSetChanged()// Reason:No need. Called by GetSongChangedEvent() from songChanged(),
                         }
                     }
                 }
@@ -228,7 +250,7 @@ class SongAdapter(private var songList: ArrayList<Song>,
         val buttonsPanel = itemView.findViewById<LinearLayout>(R.id.buttonsPanel)!!
         val addToPlaylist = itemView.findViewById<MaterialButton>(R.id.add_to_playlist)!!
         val deleteFromDisk = itemView.findViewById<MaterialButton>(R.id.delete_from_disk)!!
-        val albumArt: ImageView? = if(showArt) itemView.findViewById(R.id.song_art) else null
+        var albumArt: ImageView? = if(showArt) itemView.findViewById(R.id.song_art) else null
 
         fun getContext(): Context = itemView.context
     }

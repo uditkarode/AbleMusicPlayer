@@ -88,6 +88,7 @@ class Home: Fragment() {
             container, false
         )
 
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -124,6 +125,8 @@ class Home: Fragment() {
 
         thread {
             songList = Shared.getSongList(Constants.ableSongDir)
+            songList.addAll(Shared.getLocalSongs(requireContext()))
+            if(!songList.isEmpty())songList = ArrayList(songList.sortedBy { it.name.toUpperCase() })
             songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
             activity?.runOnUiThread {
                 songs.adapter = songAdapter
@@ -258,8 +261,11 @@ class Home: Fragment() {
                                     tempFile.delete()
                                     activity?.runOnUiThread {
                                         Log.i("INFO>", "Updating RecyclerView")
-                                        songAdapter?.update(Shared.getSongList(Constants.ableSongDir))
+                                        val songList2 = Shared.getSongList(Constants.ableSongDir)
+                                        songList2.addAll(Shared.getLocalSongs(context!!))
+                                        songAdapter?.update(songList2)
                                         songAdapter?.notifyDataSetChanged()
+                                        songList2.clear()
                                     }
                                 }
                                 Config.RETURN_CODE_CANCEL -> {
@@ -301,6 +307,7 @@ class Home: Fragment() {
     /* download to videoId.webm.tmp, add metadata and save to videoId.webm */
     fun downloadVideo(){
         songList = Shared.getSongList(Constants.ableSongDir)
+        songList.addAll(Shared.getLocalSongs(requireContext()))
         activity?.runOnUiThread {
             songAdapter?.update(songList)
         }

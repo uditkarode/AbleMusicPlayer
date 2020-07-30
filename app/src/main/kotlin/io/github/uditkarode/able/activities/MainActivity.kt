@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         FlurryAgent.Builder()
             .withLogEnabled(false)
             .build(this, Constants.FLURRY_KEY)
-        home = Home(this)
+        home = Home()
         ViewPump.init(
             ViewPump.builder()
                 .addInterceptor(
@@ -321,9 +321,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             EventBus.getDefault().unregister(this)
     }
 
-    override fun sendItem(song: Song) {
-        when (PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            .getString("mode_key", MusicMode.download)) {
+    override fun sendItem(song: Song, mode: String) {
+        var currentMode= PreferenceManager.getDefaultSharedPreferences(applicationContext)
+            .getString("mode_key", MusicMode.download)
+        if(mode.isNotEmpty())
+            currentMode=mode
+        when (currentMode) {
             MusicMode.download -> {
                 val songL = ArrayList<String>()
                 songL.add(song.name)

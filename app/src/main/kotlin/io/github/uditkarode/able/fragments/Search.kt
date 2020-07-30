@@ -30,12 +30,14 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.search.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
@@ -51,9 +53,11 @@ import kotlin.concurrent.thread
 class Search : Fragment() {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences
-
+    companion object{
+        val resultArray = ArrayList<Song>()
+    }
     interface SongCallback {
-        fun sendItem(song: Song)
+        fun sendItem(song: Song , mode:String = "")
     }
 
     override fun onCreateView(
@@ -148,8 +152,7 @@ class Search : Fragment() {
                     }
 
                     hideKeyboard(activity as Activity)
-                    val resultArray = ArrayList<Song>()
-
+                    resultArray.clear()
                     try {
                         var query = text.toString()
                         if (query.isEmpty())
@@ -280,6 +283,8 @@ class Search : Fragment() {
                                 searchRv.alpha = 0f
                                 searchRv.visibility = View.VISIBLE
                                 searchRv.animate().alpha(1f).duration = 200
+                                val itemTouchHelper= ItemTouchHelper(SwipeController(context,"Search"))
+                                itemTouchHelper.attachToRecyclerView(searchRv)
                             }
                         }
                     } catch (e: Exception) {
@@ -318,11 +323,9 @@ class Search : Fragment() {
                         ConnectivityManager.TYPE_ETHERNET -> true
                         else -> false
                     }
-
                 }
             }
         }
-
         return result
     }
 

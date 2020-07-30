@@ -397,7 +397,8 @@ class Shared {
                             Song(
                                 songCursor.getString(0),
                                 songCursor.getString(1),
-                                filePath = songCursor.getString(2)
+                                filePath = songCursor.getString(2),
+                                albumId = songCursor.getLong(3)
                             )
                         )
                     }

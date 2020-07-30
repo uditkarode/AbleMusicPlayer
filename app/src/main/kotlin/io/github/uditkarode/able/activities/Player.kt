@@ -1,29 +1,24 @@
 /*
     Copyright 2020 Udit Karode <udit.karode@gmail.com>
-
     This file is part of AbleMusicPlayer.
-
     AbleMusicPlayer is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, version 3 of the License.
-
     AbleMusicPlayer is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package io.github.uditkarode.able.activities
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
@@ -58,6 +53,7 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
@@ -77,6 +73,9 @@ import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.player410.img_albart
 import kotlinx.android.synthetic.main.player410.note_ph
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -85,6 +84,7 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.json.JSONObject
 import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -93,6 +93,7 @@ import kotlin.concurrent.thread
 /**
  * The Player UI activity.
  */
+@Suppress("DEPRECATION")
 class Player : AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
@@ -204,87 +205,100 @@ class Player : AppCompatActivity() {
 
         song_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            MaterialDialog(this@Player).show {
-                title(text = this@Player.getString(R.string.enter_new_song))
-                input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
-                    val ext = current.filePath.run {
-                        this.substring(this.lastIndexOf(".") + 1)
-                    }
-                    when (val rc = FFmpeg.execute(
-                        "-i " +
-                                "\"${current.filePath}\" -c copy " +
-                                "-metadata title=\"$charSequence\" " +
-                                "-metadata artist=\"${current.artist}\"" +
-                                " \"${current.filePath}.new.$ext\""
-                    )) {
-                        Config.RETURN_CODE_SUCCESS -> {
-                            File(current.filePath).delete()
-                            File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            EventBus.getDefault()
-                                .post(GetMetaDataEvent(name = charSequence.toString()))
+            when {
+                current.filePath.contains("Able") && (current.filePath.contains("mp3")|| current.filePath.contains
+                    ("webm"))
+                -> {
+                    MaterialDialog(this@Player).show {
+                        title(text = this@Player.getString(R.string.enter_new_song))
+                        input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
+                            val ext = current.filePath.run {
+                                this.substring(this.lastIndexOf(".") + 1)
+                            }
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${current.filePath}\" -c copy " +
+                                        "-metadata title=\"$charSequence\" " +
+                                        "-metadata artist=\"${current.artist}\"" +
+                                        " \"${current.filePath}.new.$ext\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(current.filePath).delete()
+                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                    EventBus.getDefault()
+                                        .post(GetMetaDataEvent(name = charSequence.toString()))
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
+                                }
+                            }
                         }
-                        Config.RETURN_CODE_CANCEL -> {
-                            Log.e(
-                                "ERR>",
-                                "Command execution cancelled by user."
-                            )
-                        }
-                        else -> {
-                            Log.e(
-                                "ERR>",
-                                String.format(
-                                    "Command execution failed with rc=%d and the output below.",
-                                    rc
-                                )
-                            )
-                        }
+                        getInputField().setText(current.name)
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
                 }
-                getInputField().setText(current.name)
-                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
         }
 
         artist_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            MaterialDialog(this@Player).show {
-                title(text = this@Player.getString(R.string.enter_new_art))
-                input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
-                    val ext = current.filePath.run {
-                        this.substring(this.lastIndexOf(".") + 1)
-                    }
-                    when (val rc = FFmpeg.execute(
-                        "-i " +
-                                "\"${current.filePath}\" -c copy " +
-                                "-metadata title=\"${current.name}\" " +
-                                "-metadata artist=\"$charSequence\"" +
-                                " \"${current.filePath}.new.$ext\""
-                    )) {
-                        Config.RETURN_CODE_SUCCESS -> {
-                            File(current.filePath).delete()
-                            File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            EventBus.getDefault()
-                                .post(GetMetaDataEvent(artist = charSequence.toString()))
+            when {
+                current.filePath.contains("Able") && (current.filePath.contains("mp3") || current.filePath.contains(
+                    "webm"
+                ))
+                -> {
+                    MaterialDialog(this@Player).show {
+                        title(text = this@Player.getString(R.string.enter_new_art))
+                        input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
+                            val ext = current.filePath.run {
+                                this.substring(this.lastIndexOf(".") + 1)
+                            }
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${current.filePath}\" -c copy " +
+                                        "-metadata title=\"${current.name}\" " +
+                                        "-metadata artist=\"$charSequence\"" +
+                                        " \"${current.filePath}.new.$ext\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(current.filePath).delete()
+                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                    EventBus.getDefault()
+                                        .post(GetMetaDataEvent(artist = charSequence.toString()))
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
+                                }
+                            }
                         }
-                        Config.RETURN_CODE_CANCEL -> {
-                            Log.e(
-                                "ERR>",
-                                "Command execution cancelled by user."
-                            )
-                        }
-                        else -> {
-                            Log.e(
-                                "ERR>",
-                                String.format(
-                                    "Command execution failed with rc=%d and the output below.",
-                                    rc
-                                )
-                            )
-                        }
+                        getInputField().setText(current.artist)
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
                 }
-                getInputField().setText(current.artist)
-                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
         }
 
@@ -460,7 +474,7 @@ class Player : AppCompatActivity() {
      * @param lightVibrantColor the color to set on the seekbar, usually
      * derived from the album art.
      */
-    private fun setBgColor(color: Int, lightVibrantColor: Int? = null){
+    private fun setBgColor(color: Int, lightVibrantColor: Int? = null, titleColor: Int? = null){
         RevelyGradient
             .linear()
             .colors(
@@ -478,8 +492,8 @@ class Player : AppCompatActivity() {
             player_queue.setImageDrawable(getDrawable(R.drawable.pl_playlist))
             if(lightVibrantColor != null) {
                 if((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0){
-                    player_seekbar.progressDrawable.setTint(0x002171)
-                    player_seekbar.thumb.setTint(0x002171)
+                    player_seekbar.progressDrawable.setTint(titleColor!!)
+                    player_seekbar.thumb.setTint(titleColor)
                     tintControls(0x002171)
                 } else {
                     player_seekbar.progressDrawable.setTint(lightVibrantColor)
@@ -536,6 +550,7 @@ class Player : AppCompatActivity() {
                     note_ph.visibility = View.GONE
                     Glide.with(this@Player)
                         .load(cacheImg)
+                        .centerCrop()
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                         .skipMemoryCache(true)
                         .into(img_albart)
@@ -543,7 +558,8 @@ class Player : AppCompatActivity() {
                     Shared.bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
                     Palette.from(Shared.getSharedBitmap()).generate {
                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                            it?.getLightMutedColor(0x002171)?:0x002171)
+                            it?.getLightMutedColor(0x002171)?:0x002171,
+                            it?.lightMutedSwatch?.titleTextColor)
                         Shared.clearBitmap()
                     }
                 }
@@ -555,6 +571,7 @@ class Player : AppCompatActivity() {
                             note_ph.visibility = View.GONE
                             Glide.with(this@Player)
                                 .load(img)
+                                .centerCrop()
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(img_albart)
@@ -562,11 +579,20 @@ class Player : AppCompatActivity() {
                             Shared.bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
                             Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                    it?.getLightMutedColor(0x002171)?:0x002171)
+                                    it?.getLightMutedColor(0x002171)?:0x002171,
+                                    it?.dominantSwatch?.bodyTextColor?:0x002171)
                                 Shared.clearBitmap()
                             }
                         }
-                    } else {
+                    }
+                    else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
+                    {
+                        setBgColor(0x002171)
+                        player_seekbar.progressDrawable.setTint(resources.getColor(R.color.thatAccent))
+                        player_seekbar.thumb.setTint(resources.getColor(R.color.colorPrimary))
+                        tintControls(0x002171)
+                    }
+                    else {
                         val albumArtRequest = if (customSongName == null) {
                             Request.Builder()
                                 .url(Constants.DEEZER_API + current.name)
@@ -583,7 +609,6 @@ class Player : AppCompatActivity() {
                                 .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
                                 .build()
                         }
-
                         val response = OkHttpClient().newCall(albumArtRequest).execute().body
                         try {
                             if (response != null) {
@@ -594,6 +619,7 @@ class Player : AppCompatActivity() {
                                     val drw = Glide
                                         .with(this@Player)
                                         .load(imgLink)
+                                        .centerCrop()
                                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                                         .skipMemoryCache(true)
                                         .submit()
@@ -602,7 +628,8 @@ class Player : AppCompatActivity() {
                                     Shared.bmp = drw.toBitmap()
                                     Palette.from(Shared.getSharedBitmap()).generate {
                                         setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                            it?.getLightVibrantColor(0x002171)?:0x002171)
+                                            it?.getLightVibrantColor(0x002171)?:0x002171,
+                                            it?.lightMutedSwatch?.titleTextColor)
                                     }
 
                                     if (img.exists()) img.delete()
@@ -635,11 +662,41 @@ class Player : AppCompatActivity() {
                                     Log.e("ERR>", e.toString())
                                 }
                             }
-                        } catch (e: Exception) {
+                        } catch (e: Exception) { //If no Album Art found on Deezer then Check if album art in Metadata
                             Log.e("ERR>", e.toString())
+                            try {
+                                val sArtworkUri =
+                                    Uri.parse("content://media/external/audio/albumart")
+                                val albumArtURi =
+                                    ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                                val drw = Glide
+                                    .with(this@Player)
+                                    .load(albumArtURi)
+                                    .centerCrop()
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .submit()
+                                    .get()
+                                Shared.bmp = drw.toBitmap()
+                                var currentName=current.filePath
+                                currentName= currentName.substring(currentName.lastIndexOf("/")+1,currentName.lastIndexOf("."))
+                                val file = File(Constants.albumArtDir, currentName)
+                                val outPutStream = FileOutputStream(file)
+                                Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outPutStream)
+                                outPutStream.close()
+                                Shared.clearBitmap()
+                                GlobalScope.launch(Dispatchers.Main) {
+                                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
+                                }
+                                updateAlbumArt()
+                            }
+                            catch (e:java.lang.Exception)
+                            {
+                                Log.e("ERR>", e.toString())
+                            }
                         }
                     }
-                } catch (e: Exception) {
+                } catch (e: java.lang.IllegalArgumentException) {
                     Log.e("ERR>", e.toString())
                 }
             }
@@ -716,7 +773,7 @@ class Player : AppCompatActivity() {
     fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) {
         finish()
     }
-    
+
     private fun getDurationFromMs(durtn: Int): String {
         val duration = durtn.toLong()
         val seconds = (TimeUnit.MILLISECONDS.toSeconds(duration) -

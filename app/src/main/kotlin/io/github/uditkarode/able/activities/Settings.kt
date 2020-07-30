@@ -20,7 +20,6 @@ class Settings: AppCompatActivity() {
 
         actionBar?.setDisplayHomeAsUpEnabled(true)
         if (Shared.isFirstOpen) Shared.isFirstOpen = false
-
         supportFragmentManager.beginTransaction()
             .replace(
                 R.id.content,

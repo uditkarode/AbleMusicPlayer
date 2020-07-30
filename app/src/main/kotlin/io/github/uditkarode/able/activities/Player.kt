@@ -660,6 +660,10 @@ class Player : AppCompatActivity() {
                                                 ), Shared.getSharedBitmap()
                                             )
                                         }
+                                        when {
+                                            current.filePath.contains(".mp3") -> Shared.addMp3Thumbnail(current.filePath.substringBeforeLast("."))
+                                            current.filePath.contains(".m4a") -> Shared.addM4aThumnail(current.filePath.substringBeforeLast("."))
+                                        }
                                         Shared.clearBitmap()
                                     }
                                 } catch (e: Exception) {
@@ -688,7 +692,6 @@ class Player : AppCompatActivity() {
                                 val outputStream = FileOutputStream(file)
                                 Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
                                 outputStream.close()
-                                Shared.clearBitmap()
                                 GlobalScope.launch(Dispatchers.Main) {
                                     Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
                                 }

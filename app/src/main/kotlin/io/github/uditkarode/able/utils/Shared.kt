@@ -25,6 +25,8 @@ import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import com.arthenica.mobileffmpeg.FFprobe
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
 import com.tonyodev.fetch2.Fetch
 import com.tonyodev.fetch2.Fetch.Impl.getInstance
@@ -123,47 +125,47 @@ class Shared {
 
         /**
          * @param imageFile the File object that points to the thumbnail.
-         * The ID will be extracted from the image path and the mp3 with the same filename
+         * The ID will be extracted from the image path and the mp3 or m4a with the same filename
          * will have the image added to it as artwork in the metadata.
          */
-        fun addMp3Thumbnail(imageFile: String) {
+        fun addThumbnails(imageFile: String, context: Context) {
             try {
                 val id = imageFile.substringAfterLast("/")
                 val albumArt = File(Constants.albumArtDir, id)
-                val audioFile: AudioFile = AudioFileIO.read(File("$imageFile.mp3"))
-                audioFile.tag.setField(
-                    FieldKey.ALBUM,
-                    id
-                )
-                audioFile.tag.setField(AndroidArtwork.createArtworkFromFile(albumArt))
+                val audioFile: AudioFile = AudioFileIO.read(File(imageFile))
+                when {
+                    imageFile.contains(".mp3") -> {
+                        audioFile.tag.setField(
+                            FieldKey.ALBUM,
+                            id
+                        )
+                        audioFile.tag.setField(AndroidArtwork.createArtworkFromFile(albumArt))
+                    }
+                    imageFile.contains(".m4a") -> {
+                        val mp4tag = audioFile.tag as Mp4Tag
+                        mp4tag.deleteField(Mp4FieldKey.ARTWORK)
+                        if (mp4tag.getFields(FieldKey.ALBUM).isEmpty())
+                            mp4tag.addField(FieldKey.ALBUM, id)
+                        val bitmap = Glide
+                            .with(context)
+                            .asBitmap()
+                            .load(albumArt)
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .submit()
+                            .get()
+                        val stream = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                        val bitmapData = stream.toByteArray()
+                        mp4tag.createArtworkField(bitmapData)
+                    }
+                }
                 audioFile.commit()
-            }
-            catch (e:java.lang.Exception){
+            } catch (e: java.lang.Exception) {
                 e.printStackTrace()
             }
         }
 
-        /**
-         * @param imageFile the File object that points to the thumbnail.
-         * The ID will be extracted from the image path and the m4a with the same filename
-         * will have the image added to it as artwork in the metadata.
-         */
-        fun addM4aThumnail(imageFile: String) {
-            try {
-                val id = imageFile.substringAfterLast("/")
-                val albumArt = File(Constants.albumArtDir, id)
-                val audioFile: AudioFile = AudioFileIO.read(File("$imageFile.m4a"))
-                val mp4tag = audioFile.tag as Mp4Tag
-                mp4tag.deleteField(Mp4FieldKey.ARTWORK)
-                if(mp4tag.getFields(FieldKey.ALBUM).isEmpty())
-                    mp4tag.addField(FieldKey.ALBUM,id)
-                mp4tag.createArtworkField(albumArt.readBytes())
-                audioFile.commit()
-            }
-            catch (e:java.lang.Exception){
-                e.printStackTrace()
-            }
-        }
 
         /**
          * @param link a URL.

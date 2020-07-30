@@ -216,7 +216,7 @@ class DownloadService: JobIntentService() {
                                     song.resultReceiver.send(123, bundle)
                                     fetch?.removeListener(this)
                                     if (format == Format.MODE_MP3)
-                                        Shared.addMp3Thumbnail(target)
+                                        Shared.addThumbnails("$target.mp3",applicationContext)
                                     songQueue.clear()
                                     stopSelf()
                                 } else {

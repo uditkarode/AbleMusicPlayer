@@ -660,10 +660,7 @@ class Player : AppCompatActivity() {
                                                 ), Shared.getSharedBitmap()
                                             )
                                         }
-                                        when {
-                                            current.filePath.contains(".mp3") -> Shared.addMp3Thumbnail(current.filePath.substringBeforeLast("."))
-                                            current.filePath.contains(".m4a") -> Shared.addM4aThumnail(current.filePath.substringBeforeLast("."))
-                                        }
+                                        Shared.addThumbnails(current.filePath, applicationContext)
                                         Shared.clearBitmap()
                                     }
                                 } catch (e: Exception) {

@@ -19,4 +19,4 @@
 package io.github.uditkarode.able.models
 
 class Song(val name: String, var artist: String="", var youtubeLink: String = "",
-           var filePath: String = "", var placeholder: Boolean = false, val ytmThumbnail: String = "")
+           var filePath: String = "", var placeholder: Boolean = false, val ytmThumbnail: String = "", val albumId: Long = -1)

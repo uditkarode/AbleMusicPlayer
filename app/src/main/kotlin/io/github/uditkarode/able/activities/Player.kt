@@ -14,12 +14,11 @@
 
 package io.github.uditkarode.able.activities
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
@@ -54,6 +53,7 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
@@ -73,6 +73,9 @@ import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.player410.img_albart
 import kotlinx.android.synthetic.main.player410.note_ph
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -81,6 +84,7 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.json.JSONObject
 import java.io.File
+import java.io.FileOutputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -546,6 +550,7 @@ class Player : AppCompatActivity() {
                     note_ph.visibility = View.GONE
                     Glide.with(this@Player)
                         .load(cacheImg)
+                        .centerCrop()
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                         .skipMemoryCache(true)
                         .into(img_albart)
@@ -566,6 +571,7 @@ class Player : AppCompatActivity() {
                             note_ph.visibility = View.GONE
                             Glide.with(this@Player)
                                 .load(img)
+                                .centerCrop()
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(img_albart)
@@ -603,7 +609,6 @@ class Player : AppCompatActivity() {
                                 .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
                                 .build()
                         }
-
                         val response = OkHttpClient().newCall(albumArtRequest).execute().body
                         try {
                             if (response != null) {
@@ -614,6 +619,7 @@ class Player : AppCompatActivity() {
                                     val drw = Glide
                                         .with(this@Player)
                                         .load(imgLink)
+                                        .centerCrop()
                                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                                         .skipMemoryCache(true)
                                         .submit()
@@ -656,11 +662,41 @@ class Player : AppCompatActivity() {
                                     Log.e("ERR>", e.toString())
                                 }
                             }
-                        } catch (e: Exception) {
+                        } catch (e: Exception) { //If no Album Art found on Deezer then Check if album art in Metadata
                             Log.e("ERR>", e.toString())
+                            try {
+                                val sArtworkUri =
+                                    Uri.parse("content://media/external/audio/albumart")
+                                val albumArtURi =
+                                    ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                                val drw = Glide
+                                    .with(this@Player)
+                                    .load(albumArtURi)
+                                    .centerCrop()
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .submit()
+                                    .get()
+                                Shared.bmp = drw.toBitmap()
+                                var currentName=current.filePath
+                                currentName= currentName.substring(currentName.lastIndexOf("/")+1,currentName.lastIndexOf("."))
+                                val file = File(Constants.albumArtDir, currentName)
+                                val outPutStream = FileOutputStream(file)
+                                Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outPutStream)
+                                outPutStream.close()
+                                Shared.clearBitmap()
+                                GlobalScope.launch(Dispatchers.Main) {
+                                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
+                                }
+                                updateAlbumArt()
+                            }
+                            catch (e:java.lang.Exception)
+                            {
+                                Log.e("ERR>", e.toString())
+                            }
                         }
                     }
-                } catch (e: Exception) {
+                } catch (e: java.lang.IllegalArgumentException) {
                     Log.e("ERR>", e.toString())
                 }
             }

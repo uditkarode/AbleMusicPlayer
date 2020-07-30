@@ -153,15 +153,29 @@ class Home: Fragment() {
     }
 
     fun streamAudio(song: Song, toCache: Boolean){
-        if(!Shared.serviceRunning(MusicService::class.java, requireContext())){
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                requireActivity().startForegroundService(Intent(requireContext(), MusicService::class.java))
-            } else {
-                requireActivity().startService(Intent(requireContext(), MusicService::class.java))
-            }
+        if(isAdded) {
+            if (!Shared.serviceRunning(MusicService::class.java, requireContext())) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    requireActivity().startForegroundService(
+                        Intent(
+                            requireContext(),
+                            MusicService::class.java
+                        )
+                    )
+                } else {
+                    requireActivity().startService(
+                        Intent(
+                            requireContext(),
+                            MusicService::class.java
+                        )
+                    )
+                }
 
-            bindEvent()
+                bindEvent()
+            }
         }
+        else
+            Log.d("ERR", "Context Lost")
 
         thread {
             @Suppress("ControlFlowWithEmptyBody")

@@ -29,6 +29,7 @@ import android.view.View
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -93,7 +94,7 @@ import kotlin.concurrent.thread
 /**
  * The Player UI activity.
  */
-@Suppress("DEPRECATION")
+
 class Player : AppCompatActivity() {
     private var onShuffle = false
     private var onRepeat = false
@@ -205,10 +206,7 @@ class Player : AppCompatActivity() {
 
         song_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            when {
-                current.filePath.contains("Able") && (current.filePath.contains("mp3")|| current.filePath.contains
-                    ("webm"))
-                -> {
+                if(!current.isLocal){
                     MaterialDialog(this@Player).show {
                         title(text = this@Player.getString(R.string.enter_new_song))
                         input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
@@ -249,16 +247,11 @@ class Player : AppCompatActivity() {
                         getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
                 }
-            }
         }
 
         artist_name.setOnClickListener {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            when {
-                current.filePath.contains("Able") && (current.filePath.contains("mp3") || current.filePath.contains(
-                    "webm"
-                ))
-                -> {
+                if(!current.isLocal){
                     MaterialDialog(this@Player).show {
                         title(text = this@Player.getString(R.string.enter_new_art))
                         input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
@@ -299,7 +292,6 @@ class Player : AppCompatActivity() {
                         getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
                 }
-            }
         }
 
         (shuffle_button.parent as View).post {
@@ -588,8 +580,8 @@ class Player : AppCompatActivity() {
                     else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
                     {
                         setBgColor(0x002171)
-                        player_seekbar.progressDrawable.setTint(resources.getColor(R.color.thatAccent))
-                        player_seekbar.thumb.setTint(resources.getColor(R.color.colorPrimary))
+                        player_seekbar.progressDrawable.setTint(ContextCompat.getColor(this, R.color.thatAccent))
+                        player_seekbar.thumb.setTint(ContextCompat.getColor(this, R.color.colorPrimary))
                         tintControls(0x002171)
                     }
                     else {
@@ -681,9 +673,9 @@ class Player : AppCompatActivity() {
                                 var currentName=current.filePath
                                 currentName= currentName.substring(currentName.lastIndexOf("/")+1,currentName.lastIndexOf("."))
                                 val file = File(Constants.albumArtDir, currentName)
-                                val outPutStream = FileOutputStream(file)
-                                Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outPutStream)
-                                outPutStream.close()
+                                val outputStream = FileOutputStream(file)
+                                Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                                outputStream.close()
                                 Shared.clearBitmap()
                                 GlobalScope.launch(Dispatchers.Main) {
                                     Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())

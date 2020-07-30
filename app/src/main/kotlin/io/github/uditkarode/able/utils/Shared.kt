@@ -393,14 +393,17 @@ class Shared {
                 do{
                     val path:String=songCursor.getString(2)
                     if(!path.contains("Able") && !path.contains("WhatsApp")) {
-                        songs.add(
-                            Song(
-                                songCursor.getString(0),
-                                songCursor.getString(1),
-                                filePath = songCursor.getString(2),
-                                albumId = songCursor.getLong(3)
+                        if(path.contains("mp3") || path.contains("m4a")){
+                            songs.add(
+                                Song(
+                                    songCursor.getString(0),
+                                    songCursor.getString(1),
+                                    filePath = path,
+                                    albumId = songCursor.getLong(3),
+                                    isLocal = true
+                                )
                             )
-                        )
+                        }
                     }
                 }while (songCursor.moveToNext())
             }

@@ -27,26 +27,30 @@ import kotlin.collections.ArrayList
 internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
+
 class SwipeControllerActions(private var mode: String) {
     private var songList = ArrayList<Song>()
     private lateinit var itemPressed: Search.SongCallback
 
-    private fun initialiseSongCallback(context: Context?){
+    private fun initialiseSongCallback(context: Context?) {
         try {
             itemPressed = context as Activity as Search.SongCallback
         } catch (e: ClassCastException) {
             e.printStackTrace()
         }
     }
-    private fun getSongList(context: Context?)
-    {
+
+    private fun getSongList(context: Context?) {
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(context!!))
-        songList = ArrayList(songList.sortedBy { it.name.toUpperCase(
-            Locale.getDefault()) })
+        songList = ArrayList(songList.sortedBy {
+            it.name.toUpperCase(
+                Locale.getDefault()
+            )
+        })
     }
 
-    fun onLeftClicked(context: Context?,position: Int) {
+    fun onLeftClicked(context: Context?, position: Int) {
         when {
             mode.isEmpty() -> {
                 getSongList(context!!)
@@ -78,7 +82,8 @@ class SwipeControllerActions(private var mode: String) {
                                             it.name == "$charSequence.json"
                                         }[0], current, context)
                                     }
-                                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+                                    getInputLayout().boxBackgroundColor =
+                                        Color.parseColor("#000000")
                                 }
                             }
                             else -> {
@@ -94,7 +99,8 @@ class SwipeControllerActions(private var mode: String) {
             }
         }
     }
-    fun onRightClicked(context: Context?,position: Int) {
+
+    fun onRightClicked(context: Context?, position: Int) {
         when {
             mode.isEmpty() -> {
                 getSongList(context!!)
@@ -135,16 +141,16 @@ class SwipeControllerActions(private var mode: String) {
         }
     }
 }
+
 @Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
-class SwipeController(private val context: Context?, private val list:String?) :
+class SwipeController(private val context: Context?, private val list: String?) :
     ItemTouchHelper.Callback() {
     private var swipeBack = false
     private var buttonShowedState = ButtonsState.GONE
     private var buttonInstance: RectF? = null
-    private lateinit var buttonsActions:SwipeControllerActions
+    private lateinit var buttonsActions: SwipeControllerActions
     private val buttonWidth = 200f
-
 
     override fun getMovementFlags(
         recyclerView: RecyclerView,
@@ -166,6 +172,7 @@ class SwipeController(private val context: Context?, private val list:String?) :
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
     }
+
     override fun convertToAbsoluteDirection(flags: Int, layoutDirection: Int): Int {
         if (swipeBack) {
             swipeBack = false
@@ -188,11 +195,11 @@ class SwipeController(private val context: Context?, private val list:String?) :
             setTouchListener(recyclerView, viewHolder, dX)
         }
         buttonShowedState = when {
-            dX<-50 -> ButtonsState.RIGHT_VISIBLE
-            dX>50 -> ButtonsState.LEFT_VISIBLE
+            dX < -50 -> ButtonsState.RIGHT_VISIBLE
+            dX > 50 -> ButtonsState.LEFT_VISIBLE
             else -> ButtonsState.GONE
         }
-        drawButtons(c,viewHolder)
+        drawButtons(c, viewHolder)
         super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
     }
 
@@ -202,16 +209,15 @@ class SwipeController(private val context: Context?, private val list:String?) :
         dX: Float
     ) {
         recyclerView.setOnTouchListener { _, event ->
-            swipeBack = event.action == MotionEvent.ACTION_CANCEL || event.action == MotionEvent.ACTION_UP
+            swipeBack =
+                event.action == MotionEvent.ACTION_CANCEL || event.action == MotionEvent.ACTION_UP
             if (swipeBack) {
-                if (dX < -buttonWidth)
-                {
+                if (dX < -buttonWidth) {
                     buttonShowedState = ButtonsState.RIGHT_VISIBLE
-                    buttonsActions.onRightClicked(context,viewHolder.adapterPosition)
-                }
-                else if (dX > buttonWidth){
+                    buttonsActions.onRightClicked(context, viewHolder.adapterPosition)
+                } else if (dX > buttonWidth) {
                     buttonShowedState = ButtonsState.LEFT_VISIBLE
-                    buttonsActions.onLeftClicked(context,viewHolder.adapterPosition)
+                    buttonsActions.onLeftClicked(context, viewHolder.adapterPosition)
                 }
             }
             false
@@ -236,18 +242,17 @@ class SwipeController(private val context: Context?, private val list:String?) :
             )
             p.color = Color.argb(255, 148, 188, 227)
             c.drawRoundRect(leftButton, corners, corners, p)
-            if(list.equals("Home"))
+            if (list.equals("Home"))
                 drawText("Playlist", c, leftButton, p)
             else
-                drawText(MusicMode.both,c,leftButton,p)
-            buttonsActions = when(list){
-                "Search"->
+                drawText(MusicMode.both, c, leftButton, p)
+            buttonsActions = when (list) {
+                "Search" ->
                     SwipeControllerActions(MusicMode.both)
-                else-> SwipeControllerActions("")
+                else -> SwipeControllerActions("")
             }
             buttonInstance = leftButton
-        }
-        else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
+        } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
             val rightButton = RectF(
                 itemView.right - buttonWidthWithoutPadding,
                 itemView.top.toFloat(),
@@ -256,27 +261,27 @@ class SwipeController(private val context: Context?, private val list:String?) :
             )
             p.color = Color.argb(255, 183, 28, 28)
             c.drawRoundRect(rightButton, corners, corners, p)
-            if(list.equals("Home"))
+            if (list.equals("Home"))
                 drawText("DELETE", c, rightButton, p)
             else {
                 val mode: String? = PreferenceManager.getDefaultSharedPreferences(context)
                     .getString("mode_key", MusicMode.download)
-                val currentMode:String = if (mode == MusicMode.download) {
+                val currentMode: String = if (mode == MusicMode.download) {
                     drawText(MusicMode.stream, c, rightButton, p)
                     MusicMode.stream
                 } else {
                     drawText(MusicMode.download, c, rightButton, p)
                     MusicMode.download
                 }
-                buttonsActions = when(list){
-                    "Search"->
+                buttonsActions = when (list) {
+                    "Search" ->
                         SwipeControllerActions(currentMode)
-                    else-> SwipeControllerActions("")
+                    else -> SwipeControllerActions("")
                 }
             }
             buttonInstance = rightButton
         }
-        buttonShowedState=ButtonsState.GONE
+        buttonShowedState = ButtonsState.GONE
     }
 
     private fun drawText(
@@ -286,8 +291,8 @@ class SwipeController(private val context: Context?, private val list:String?) :
         p: Paint
     ) {
         var textSize = 50f
-        if(text == MusicMode.download)
-            textSize=35f
+        if (text == MusicMode.download)
+            textSize = 35f
         p.color = Color.WHITE
         p.isAntiAlias = true
         p.textSize = textSize

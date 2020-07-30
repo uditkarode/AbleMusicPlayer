@@ -189,9 +189,9 @@ class DownloadService: JobIntentService() {
                         val target = mediaFile.absolutePath.toString()
 
                         var command = "-i " +
-                                "\"${target}\" -c copy " +
+                                "\"${target}\" -y -c copy " +
                                 "-metadata title=\"${name}\" " +
-                                "-metadata artist=\"${song.artist}\" -y "
+                                "-metadata artist=\"${song.artist}\" "
                         val format =
                             if (PreferenceManager.getDefaultSharedPreferences(
                                     applicationContext
@@ -205,7 +205,7 @@ class DownloadService: JobIntentService() {
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
 
                         command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                        thread{ //to deal with UI thread Block
+                        thread { //to deal with UI thread Block
                         when (val rc = FFmpeg.execute(command)) {
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()

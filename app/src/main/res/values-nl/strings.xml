@@ -62,15 +62,15 @@
     <string name="donate_subtext">Hoi iedereen! Het heeft veel werk gekost om dit project te realiseren en ik hoop dat je ervan geniet! Als je het project leuk vindt en wilt dat het doorgaat, overweeg dan om te doneren. Het motiveert me om eraan te blijven werken.
 
 
-Je kunt doneren via% 1 $ s
-of via het UPI-adres% 2 $ s</string>
+Je kunt doneren via %1$s
+of via het UPI-adres %2$s</string>
     <string name="enter_song">Voer de naam van het nummer in</string>
     <string name="enter_new_song">Voer de nieuwe songnaam in</string>
     <string name="enter_new_art">Voer de nieuwe songartiest in</string>
     <string name="song_ex">bv. Wake Up Eden</string>
     <string name="song_ex2">bv. Wake Up</string>
     <string name="art_ex">bv. Eden</string>
-    <string name="res_confirm_txt">Weet je zeker dat je% 1 $ s (% 2 $ s) van schijf wilt verwijderen?</string>
+    <string name="res_confirm_txt">Weet je zeker dat je %1$s (%2$s) van schijf wilt verwijderen?</string>
     <string name="rem_song">Kies nummer om te verwijderen</string>
     <string name="rem_disk">Verwijderen van schijf</string>
     <string name="rem_playlist">Afspeellijst verwijderen</string>

@@ -415,16 +415,15 @@ class Shared {
                 null,
                 MediaStore.Audio.Media.DEFAULT_SORT_ORDER + " ASC"
             )
-            if(songCursor!=null && songCursor.moveToFirst())
-            {
-                do{
+            if(songCursor != null && songCursor.moveToFirst()) {
+                do {
                     val path:String=songCursor.getString(2)
                     if(!path.contains("Able") && !path.contains("WhatsApp")) {
                         if(path.contains("mp3") || path.contains("m4a")){
                             songs.add(
                                 Song(
-                                    songCursor.getString(0),
-                                    songCursor.getString(1),
+                                    name = songCursor.getString(0),
+                                    artist = songCursor.getString(1),
                                     filePath = path,
                                     albumId = songCursor.getLong(3),
                                     isLocal = true

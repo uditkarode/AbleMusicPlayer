@@ -565,7 +565,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     fun showNotification(
         action: Notification.Action,
-        image: Bitmap? = null
+        image: Bitmap? = null,
+        nameOverride: String? = null,
+        artistOverride: String? = null
     ) {
         try {
             if (image == null) {
@@ -594,17 +596,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
 
         if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true) {
-           /* songCoverArt = WeakReference(
-                GlideBitmapFactory.decodeResource(
-                    this.resources,
-                     R.drawable.def_albart
-                )
-            )   Reason: Freezes Notification for 1sec as it fetches the bitmap everytime */
             builder?.setLargeIcon(Shared.defBitmap) //Reduces ram usage as we already have the Bitmap
         }
 
-        builder?.setContentTitle(playQueue[currentIndex].name)
-        builder?.setContentText(playQueue[currentIndex].artist)
+
+        builder?.setContentTitle(nameOverride ?: playQueue[currentIndex].name)
+        builder?.setContentText(artistOverride ?: playQueue[currentIndex].artist)
 
         /* clear actions */
         try {

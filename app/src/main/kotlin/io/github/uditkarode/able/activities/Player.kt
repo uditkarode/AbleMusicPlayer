@@ -224,11 +224,6 @@ class Player : AppCompatActivity() {
                     val ext = current.filePath.run {
                         this.substring(this.lastIndexOf(".") + 1)
                     }
-                    Log.e("asdasd", "-i " +
-                            "\"${current.filePath}\" -y -c copy " +
-                            "-metadata title=\"$charSequence\" " +
-                            "-metadata artist=\"${current.artist}\"" +
-                            " \"${current.filePath}.new.$ext\"")
                     when (val rc = FFmpeg.execute(
                         "-i " +
                                 "\"${current.filePath}\" -y -c copy " +
@@ -757,6 +752,8 @@ class Player : AppCompatActivity() {
                 ), nameOverride = name, artistOverride = artist
             )
         }
+
+        EventBus.getDefault().postSticky(UpdateQueueEvent())
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

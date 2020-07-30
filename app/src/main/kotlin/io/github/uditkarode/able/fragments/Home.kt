@@ -19,7 +19,6 @@
 package io.github.uditkarode.able.fragments
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Bitmap
@@ -54,6 +53,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.HomeLoadingEvent
+import io.github.uditkarode.able.events.UpdateQueueEvent
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -63,6 +63,7 @@ import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.home.*
 import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
@@ -278,12 +279,13 @@ class Home: Fragment() {
                                 Config.RETURN_CODE_SUCCESS -> {
                                     tempFile.delete()
                                     activity?.runOnUiThread {
-                                        Log.i("INFO>", "Updating RecyclerView")
-                                        val songList2 = Shared.getSongList(Constants.ableSongDir)
-                                        songList2.addAll(Shared.getLocalSongs(context!!))
-                                        songAdapter?.update(songList2)
+                                        songList = Shared.getSongList(Constants.ableSongDir)
+                                        songList.addAll(Shared.getLocalSongs(requireContext()))
+                                        activity?.runOnUiThread {
+                                            songAdapter?.update(songList)
+                                        }
+                                        songAdapter?.update(songList)
                                         songAdapter?.notifyDataSetChanged()
-                                        songList2.clear()
                                     }
                                 }
                                 Config.RETURN_CODE_CANCEL -> {
@@ -322,8 +324,12 @@ class Home: Fragment() {
         }
     }
 
-    /* download to videoId.webm.tmp, add metadata and save to videoId.webm */
-    fun downloadVideo(){
+    @Subscribe(sticky = true)
+    fun updateQueueEvent(uqe: UpdateQueueEvent){
+        updateSongList()
+    }
+
+    fun updateSongList(){
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(requireContext()))
         activity?.runOnUiThread {

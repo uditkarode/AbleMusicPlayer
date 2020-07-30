@@ -357,5 +357,5 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         }
     }
 
-    override fun onReceiveResult(resultCode: Int) { home.downloadVideo() }
+    override fun onReceiveResult(resultCode: Int) { home.updateSongList() }
 }

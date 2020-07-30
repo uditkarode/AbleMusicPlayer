@@ -661,7 +661,6 @@ class Player : AppCompatActivity() {
                                             )
                                         }
                                         Shared.addThumbnails(current.filePath, applicationContext)
-                                        Shared.clearBitmap()
                                     }
                                 } catch (e: Exception) {
                                     Log.e("ERR>", e.toString())

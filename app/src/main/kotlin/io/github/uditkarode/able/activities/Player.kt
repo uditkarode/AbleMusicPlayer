@@ -196,12 +196,24 @@ class Player : AppCompatActivity() {
 
         album_art.setOnClickListener {
             MaterialDialog(this@Player).show {
+                cornerRadius(20f)
                 title(text = this@Player.getString(R.string.enter_song))
                 input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
                     updateAlbumArt(charSequence.toString())
                 }
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
+        }
+        album_art.setOnLongClickListener {
+            MaterialDialog(this@Player).show {
+                cornerRadius(20f)
+                title(text = this@Player.getString(R.string.enter_song))
+                input(prefill = mService.getPlayQueue()[mService.getCurrentIndex()].name) { _, charSequence ->
+                    updateAlbumArt(charSequence.toString())
+                }
+                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+            }
+            true
         }
 
         song_name.setOnClickListener {

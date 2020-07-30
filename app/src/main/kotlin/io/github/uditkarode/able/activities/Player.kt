@@ -196,12 +196,24 @@ class Player : AppCompatActivity() {
 
         album_art.setOnClickListener {
             MaterialDialog(this@Player).show {
+                cornerRadius(20f)
                 title(text = this@Player.getString(R.string.enter_song))
                 input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
                     updateAlbumArt(charSequence.toString())
                 }
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
+        }
+        album_art.setOnLongClickListener {
+            MaterialDialog(this@Player).show {
+                cornerRadius(20f)
+                title(text = this@Player.getString(R.string.enter_song))
+                input(prefill = mService.getPlayQueue()[mService.getCurrentIndex()].name) { _, charSequence ->
+                    updateAlbumArt(charSequence.toString())
+                }
+                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+            }
+            true
         }
 
         song_name.setOnClickListener {
@@ -648,6 +660,10 @@ class Player : AppCompatActivity() {
                                                 ), Shared.getSharedBitmap()
                                             )
                                         }
+                                        when {
+                                            current.filePath.contains(".mp3") -> Shared.addMp3Thumbnail(current.filePath.substringBeforeLast("."))
+                                            current.filePath.contains(".m4a") -> Shared.addM4aThumnail(current.filePath.substringBeforeLast("."))
+                                        }
                                         Shared.clearBitmap()
                                     }
                                 } catch (e: Exception) {
@@ -676,7 +692,6 @@ class Player : AppCompatActivity() {
                                 val outputStream = FileOutputStream(file)
                                 Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
                                 outputStream.close()
-                                Shared.clearBitmap()
                                 GlobalScope.launch(Dispatchers.Main) {
                                     Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
                                 }

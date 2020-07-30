@@ -37,12 +37,15 @@ import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
 import org.jaudiotagger.tag.images.AndroidArtwork
+import org.jaudiotagger.tag.mp4.Mp4FieldKey
+import org.jaudiotagger.tag.mp4.Mp4Tag
 import org.json.JSONArray
 import java.io.*
 import java.util.*
 import kotlin.collections.ArrayList
 
 
+@Suppress("DEPRECATION")
 class Shared {
     companion object {
         /** To only show the splash screen on the first launch of
@@ -125,7 +128,7 @@ class Shared {
          */
         fun addMp3Thumbnail(imageFile: String) {
             try {
-                val id = imageFile.substring(imageFile.lastIndexOf("/"))
+                val id = imageFile.substringAfterLast("/")
                 val albumArt = File(Constants.albumArtDir, id)
                 val audioFile: AudioFile = AudioFileIO.read(File("$imageFile.mp3"))
                 audioFile.tag.setField(
@@ -133,6 +136,28 @@ class Shared {
                     id
                 )
                 audioFile.tag.setField(AndroidArtwork.createArtworkFromFile(albumArt))
+                audioFile.commit()
+            }
+            catch (e:java.lang.Exception){
+                e.printStackTrace()
+            }
+        }
+
+        /**
+         * @param imageFile the File object that points to the thumbnail.
+         * The ID will be extracted from the image path and the m4a with the same filename
+         * will have the image added to it as artwork in the metadata.
+         */
+        fun addM4aThumnail(imageFile: String) {
+            try {
+                val id = imageFile.substringAfterLast("/")
+                val albumArt = File(Constants.albumArtDir, id)
+                val audioFile: AudioFile = AudioFileIO.read(File("$imageFile.m4a"))
+                val mp4tag = audioFile.tag as Mp4Tag
+                mp4tag.deleteField(Mp4FieldKey.ARTWORK)
+                if(mp4tag.getFields(FieldKey.ALBUM).isEmpty())
+                    mp4tag.addField(FieldKey.ALBUM,id)
+                mp4tag.createArtworkField(albumArt.readBytes())
                 audioFile.commit()
             }
             catch (e:java.lang.Exception){

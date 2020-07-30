@@ -248,11 +248,9 @@ class Player : AppCompatActivity() {
 
                                         override fun onScanCompleted(path: String?, uri: Uri?) {
                                             metadataChangeEvent(
-                                                GetMetaDataEvent(
                                                     name = charSequence.toString(),
                                                     artist = current.artist
-                                                ))
-
+                                                )
                                         }
                                     })
                             }
@@ -306,10 +304,9 @@ class Player : AppCompatActivity() {
 
                                         override fun onScanCompleted(path: String?, uri: Uri?) {
                                             metadataChangeEvent(
-                                                GetMetaDataEvent(
                                                     name = current.name,
                                                     artist = charSequence.toString()
-                                                ))
+                                                )
 
                                         }
                                     })
@@ -737,14 +734,19 @@ class Player : AppCompatActivity() {
         }
     }
 
-    private fun metadataChangeEvent(metaDataEvent: GetMetaDataEvent) {
+    private fun metadataChangeEvent(name: String, artist: String) {
+        runOnUiThread {
+            song_name.text = name
+            artist_name.text = artist
+        }
+
         if (mService.getMediaPlayer().isPlaying) {
             mService.showNotification(
                 mService.generateAction(
                     R.drawable.pause,
                     getString(R.string.pause),
                     "ACTION_PAUSE"
-                ), nameOverride = metaDataEvent.name, artistOverride = metaDataEvent.artist
+                ), nameOverride = name, artistOverride = artist
             )
         } else {
             mService.showNotification(
@@ -752,7 +754,7 @@ class Player : AppCompatActivity() {
                     R.drawable.play,
                     getString(R.string.play),
                     "ACTION_PLAY"
-                ), nameOverride = metaDataEvent.name, artistOverride = metaDataEvent.artist
+                ), nameOverride = name, artistOverride = artist
             )
         }
     }

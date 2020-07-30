@@ -159,7 +159,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         mediaPlayer.setOnErrorListener { _, _, _ ->
             true
         }
-        mediaPlayer.setOnCompletionListener() {
+        mediaPlayer.setOnCompletionListener {
+            previousIndex= currentIndex
             nextSong()
         }
 

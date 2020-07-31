@@ -19,21 +19,28 @@
 package io.github.uditkarode.able.adapters
 
 import android.annotation.SuppressLint
+import android.content.ContentUris
 import android.content.Context
 import android.graphics.Typeface
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.graphics.drawable.toBitmap
+import androidx.palette.graphics.Palette
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.Shared
+import kotlinx.android.synthetic.main.player410.*
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -63,11 +70,32 @@ class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
                         .skipMemoryCache(true)
                         .into(this)
                 else
-                    Glide.with(holder.getContext())
-                        .load(GlideBitmapFactory.decodeResource(holder.getContext().resources, R.drawable.def_albart))
-                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                        .skipMemoryCache(true)
-                        .into(this)
+                {
+                    try{
+                        val sArtworkUri =
+                            Uri.parse("content://media/external/audio/albumart")
+                        val albumArtURi =
+                            ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                        Glide
+                            .with(holder.getContext())
+                            .load(albumArtURi)
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .into(this)
+                        }
+                    catch(e: Exception) {
+                        Glide.with(holder.getContext())
+                            .load(
+                                GlideBitmapFactory.decodeResource(
+                                    holder.getContext().resources,
+                                    R.drawable.def_albart
+                                )
+                            )
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .into(this)
+                    }
+                }
             }
         }
 

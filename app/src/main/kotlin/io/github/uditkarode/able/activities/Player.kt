@@ -47,6 +47,7 @@ import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.signature.ObjectKey
 import com.glidebitmappool.GlideBitmapFactory
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
@@ -60,6 +61,7 @@ import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.android.synthetic.main.player.*
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
 import kotlinx.android.synthetic.main.player.next_song
@@ -614,10 +616,38 @@ class Player : AppCompatActivity() {
                     }
                     else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
                     {
-                        setBgColor(0x002171)
-                        player_seekbar.progressDrawable.setTint(ContextCompat.getColor(this, R.color.thatAccent))
-                        player_seekbar.thumb.setTint(ContextCompat.getColor(this, R.color.colorPrimary))
-                        tintControls(0x002171)
+                        try{
+                            img_albart.visibility = View.VISIBLE
+                            note_ph.visibility = View.GONE
+                            val sArtworkUri =
+                                Uri.parse("content://media/external/audio/albumart")
+                            val albumArtURi =
+                                ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                            val dmw = Glide
+                                .with(this@Player)
+                                .load(albumArtURi)
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
+                                .signature(ObjectKey("home"))
+                                .submit()
+                                .get()
+                            runOnUiThread {
+                                album_art.background = dmw
+                                Shared.bmp = dmw.toBitmap()
+                                Palette.from(Shared.getSharedBitmap()).generate {
+                                    setBgColor(
+                                        it?.getDominantColor(0x002171) ?: 0x002171,
+                                        it?.getLightMutedColor(0x002171) ?: 0x002171,
+                                        it?.dominantSwatch?.bodyTextColor ?: 0x002171
+                                    )
+                                }
+                            }
+                        }catch (e: java.lang.Exception){
+                            setBgColor(0x002171)
+                            player_seekbar.progressDrawable.setTint(ContextCompat.getColor(this, R.color.thatAccent))
+                            player_seekbar.thumb.setTint(ContextCompat.getColor(this, R.color.colorPrimary))
+                            tintControls(0x002171)
+                        }
                     }
                     else {
                         val albumArtRequest = if (customSongName == null) {

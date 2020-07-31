@@ -20,14 +20,12 @@ package io.github.uditkarode.able.services
 
 import android.annotation.SuppressLint
 import android.app.*
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.graphics.Bitmap
 import android.media.*
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.net.Uri
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -35,6 +33,7 @@ import android.os.PowerManager
 import android.util.Log
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
@@ -48,6 +47,9 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -596,7 +598,26 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         }
 
         if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true) {
-            builder?.setLargeIcon(Shared.defBitmap) //Reduces ram usage as we already have the Bitmap
+            try{
+                val sArtworkUri =
+                    Uri.parse("content://media/external/audio/albumart")
+                val albumArtURi =
+                    ContentUris.withAppendedId(sArtworkUri, playQueue[currentIndex].albumId)
+                thread {
+                    val dmw = Glide
+                        .with(applicationContext)
+                        .asBitmap()
+                        .load(albumArtURi)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true)
+                        .submit()
+                        .get()
+                    builder?.setLargeIcon(dmw)
+                }
+            }
+            catch (e:java.lang.Exception) {
+                builder?.setLargeIcon(Shared.defBitmap) //Reduces ram usage as we already have the Bitmap
+            }
         }
 
 

@@ -30,3 +30,7 @@ public *;
 
 -keep class androidx.core.app.NotificationCompat { *; }
 -keep class androidx.core.app.NotificationCompat$* { *; }
+
+# JAudioTagger
+-dontwarn org.jaudiotagger.**
+-keep class org.jaudiotagger.** { *; }

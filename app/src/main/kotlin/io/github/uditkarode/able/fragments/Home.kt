@@ -281,6 +281,11 @@ class Home: Fragment() {
                                     activity?.runOnUiThread {
                                         songList = Shared.getSongList(Constants.ableSongDir)
                                         songList.addAll(Shared.getLocalSongs(requireContext()))
+                                        songList = ArrayList(songList.sortedBy {
+                                            it.name.toUpperCase(
+                                                Locale.getDefault()
+                                            )
+                                        })
                                         activity?.runOnUiThread {
                                             songAdapter?.update(songList)
                                         }
@@ -332,6 +337,11 @@ class Home: Fragment() {
     fun updateSongList(){
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(requireContext()))
+        songList = ArrayList(songList.sortedBy {
+            it.name.toUpperCase(
+                Locale.getDefault()
+            )
+        })
         activity?.runOnUiThread {
             songAdapter?.update(songList)
         }

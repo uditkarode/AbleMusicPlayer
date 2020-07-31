@@ -149,7 +149,7 @@ class SwipeController(private val context: Context?, private val list: String?) 
     private var swipeBack = false
     private var buttonShowedState = ButtonsState.GONE
     private var buttonInstance: RectF? = null
-    private lateinit var buttonsActions: SwipeControllerActions
+    private var buttonsActions = SwipeControllerActions("")
     private val buttonWidth = 200f
 
     override fun getMovementFlags(

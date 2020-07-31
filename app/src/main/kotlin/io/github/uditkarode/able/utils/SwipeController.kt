@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.graphics.*
+import android.media.MediaScannerConnection
+import android.net.Uri
 import android.view.MotionEvent
 import android.view.View
 import androidx.preference.PreferenceManager
@@ -130,6 +132,8 @@ class SwipeControllerActions(private var mode: String) {
                         }
                         songList.removeAt(position)
                         Home.songAdapter?.update(songList)
+                        MediaScannerConnection.scanFile(context,
+                            arrayOf(current.filePath) , null,null)
                     }
                     negativeButton(text = context.getString(R.string.cancel))
                 }

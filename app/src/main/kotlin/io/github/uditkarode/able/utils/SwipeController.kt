@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.*
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.preference.PreferenceManager
@@ -114,8 +115,8 @@ class SwipeControllerActions(private var mode: String) {
                             .format(current.name, current.filePath)
                     )
                     positiveButton(text = "Delete") {
-                        val curFile = File(current.filePath)
-                        if (curFile.absolutePath.contains("Able")) {
+                        try {
+                            val curFile = File(current.filePath)
                             val curArt =
                                 File(
                                     Constants.ableSongDir.absolutePath + "/album_art",
@@ -123,12 +124,10 @@ class SwipeControllerActions(private var mode: String) {
                                 )
                             curFile.delete()
                             curArt.delete()
-                        } else {
-                            try {
-                                curFile.delete()
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
+
+                        }catch (e: Exception)
+                        {
+                            e.printStackTrace()
                         }
                         songList.removeAt(position)
                         Home.songAdapter?.update(songList)

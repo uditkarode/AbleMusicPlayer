@@ -689,37 +689,8 @@ class Player : AppCompatActivity() {
                                     Log.e("ERR>", e.toString())
                                 }
                             }
-                        } catch (e: Exception) { //If no Album Art found on Deezer then Check if album art in Metadata
+                        } catch (e: Exception) {
                             Log.e("ERR>", e.toString())
-                            try {
-                                val sArtworkUri =
-                                    Uri.parse("content://media/external/audio/albumart")
-                                val albumArtURi =
-                                    ContentUris.withAppendedId(sArtworkUri, current.albumId)
-                                val drw = Glide
-                                    .with(this@Player)
-                                    .load(albumArtURi)
-                                    .centerCrop()
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .submit()
-                                    .get()
-                                Shared.bmp = drw.toBitmap()
-                                var currentName=current.filePath
-                                currentName= currentName.substring(currentName.lastIndexOf("/")+1,currentName.lastIndexOf("."))
-                                val file = File(Constants.albumArtDir, currentName)
-                                val outputStream = FileOutputStream(file)
-                                Shared.bmp!!.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
-                                outputStream.close()
-                                GlobalScope.launch(Dispatchers.Main) {
-                                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
-                                }
-                                updateAlbumArt()
-                            }
-                            catch (e:java.lang.Exception)
-                            {
-                                Log.e("ERR>", e.toString())
-                            }
                         }
                     }
                 } catch (e: java.lang.IllegalArgumentException) {

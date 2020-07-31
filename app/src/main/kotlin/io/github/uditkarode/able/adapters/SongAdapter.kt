@@ -19,17 +19,22 @@
 package io.github.uditkarode.able.adapters
 
 import android.app.Activity
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.drawable.toBitmap
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.input.getInputLayout
@@ -54,6 +59,8 @@ import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.File
+import java.io.FileOutputStream
+import java.lang.Exception
 import java.lang.ref.WeakReference
 import kotlin.concurrent.thread
 
@@ -109,12 +116,30 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 .signature(ObjectKey("home"))
                                 .skipMemoryCache(true)
                                 .into(this)
-                            else -> Glide.with(holder.getContext())
-                                .load(Shared.defBitmap)
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .signature(ObjectKey("home"))
-                                .skipMemoryCache(true)
-                                .into(this)
+
+                            else -> {
+                                try {
+                                    val sArtworkUri =
+                                        Uri.parse("content://media/external/audio/albumart")
+                                    val albumArtURi =
+                                        ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                                    Glide
+                                        .with(context)
+                                        .load(albumArtURi)
+                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                        .skipMemoryCache(true)
+                                        .signature(ObjectKey("home"))
+                                        .into(this)
+                                }
+                                catch (e : Exception) {
+                                    Glide.with(holder.getContext())
+                                        .load(Shared.defBitmap)
+                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                        .signature(ObjectKey("home"))
+                                        .skipMemoryCache(true)
+                                        .into(this)
+                                }
+                            }
                         }
                     }
                 }
@@ -211,12 +236,19 @@ class SongAdapter(private var songList: ArrayList<Song>,
                 title(text = holder.itemView.context.getString(R.string.confirmation))
                 message(text = holder.itemView.context.getString(R.string.res_confirm_txt).format(current.name, current.filePath))
                 positiveButton(text = "Delete"){
-                    val curFile = File(current.filePath)
-                    val curArt =
-                        File(Constants.ableSongDir.absolutePath + "/album_art", curFile.nameWithoutExtension)
-
-                    curFile.delete()
-                    curArt.delete()
+                    try {
+                        val curFile = File(current.filePath)
+                        val curArt =
+                            File(
+                                Constants.ableSongDir.absolutePath + "/album_art",
+                                curFile.nameWithoutExtension
+                            )
+                        curFile.delete()
+                        curArt.delete()
+                    }catch (e: Exception)
+                    {
+                        e.printStackTrace()
+                    }
                     songList.removeAt(position)
                     MediaScannerConnection.scanFile(context,
                         arrayOf(current.filePath) , null,null)

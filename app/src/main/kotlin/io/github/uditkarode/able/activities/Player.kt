@@ -616,6 +616,7 @@ class Player : AppCompatActivity() {
                     else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
                     {
                         try{
+                            note_ph.visibility=View.GONE
                             val sArtworkUri =
                                 Uri.parse("content://media/external/audio/albumart")
                             val albumArtURi =
@@ -629,8 +630,6 @@ class Player : AppCompatActivity() {
                                 .submit()
                                 .get()
                             runOnUiThread {
-                                note_ph.visibility = View.GONE
-                                img_albart.visibility = View.VISIBLE
                                 album_art.background = dmw
                                 Shared.bmp = dmw.toBitmap()
                                 Palette.from(Shared.getSharedBitmap()).generate {

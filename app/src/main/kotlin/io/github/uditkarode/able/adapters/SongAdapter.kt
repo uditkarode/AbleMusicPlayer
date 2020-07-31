@@ -22,6 +22,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
@@ -217,6 +218,8 @@ class SongAdapter(private var songList: ArrayList<Song>,
                     curFile.delete()
                     curArt.delete()
                     songList.removeAt(position)
+                    MediaScannerConnection.scanFile(context,
+                        arrayOf(current.filePath) , null,null)
                     notifyDataSetChanged()
                 }
                 negativeButton(text = holder.itemView.context.getString(R.string.cancel))

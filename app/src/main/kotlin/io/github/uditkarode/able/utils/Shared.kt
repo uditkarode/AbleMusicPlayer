@@ -20,6 +20,7 @@ import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
@@ -145,8 +146,7 @@ class Shared {
                     imageFile.contains(".m4a") -> {
                         val mp4tag = audioFile.tag as Mp4Tag
                         mp4tag.deleteField(Mp4FieldKey.ARTWORK)
-                        if (mp4tag.getFields(FieldKey.ALBUM).isEmpty())
-                            mp4tag.addField(FieldKey.ALBUM, id)
+                        mp4tag.setField(FieldKey.ALBUM, id)
                         val bitmap = Glide
                             .with(context)
                             .asBitmap()
@@ -158,10 +158,11 @@ class Shared {
                         val stream = ByteArrayOutputStream()
                         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
                         val bitmapData = stream.toByteArray()
-                        mp4tag.createArtworkField(bitmapData)
+                        mp4tag.addField(mp4tag.createArtworkField(bitmapData))
                     }
                 }
                 audioFile.commit()
+                MediaScannerConnection.scanFile(context, arrayOf(imageFile),null,null)
             } catch (e: java.lang.Exception) {
                 e.printStackTrace()
             }

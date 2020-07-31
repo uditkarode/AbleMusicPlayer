@@ -19,10 +19,12 @@
 package io.github.uditkarode.able.adapters
 
 import android.app.Activity
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
@@ -109,12 +111,28 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 .signature(ObjectKey("home"))
                                 .skipMemoryCache(true)
                                 .into(this)
-                            else -> Glide.with(holder.getContext())
-                                .load(Shared.defBitmap)
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .signature(ObjectKey("home"))
-                                .skipMemoryCache(true)
-                                .into(this)
+                            else -> {
+                                try {
+                                    val sArtworkUri =
+                                        Uri.parse("content://media/external/audio/albumart")
+                                    val albumArtURi =
+                                        ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                                    Glide
+                                        .with(holder.getContext())
+                                        .load(albumArtURi)
+                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                        .skipMemoryCache(true)
+                                        .signature(ObjectKey("home"))
+                                        .into(this)
+                                } catch (e: Exception) {
+                                    Glide.with(holder.getContext())
+                                        .load(Shared.defBitmap)
+                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                        .signature(ObjectKey("home"))
+                                        .skipMemoryCache(true)
+                                        .into(this)
+                                }
+                            }
                         }
                     }
                 }

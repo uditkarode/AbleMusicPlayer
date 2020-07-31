@@ -565,7 +565,6 @@ class Player : AppCompatActivity() {
     private fun updateAlbumArt(customSongName: String? = null) {
         img_albart.visibility = View.GONE
         note_ph.visibility = View.VISIBLE
-
         thread {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             val img = File(Constants.ableSongDir.absolutePath + "/album_art",
@@ -617,8 +616,6 @@ class Player : AppCompatActivity() {
                     else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
                     {
                         try{
-                            img_albart.visibility = View.VISIBLE
-                            note_ph.visibility = View.GONE
                             val sArtworkUri =
                                 Uri.parse("content://media/external/audio/albumart")
                             val albumArtURi =
@@ -632,6 +629,8 @@ class Player : AppCompatActivity() {
                                 .submit()
                                 .get()
                             runOnUiThread {
+                                note_ph.visibility = View.GONE
+                                img_albart.visibility = View.VISIBLE
                                 album_art.background = dmw
                                 Shared.bmp = dmw.toBitmap()
                                 Palette.from(Shared.getSharedBitmap()).generate {
@@ -643,6 +642,8 @@ class Player : AppCompatActivity() {
                                 }
                             }
                         }catch (e: java.lang.Exception){
+                            img_albart.visibility = View.GONE
+                            note_ph.visibility = View.VISIBLE
                             setBgColor(0x002171)
                             player_seekbar.progressDrawable.setTint(ContextCompat.getColor(this, R.color.thatAccent))
                             player_seekbar.thumb.setTint(ContextCompat.getColor(this, R.color.colorPrimary))

@@ -130,7 +130,8 @@ class Shared {
          */
         fun addThumbnails(imageFile: String, context: Context) {
             try {
-                val id = imageFile.substringAfterLast("/")
+                var id = imageFile.substringAfterLast("/")
+                id = id.substringBeforeLast(".")
                 val albumArt = File(Constants.albumArtDir, id)
                 val audioFile: AudioFile = AudioFileIO.read(File(imageFile))
                 when {

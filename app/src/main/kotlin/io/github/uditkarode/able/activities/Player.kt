@@ -33,6 +33,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toDrawable
 import androidx.palette.graphics.Palette
 import androidx.preference.PreferenceManager
 import co.revely.gradient.RevelyGradient
@@ -204,7 +205,7 @@ class Player : AppCompatActivity() {
                 cornerRadius(20f)
                 title(text = this@Player.getString(R.string.enter_song))
                 input(prefill = mService.getPlayQueue()[mService.getCurrentIndex()].name) { _, charSequence ->
-                    updateAlbumArt(charSequence.toString())
+                    updateAlbumArt(charSequence.toString(), true)
                 }
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
@@ -555,190 +556,197 @@ class Player : AppCompatActivity() {
         }
     }
 
-    private fun updateAlbumArt(customSongName: String? = null) {
+    private fun updateAlbumArt(customSongName: String? = null, forceDeezer: Boolean = false) {
+        /* set helper variables */
         img_albart.visibility = View.GONE
         note_ph.visibility = View.VISIBLE
+        var didGetArt = false
+        val current = mService.getPlayQueue()[mService.getCurrentIndex()]
+        val img = File(
+            Constants.ableSongDir.absolutePath + "/album_art",
+            File(current.filePath).nameWithoutExtension
+        )
+        val cacheImg = File(
+            Constants.ableSongDir.absolutePath + "/cache",
+            "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
+        )
+
         thread {
-            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            val img = File(
-                Constants.ableSongDir.absolutePath + "/album_art",
-                File(current.filePath).nameWithoutExtension
-            )
-            val cacheImg = File(
-                Constants.ableSongDir.absolutePath + "/cache",
-                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
-            )
+            /*
+            Check priority:
+            1) Album art from metadata (if the song is a local song)
+            2) Album art from disk (if the song is not a local song)
+            3) Album art from Deezer (regardless of local or not local)
 
-            if (!img.exists() && cacheImg.exists() && current.ytmThumbnail.isNotBlank()) {
-                runOnUiThread {
-                    img_albart.visibility = View.VISIBLE
-                    note_ph.visibility = View.GONE
-                    Glide.with(this@Player)
-                        .load(cacheImg)
-                        .centerCrop()
-                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                        .skipMemoryCache(true)
-                        .into(img_albart)
+            in state (3), if the song is local, the album art should be added
+            to the song metadata, and if not, it should be stored in the Able
+            album art folder.
+            */
 
-                    Shared.bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
-                    Palette.from(Shared.getSharedBitmap()).generate {
-                        setBgColor(
-                            it?.getDominantColor(0x002171) ?: 0x002171,
-                            it?.getLightMutedColor(0x002171) ?: 0x002171,
-                            it?.lightMutedSwatch?.titleTextColor
-                        )
-                        Shared.clearBitmap()
-                    }
-                }
-            } else {
+
+            /* (1) Check albumart in song metadata (if the song is a local song) */
+            if (current.isLocal && !forceDeezer) {
+                Log.e("INFO>", "Fetching from metadata")
                 try {
-                    if (img.exists() && customSongName == null) {
+                    note_ph.visibility = View.GONE
+                    val sArtworkUri =
+                        Uri.parse("content://media/external/audio/albumart")
+                    Shared.bmp = Glide
+                        .with(this@Player)
+                        .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                        .signature(ObjectKey("player"))
+                        .submit()
+                        .get().toBitmap()
+                    runOnUiThread {
+                        img_albart.setImageBitmap(Shared.bmp)
+                        img_albart.visibility = View.VISIBLE
+                        note_ph.visibility = View.GONE
+                        Palette.from(Shared.getSharedBitmap()).generate {
+                            setBgColor(
+                                it?.getDominantColor(0x002171) ?: 0x002171,
+                                it?.getLightMutedColor(0x002171) ?: 0x002171,
+                                it?.dominantSwatch?.bodyTextColor ?: 0x002171
+                            )
+                        }
+                    }
+                    didGetArt = true
+                } catch (e: java.lang.Exception) {
+                    didGetArt = false
+                }
+            }
+
+            /* (2) Album art from disk (if the song is not a local song) */
+            if (!didGetArt && !forceDeezer) {
+                if (!current.isLocal) {
+                    Log.e("INFO>", "Fetching from Able folder")
+                    val imgToLoad = if (img.exists()) img else cacheImg
+                    if (imgToLoad.exists()) {
                         runOnUiThread {
                             img_albart.visibility = View.VISIBLE
                             note_ph.visibility = View.GONE
                             Glide.with(this@Player)
-                                .load(img)
+                                .load(imgToLoad)
                                 .centerCrop()
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(img_albart)
 
-                            Shared.bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
+                            Shared.bmp = GlideBitmapFactory.decodeFile(imgToLoad.absolutePath)
                             Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
                                     it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                    it?.dominantSwatch?.bodyTextColor ?: 0x002171
+                                    it?.lightMutedSwatch?.titleTextColor ?: 0xfbfbfb // causes transparent bar
                                 )
                                 Shared.clearBitmap()
                             }
                         }
-                    } else if (!img.exists() && customSongName == null) { //when no album art on current song but previous one had
+                        didGetArt = true
+                    }
+                }
+            }
+
+            /* (3) Album art from Deezer (regardless of local or not local) */
+            if (!didGetArt) {
+                Log.e("INFO>", "Fetching from Deezer")
+                val albumArtRequest = if (customSongName == null) {
+                    Request.Builder()
+                        .url(Constants.DEEZER_API + current.name)
+                        .get()
+                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                        .cacheControl(CacheControl.FORCE_NETWORK)
+                        .build()
+                } else {
+                    Request.Builder()
+                        .url(Constants.DEEZER_API + customSongName)
+                        .get()
+                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                        .build()
+                }
+                val response = OkHttpClient().newCall(albumArtRequest).execute().body
+                try {
+                    if (response != null) {
+                        val json = JSONObject(response.string()).getJSONArray("data")
+                            .getJSONObject(0).getJSONObject("album")
+                        val imgLink = json.getString("cover_big")
+                        val albumName = json.getString("title")
+
                         try {
-                            note_ph.visibility = View.GONE
-                            val sArtworkUri =
-                                Uri.parse("content://media/external/audio/albumart")
                             Shared.bmp = Glide
                                 .with(this@Player)
-                                .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
-                                .signature(ObjectKey("home"))
+                                .load(imgLink)
+                                .centerCrop()
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
                                 .submit()
                                 .get().toBitmap()
+
+                            Palette.from(Shared.getSharedBitmap()).generate {
+                                setBgColor(
+                                    it?.getDominantColor(0x002171) ?: 0x002171,
+                                    it?.getLightVibrantColor(0x002171) ?: 0x002171,
+                                    it?.lightMutedSwatch?.titleTextColor
+                                )
+                            }
+
+                            if (img.exists()) img.delete()
+                            Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
+
                             runOnUiThread {
-                                img_albart.setImageBitmap(Shared.bmp)
+                                img_albart.setImageBitmap(Shared.getSharedBitmap())
                                 img_albart.visibility = View.VISIBLE
                                 note_ph.visibility = View.GONE
-                                Palette.from(Shared.getSharedBitmap()).generate {
-                                    setBgColor(
-                                        it?.getDominantColor(0x002171) ?: 0x002171,
-                                        it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                        it?.dominantSwatch?.bodyTextColor ?: 0x002171
+                                if (mService.getMediaPlayer().isPlaying) {
+                                    mService.showNotification(
+                                        mService.generateAction(
+                                            R.drawable.notif_pause,
+                                            "Pause",
+                                            "ACTION_PAUSE"
+                                        ), Shared.getSharedBitmap()
+                                    )
+                                } else {
+                                    mService.showNotification(
+                                        mService.generateAction(
+                                            R.drawable.notif_play,
+                                            "Play",
+                                            "ACTION_PLAY"
+                                        ), Shared.getSharedBitmap()
                                     )
                                 }
                             }
-                        } catch (e: java.lang.Exception) {
-                            runOnUiThread {
-                                img_albart.visibility = View.GONE
-                                note_ph.visibility = View.VISIBLE
-                                setBgColor(0x002171)
-                                player_seekbar.progressDrawable.setTint(
-                                    ContextCompat.getColor(
-                                        this,
-                                        R.color.thatAccent
-                                    )
-                                )
-                                player_seekbar.thumb.setTint(
-                                    ContextCompat.getColor(
-                                        this,
-                                        R.color.colorPrimary
-                                    )
-                                )
-                                tintControls(0x002171)
-                            }
-                        }
-                    } else {
-                        val albumArtRequest = if (customSongName == null) {
-                            Request.Builder()
-                                .url(Constants.DEEZER_API + current.name)
-                                .get()
-                                .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                                .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                                .cacheControl(CacheControl.FORCE_NETWORK)
-                                .build()
-                        } else {
-                            Request.Builder()
-                                .url(Constants.DEEZER_API + customSongName)
-                                .get()
-                                .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                                .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                                .build()
-                        }
-                        val response = OkHttpClient().newCall(albumArtRequest).execute().body
-                        try {
-                            if (response != null) {
-                                val json = JSONObject(response.string()).getJSONArray("data")
-                                    .getJSONObject(0).getJSONObject("album")
-                                val imgLink = json.getString("cover_big")
-                                val albumName = json.getString("title")
-
-                                try {
-                                    Shared.bmp = Glide
-                                        .with(this@Player)
-                                        .load(imgLink)
-                                        .centerCrop()
-                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                        .skipMemoryCache(true)
-                                        .submit()
-                                        .get().toBitmap()
-
-                                    Palette.from(Shared.getSharedBitmap()).generate {
-                                        setBgColor(
-                                            it?.getDominantColor(0x002171) ?: 0x002171,
-                                            it?.getLightVibrantColor(0x002171) ?: 0x002171,
-                                            it?.lightMutedSwatch?.titleTextColor
-                                        )
-                                    }
-
-                                    if (img.exists()) img.delete()
-                                    Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
-
-                                    runOnUiThread {
-                                        img_albart.setImageBitmap(Shared.getSharedBitmap())
-                                        img_albart.visibility = View.VISIBLE
-                                        note_ph.visibility = View.GONE
-                                        if (mService.getMediaPlayer().isPlaying) {
-                                            mService.showNotification(
-                                                mService.generateAction(
-                                                    R.drawable.notif_pause,
-                                                    "Pause",
-                                                    "ACTION_PAUSE"
-                                                ), Shared.getSharedBitmap()
-                                            )
-                                        } else {
-                                            mService.showNotification(
-                                                mService.generateAction(
-                                                    R.drawable.notif_play,
-                                                    "Play",
-                                                    "ACTION_PLAY"
-                                                ), Shared.getSharedBitmap()
-                                            )
-                                        }
-                                    }
-                                    Shared.addThumbnails(
-                                        current.filePath,
-                                        albumName,
-                                        this@Player
-                                    )
-                                } catch (e: Exception) {
-                                    Log.e("ERR>", e.toString())
-                                }
-                            }
+                            Shared.addThumbnails(
+                                current.filePath,
+                                albumName,
+                                this@Player
+                            )
                         } catch (e: Exception) {
                             Log.e("ERR>", e.toString())
                         }
                     }
-                } catch (e: java.lang.IllegalArgumentException) {
+                } catch (e: Exception) {
                     Log.e("ERR>", e.toString())
+                }
+            }
+            if (!didGetArt) {
+                runOnUiThread {
+                    img_albart.visibility = View.GONE
+                    note_ph.visibility = View.VISIBLE
+                    setBgColor(0x002171)
+                    player_seekbar.progressDrawable.setTint(
+                        ContextCompat.getColor(
+                            this,
+                            R.color.thatAccent
+                        )
+                    )
+                    player_seekbar.thumb.setTint(
+                        ContextCompat.getColor(
+                            this,
+                            R.color.colorPrimary
+                        )
+                    )
+                    tintControls(0x002171)
                 }
             }
         }

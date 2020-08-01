@@ -22,6 +22,7 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.*
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
 import android.media.*
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
@@ -30,6 +31,7 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.provider.MediaStore
 import android.util.Log
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -46,9 +48,6 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -66,7 +65,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     companion object {
         val mediaPlayer = MediaPlayer()
         var currentIndex = -1
-        var previousIndex=-1
+        var previousIndex = -1
         private var onShuffle = false
         private var onRepeat = false
         private var coverArtHeight: Int? = null
@@ -87,11 +86,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
     fun getPlayQueue() = playQueue
     fun getCurrentIndex() = currentIndex
     fun getPreviousIndex() = previousIndex
-    fun setPlayQueue(arrayList: ArrayList<Song>){
+    fun setPlayQueue(arrayList: ArrayList<Song>) {
         playQueue = arrayList
     }
 
-    fun setCurrentIndex(ind: Int){
+    fun setCurrentIndex(ind: Int) {
         currentIndex = ind
     }
 
@@ -130,10 +129,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
         GlideBitmapPool.initialize(1 * 1024 * 1024)
 
-        if(coverArtHeight == null)
+        if (coverArtHeight == null)
             coverArtHeight = resources.getDimension(R.dimen.top_art_height).toInt()
 
-        if(!isInstantiated){
+        if (!isInstantiated) {
             notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         }
@@ -161,11 +160,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             true
         }
         mediaPlayer.setOnCompletionListener {
-            previousIndex= currentIndex
+            previousIndex = currentIndex
             nextSong()
         }
 
-        if(builder == null){
+        if (builder == null) {
             builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Notification.Builder(this, "10002")
             } else {
@@ -274,7 +273,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      * @param index sets the new index to play from the queue.
      */
     fun setIndex(index: Int) {
-        previousIndex= currentIndex
+        previousIndex = currentIndex
         currentIndex = index
         songChanged()
         EventBus.getDefault().post(GetIndexEvent(currentIndex))
@@ -294,7 +293,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      * @param next changes to the next song if true, previous song if false.
      */
     fun setNextPrevious(next: Boolean) {
-        previousIndex= currentIndex
+        previousIndex = currentIndex
         if (next) nextSong()
         else previousSong()
     }
@@ -368,8 +367,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
         mediaPlayer.seekTo(position)
         mediaSessionPlay()
     }
-    private fun mediaSessionPlay()
-    {
+
+    private fun mediaSessionPlay() {
         mediaSession.setPlaybackState(
             ps
                 .setActions(actions)
@@ -394,19 +393,18 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             thread {
                 streamAudio()
             }
-        }
-        else {
+        } else {
             try {
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
                 mediaPlayer.prepareAsync()
                 EventBus.getDefault().post(GetSongChangedEvent())
                 EventBus.getDefault().post(GetIndexEvent(currentIndex))
-                mediaPlayer.setOnPreparedListener{
+                mediaPlayer.setOnPreparedListener {
                     EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
                     mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
                     setPlayPause(SongState.playing)
                 }
-            } catch (e: java.lang.Exception){
+            } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")
             }
         }
@@ -450,7 +448,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                     .build()
             )
 
-           showNotification(
+            showNotification(
                 generateAction(
                     R.drawable.notif_pause,
                     getString(R.string.pause),
@@ -460,7 +458,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
             if (!mediaPlayer.isPlaying) {
                 try {
-                        mediaPlayer.start()
+                    mediaPlayer.start()
                 } catch (e: Exception) {
                     Log.e("ERR>", "-$e-")
                 }
@@ -543,12 +541,19 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
      */
     private fun getAlbumArt(file: File) {
         val bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
-        songCoverArt = WeakReference(if (bitmap.height > coverArtHeight!! * 2) {
-            val ratio = bitmap.width / bitmap.height.toFloat()
-            Bitmap.createScaledBitmap(bitmap, (coverArtHeight!! * ratio).toInt(), coverArtHeight!!, false)
-        } else {
-            bitmap
-        })
+        songCoverArt = WeakReference(
+            if (bitmap.height > coverArtHeight!! * 2) {
+                val ratio = bitmap.width / bitmap.height.toFloat()
+                Bitmap.createScaledBitmap(
+                    bitmap,
+                    (coverArtHeight!! * ratio).toInt(),
+                    coverArtHeight!!,
+                    false
+                )
+            } else {
+                bitmap
+            }
+        )
     }
 
     fun generateAction(
@@ -589,36 +594,38 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                         getAlbumArt(it)
                     }
                 }
-                builder?.setLargeIcon(songCoverArt?.get())
             }
-        }
-        catch(e:java.lang.Exception){
+        } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
 
-        if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true)  {
+        if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true) {
             val sArtworkUri =
                 Uri.parse("content://media/external/audio/albumart")
-            val albumArtURi =
+            val albumArtUri =
                 ContentUris.withAppendedId(sArtworkUri, playQueue[currentIndex].albumId)
-            var dmw: Bitmap = Shared.defBitmap
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    dmw = Glide
-                        .with(applicationContext)
-                        .asBitmap()
-                        .load(albumArtURi)
-                        .submit()
-                        .get()
-                } catch (e: java.lang.Exception) {
-                   e.printStackTrace()
+            try {
+                songCoverArt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    WeakReference(
+                        ImageDecoder.decodeBitmap(
+                            ImageDecoder.createSource(this.contentResolver, albumArtUri)
+                        )
+                    )
+                } else {
+                    WeakReference(
+                        @Suppress("DEPRECATION")
+                        MediaStore.Images.Media.getBitmap(
+                            this.contentResolver,
+                            albumArtUri
+                        )
+                    )
                 }
-                builder?.setLargeIcon(dmw)
-                Shared.clearBitmap()
+            } catch (e: java.lang.Exception) {
+                songCoverArt = WeakReference(Shared.defBitmap)
             }
         }
 
-
+        builder?.setLargeIcon(songCoverArt?.get())
         builder?.setContentTitle(nameOverride ?: playQueue[currentIndex].name)
         builder?.setContentText(artistOverride ?: playQueue[currentIndex].artist)
 
@@ -674,7 +681,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             notificationManager.notify(1, builder?.build())
         }
 
-        songCoverArt?.get()?.recycle()
         songCoverArt = null
     }
 
@@ -694,18 +700,20 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-            if(song.ytmThumbnail.isNotBlank()){
+            if (song.ytmThumbnail.isNotBlank()) {
                 Glide.with(applicationContext)
                     .asBitmap()
                     .load(song.ytmThumbnail)
                     .signature(ObjectKey("save"))
-                    .listener(object: RequestListener<Bitmap> {
+                    .listener(object : RequestListener<Bitmap> {
                         override fun onLoadFailed(
                             e: GlideException?,
                             model: Any?,
                             target: Target<Bitmap>?,
                             isFirstResource: Boolean
-                        ): Boolean { return false }
+                        ): Boolean {
+                            return false
+                        }
 
                         override fun onResourceReady(
                             resource: Bitmap?,
@@ -714,8 +722,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                             dataSource: DataSource?,
                             isFirstResource: Boolean
                         ): Boolean {
-                            if(resource != null)
-                                Shared.saveStreamingAlbumArt(resource, Shared.getIdFromLink(song.youtubeLink))
+                            if (resource != null)
+                                Shared.saveStreamingAlbumArt(
+                                    resource,
+                                    Shared.getIdFromLink(song.youtubeLink)
+                                )
                             return false
                         }
                     }).submit()

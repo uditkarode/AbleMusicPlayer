@@ -597,14 +597,15 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             e.printStackTrace()
         }
 
-        if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true) {
-            try{
-                val sArtworkUri =
-                    Uri.parse("content://media/external/audio/albumart")
-                val albumArtURi =
-                    ContentUris.withAppendedId(sArtworkUri, playQueue[currentIndex].albumId)
-                thread {
-                    val dmw = Glide
+        if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true)  {
+            val sArtworkUri =
+                Uri.parse("content://media/external/audio/albumart")
+            val albumArtURi =
+                ContentUris.withAppendedId(sArtworkUri, playQueue[currentIndex].albumId)
+            var dmw: Bitmap = Shared.defBitmap
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    dmw = Glide
                         .with(applicationContext)
                         .asBitmap()
                         .load(albumArtURi)
@@ -612,11 +613,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                         .skipMemoryCache(true)
                         .submit()
                         .get()
-                    builder?.setLargeIcon(dmw)
+                } catch (e: java.lang.Exception) {
+                   // e.printStackTrace()
                 }
-            }
-            catch (e:java.lang.Exception) {
-                builder?.setLargeIcon(Shared.defBitmap) //Reduces ram usage as we already have the Bitmap
+                builder?.setLargeIcon(dmw)
             }
         }
 

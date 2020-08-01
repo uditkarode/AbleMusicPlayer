@@ -641,12 +641,24 @@ class Player : AppCompatActivity() {
                                 }
                             }
                         }catch (e: java.lang.Exception){
-                            img_albart.visibility = View.GONE
-                            note_ph.visibility = View.VISIBLE
-                            setBgColor(0x002171)
-                            player_seekbar.progressDrawable.setTint(ContextCompat.getColor(this, R.color.thatAccent))
-                            player_seekbar.thumb.setTint(ContextCompat.getColor(this, R.color.colorPrimary))
-                            tintControls(0x002171)
+                            runOnUiThread {
+                                img_albart.visibility = View.GONE
+                                note_ph.visibility = View.VISIBLE
+                                setBgColor(0x002171)
+                                player_seekbar.progressDrawable.setTint(
+                                    ContextCompat.getColor(
+                                        this,
+                                        R.color.thatAccent
+                                    )
+                                )
+                                player_seekbar.thumb.setTint(
+                                    ContextCompat.getColor(
+                                        this,
+                                        R.color.colorPrimary
+                                    )
+                                )
+                                tintControls(0x002171)
+                            }
                         }
                     }
                     else {
@@ -669,8 +681,10 @@ class Player : AppCompatActivity() {
                         val response = OkHttpClient().newCall(albumArtRequest).execute().body
                         try {
                             if (response != null) {
-                                val imgLink = JSONObject(response.string()).getJSONArray("data")
-                                    .getJSONObject(0).getJSONObject("album").getString("cover_big")
+                                val json= JSONObject(response.string()).getJSONArray("data")
+                                    .getJSONObject(0).getJSONObject("album")
+                                val imgLink = json.getString("cover_big")
+                                val albumName = json.getString("title")
 
                                 try {
                                     val drw = Glide
@@ -714,7 +728,7 @@ class Player : AppCompatActivity() {
                                             )
                                         }
                                     }
-                                    Shared.addThumbnails(current.filePath, applicationContext)
+                                    Shared.addThumbnails(current.filePath, albumName, applicationContext)
                                 } catch (e: Exception) {
                                     Log.e("ERR>", e.toString())
                                 }

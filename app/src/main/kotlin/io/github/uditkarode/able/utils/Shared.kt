@@ -129,12 +129,14 @@ class Shared {
          * The ID will be extracted from the image path and the mp3 or m4a with the same filename
          * will have the image added to it as artwork in the metadata.
          */
-        fun addThumbnails(imageFile: String, context: Context) {
+        fun addThumbnails(imageFile: String, albumName: String="", context: Context) {
             try {
                 var id = imageFile.substringAfterLast("/")
                 id = id.substringBeforeLast(".")
                 val albumArt = File(Constants.albumArtDir, id)
                 val audioFile: AudioFile = AudioFileIO.read(File(imageFile))
+                if (albumName.isNotEmpty())
+                    id= albumName
                 when {
                     imageFile.contains(".mp3") -> {
                         audioFile.tag.setField(

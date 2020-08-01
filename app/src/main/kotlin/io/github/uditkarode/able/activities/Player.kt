@@ -15,7 +15,6 @@
 package io.github.uditkarode.able.activities
 
 import android.content.*
-import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
 import android.media.MediaScannerConnection
@@ -56,12 +55,10 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.events.*
-import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.player.*
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
 import kotlinx.android.synthetic.main.player.next_song
@@ -76,9 +73,6 @@ import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.player410.img_albart
 import kotlinx.android.synthetic.main.player410.note_ph
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -87,7 +81,6 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -127,7 +120,7 @@ class Player : AppCompatActivity() {
         }
 
         when (PreferenceManager.getDefaultSharedPreferences(applicationContext)
-            .getString("player_layout_key", "Default")){
+            .getString("player_layout_key", "Default")) {
             "Tiny" -> setContentView(R.layout.player220)
 
             "Small" -> setContentView(R.layout.player320)
@@ -236,18 +229,18 @@ class Player : AppCompatActivity() {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(current.filePath).delete()
                             File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            if(current.isLocal){
+                            if (current.isLocal) {
                                 /* update media store for the song in question */
                                 MediaScannerConnection.scanFile(this@Player,
-                                    arrayOf(current.filePath) , null,
-                                    object: MediaScannerConnection.MediaScannerConnectionClient{
+                                    arrayOf(current.filePath), null,
+                                    object : MediaScannerConnection.MediaScannerConnectionClient {
                                         override fun onMediaScannerConnected() {}
 
                                         override fun onScanCompleted(path: String?, uri: Uri?) {
-                                            metadataChangeEvent(
-                                                    name = charSequence.toString(),
-                                                    artist = current.artist
-                                                )
+                                            changeMetadata(
+                                                name = charSequence.toString(),
+                                                artist = current.artist
+                                            )
                                         }
                                     })
                             }
@@ -292,18 +285,18 @@ class Player : AppCompatActivity() {
                         Config.RETURN_CODE_SUCCESS -> {
                             File(current.filePath).delete()
                             File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            if(current.isLocal){
+                            if (current.isLocal) {
                                 /* update media store for the song in question */
                                 MediaScannerConnection.scanFile(this@Player,
-                                    arrayOf(current.filePath) , null,
-                                    object: MediaScannerConnection.MediaScannerConnectionClient{
+                                    arrayOf(current.filePath), null,
+                                    object : MediaScannerConnection.MediaScannerConnectionClient {
                                         override fun onMediaScannerConnected() {}
 
                                         override fun onScanCompleted(path: String?, uri: Uri?) {
-                                            metadataChangeEvent(
-                                                    name = current.name,
-                                                    artist = charSequence.toString()
-                                                )
+                                            changeMetadata(
+                                                name = current.name,
+                                                artist = charSequence.toString()
+                                            )
 
                                         }
                                     })
@@ -479,22 +472,22 @@ class Player : AppCompatActivity() {
      * @param rawColor a color in Integer form (hex).
      * Tints the control buttons to rawColor.
      */
-    private fun tintControls(rawColor: Int){
-        val color = if(Shared.isColorDark(rawColor))
+    private fun tintControls(rawColor: Int) {
+        val color = if (Shared.isColorDark(rawColor))
             ColorUtils.blendARGB(rawColor, Color.WHITE, 0.9F)
         else
             ColorUtils.blendARGB(rawColor, Color.WHITE, 0.3F)
 
         previous_song.run {
-            this.setImageDrawable(this.drawable.run { this.setTint(color) ; this })
+            this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
 
         player_center_icon.run {
-            this.setImageDrawable(this.drawable.run { this.setTint(color) ; this })
+            this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
 
         next_song.run {
-            this.setImageDrawable(this.drawable.run { this.setTint(color) ; this })
+            this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
     }
 
@@ -503,7 +496,7 @@ class Player : AppCompatActivity() {
      * @param lightVibrantColor the color to set on the seekbar, usually
      * derived from the album art.
      */
-    private fun setBgColor(color: Int, lightVibrantColor: Int? = null, titleColor: Int? = null){
+    private fun setBgColor(color: Int, lightVibrantColor: Int? = null, titleColor: Int? = null) {
         RevelyGradient
             .linear()
             .colors(
@@ -516,11 +509,11 @@ class Player : AppCompatActivity() {
             .alpha(0.76f)
             .onBackgroundOf(player_bg)
 
-        if(Shared.isColorDark(color)){
+        if (Shared.isColorDark(color)) {
             player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow))
             player_queue.setImageDrawable(getDrawable(R.drawable.pl_playlist))
-            if(lightVibrantColor != null) {
-                if((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0){
+            if (lightVibrantColor != null) {
+                if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
                     player_seekbar.progressDrawable.setTint(titleColor!!)
                     player_seekbar.thumb.setTint(titleColor)
                     tintControls(0x002171)
@@ -567,12 +560,16 @@ class Player : AppCompatActivity() {
         note_ph.visibility = View.VISIBLE
         thread {
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            val img = File(Constants.ableSongDir.absolutePath + "/album_art",
-                File(current.filePath).nameWithoutExtension)
-            val cacheImg = File(Constants.ableSongDir.absolutePath + "/cache",
-                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink))
+            val img = File(
+                Constants.ableSongDir.absolutePath + "/album_art",
+                File(current.filePath).nameWithoutExtension
+            )
+            val cacheImg = File(
+                Constants.ableSongDir.absolutePath + "/cache",
+                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
+            )
 
-            if(!img.exists() && cacheImg.exists() && current.ytmThumbnail.isNotBlank()){
+            if (!img.exists() && cacheImg.exists() && current.ytmThumbnail.isNotBlank()) {
                 runOnUiThread {
                     img_albart.visibility = View.VISIBLE
                     note_ph.visibility = View.GONE
@@ -585,9 +582,11 @@ class Player : AppCompatActivity() {
 
                     Shared.bmp = GlideBitmapFactory.decodeFile(cacheImg.absolutePath)
                     Palette.from(Shared.getSharedBitmap()).generate {
-                        setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                            it?.getLightMutedColor(0x002171)?:0x002171,
-                            it?.lightMutedSwatch?.titleTextColor)
+                        setBgColor(
+                            it?.getDominantColor(0x002171) ?: 0x002171,
+                            it?.getLightMutedColor(0x002171) ?: 0x002171,
+                            it?.lightMutedSwatch?.titleTextColor
+                        )
                         Shared.clearBitmap()
                     }
                 }
@@ -606,32 +605,29 @@ class Player : AppCompatActivity() {
 
                             Shared.bmp = GlideBitmapFactory.decodeFile(img.absolutePath)
                             Palette.from(Shared.getSharedBitmap()).generate {
-                                setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                    it?.getLightMutedColor(0x002171)?:0x002171,
-                                    it?.dominantSwatch?.bodyTextColor?:0x002171)
+                                setBgColor(
+                                    it?.getDominantColor(0x002171) ?: 0x002171,
+                                    it?.getLightMutedColor(0x002171) ?: 0x002171,
+                                    it?.dominantSwatch?.bodyTextColor ?: 0x002171
+                                )
                                 Shared.clearBitmap()
                             }
                         }
-                    }
-                    else if(!img.exists() && customSongName==null) //when no album art on current song but previous one had
-                    {
-                        try{
-                            note_ph.visibility=View.GONE
+                    } else if (!img.exists() && customSongName == null) { //when no album art on current song but previous one had
+                        try {
+                            note_ph.visibility = View.GONE
                             val sArtworkUri =
                                 Uri.parse("content://media/external/audio/albumart")
-                            val albumArtURi =
-                                ContentUris.withAppendedId(sArtworkUri, current.albumId)
-                            val dmw = Glide
+                            Shared.bmp = Glide
                                 .with(this@Player)
-                                .load(albumArtURi)
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .skipMemoryCache(true)
+                                .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
                                 .signature(ObjectKey("home"))
                                 .submit()
-                                .get()
+                                .get().toBitmap()
                             runOnUiThread {
-                                album_art.background = dmw
-                                Shared.bmp = dmw.toBitmap()
+                                img_albart.setImageBitmap(Shared.bmp)
+                                img_albart.visibility = View.VISIBLE
+                                note_ph.visibility = View.GONE
                                 Palette.from(Shared.getSharedBitmap()).generate {
                                     setBgColor(
                                         it?.getDominantColor(0x002171) ?: 0x002171,
@@ -640,7 +636,7 @@ class Player : AppCompatActivity() {
                                     )
                                 }
                             }
-                        }catch (e: java.lang.Exception){
+                        } catch (e: java.lang.Exception) {
                             runOnUiThread {
                                 img_albart.visibility = View.GONE
                                 note_ph.visibility = View.VISIBLE
@@ -660,8 +656,7 @@ class Player : AppCompatActivity() {
                                 tintControls(0x002171)
                             }
                         }
-                    }
-                    else {
+                    } else {
                         val albumArtRequest = if (customSongName == null) {
                             Request.Builder()
                                 .url(Constants.DEEZER_API + current.name)
@@ -681,33 +676,34 @@ class Player : AppCompatActivity() {
                         val response = OkHttpClient().newCall(albumArtRequest).execute().body
                         try {
                             if (response != null) {
-                                val json= JSONObject(response.string()).getJSONArray("data")
+                                val json = JSONObject(response.string()).getJSONArray("data")
                                     .getJSONObject(0).getJSONObject("album")
                                 val imgLink = json.getString("cover_big")
                                 val albumName = json.getString("title")
 
                                 try {
-                                    val drw = Glide
+                                    Shared.bmp = Glide
                                         .with(this@Player)
                                         .load(imgLink)
                                         .centerCrop()
                                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                                         .skipMemoryCache(true)
                                         .submit()
-                                        .get()
+                                        .get().toBitmap()
 
-                                    Shared.bmp = drw.toBitmap()
                                     Palette.from(Shared.getSharedBitmap()).generate {
-                                        setBgColor(it?.getDominantColor(0x002171)?:0x002171,
-                                            it?.getLightVibrantColor(0x002171)?:0x002171,
-                                            it?.lightMutedSwatch?.titleTextColor)
+                                        setBgColor(
+                                            it?.getDominantColor(0x002171) ?: 0x002171,
+                                            it?.getLightVibrantColor(0x002171) ?: 0x002171,
+                                            it?.lightMutedSwatch?.titleTextColor
+                                        )
                                     }
 
                                     if (img.exists()) img.delete()
                                     Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
 
                                     runOnUiThread {
-                                        img_albart.setImageDrawable(drw)
+                                        img_albart.setImageBitmap(Shared.getSharedBitmap())
                                         img_albart.visibility = View.VISIBLE
                                         note_ph.visibility = View.GONE
                                         if (mService.getMediaPlayer().isPlaying) {
@@ -728,7 +724,11 @@ class Player : AppCompatActivity() {
                                             )
                                         }
                                     }
-                                    Shared.addThumbnails(current.filePath, albumName, applicationContext)
+                                    Shared.addThumbnails(
+                                        current.filePath,
+                                        albumName,
+                                        this@Player
+                                    )
                                 } catch (e: Exception) {
                                     Log.e("ERR>", e.toString())
                                 }
@@ -744,7 +744,7 @@ class Player : AppCompatActivity() {
         }
     }
 
-    private fun metadataChangeEvent(name: String, artist: String) {
+    private fun changeMetadata(name: String, artist: String) {
         runOnUiThread {
             song_name.text = name
             artist_name.text = artist
@@ -842,14 +842,14 @@ class Player : AppCompatActivity() {
     override fun onBackPressed() {
         super.onBackPressed()
         Handler().postDelayed({
-            if(!this.isDestroyed) Glide.with(this@Player).clear(img_albart)
+            if (!this.isDestroyed) Glide.with(this@Player).clear(img_albart)
         }, 300)
         finish()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if(!this.isDestroyed)
+        if (!this.isDestroyed)
             Glide.with(this@Player).clear(img_albart)
     }
 }

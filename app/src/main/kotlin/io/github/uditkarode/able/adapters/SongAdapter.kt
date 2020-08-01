@@ -115,21 +115,15 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 try {
                                     val sArtworkUri =
                                         Uri.parse("content://media/external/audio/albumart")
-                                    val albumArtURi =
-                                        ContentUris.withAppendedId(sArtworkUri, current.albumId)
                                     Glide
                                         .with(holder.getContext())
-                                        .load(albumArtURi)
-                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                        .skipMemoryCache(true)
+                                        .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
                                         .signature(ObjectKey("home"))
                                         .into(this)
                                 } catch (e: Exception) {
                                     Glide.with(holder.getContext())
                                         .load(Shared.defBitmap)
-                                        .diskCacheStrategy(DiskCacheStrategy.NONE)
                                         .signature(ObjectKey("home"))
-                                        .skipMemoryCache(true)
                                         .into(this)
                                 }
                             }

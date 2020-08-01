@@ -609,14 +609,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
                         .with(applicationContext)
                         .asBitmap()
                         .load(albumArtURi)
-                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                        .skipMemoryCache(true)
                         .submit()
                         .get()
                 } catch (e: java.lang.Exception) {
-                   // e.printStackTrace()
+                   e.printStackTrace()
                 }
                 builder?.setLargeIcon(dmw)
+                Shared.clearBitmap()
             }
         }
 

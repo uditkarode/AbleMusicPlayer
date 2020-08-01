@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.*
 import android.media.MediaScannerConnection
-import android.net.Uri
 import android.view.MotionEvent
 import android.view.View
 import androidx.preference.PreferenceManager

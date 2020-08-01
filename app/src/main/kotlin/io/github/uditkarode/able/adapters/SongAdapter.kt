@@ -32,6 +32,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.input.getInputLayout
@@ -100,31 +101,20 @@ class SongAdapter(private var songList: ArrayList<Song>,
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(this)
-                            current.filePath.contains("Able") -> Glide.with(holder.getContext())
-                                .load(
-                                    GlideBitmapFactory.decodeResource(
-                                        holder.getContext().resources,
-                                        R.drawable.def_albart
-                                    )
-                                )
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .signature(ObjectKey("home"))
-                                .skipMemoryCache(true)
-                                .into(this)
+
                             else -> {
                                 try {
                                     val sArtworkUri =
                                         Uri.parse("content://media/external/audio/albumart")
+                                    val albumArtUri = ContentUris.withAppendedId(sArtworkUri, current.albumId)
                                     Glide
                                         .with(holder.getContext())
-                                        .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                                        .load(albumArtUri)
+                                        .placeholder(Shared.defBitmap.toDrawable(resources))
                                         .signature(ObjectKey("home"))
                                         .into(this)
                                 } catch (e: Exception) {
-                                    Glide.with(holder.getContext())
-                                        .load(Shared.defBitmap)
-                                        .signature(ObjectKey("home"))
-                                        .into(this)
+                                    e.printStackTrace()
                                 }
                             }
                         }

@@ -33,7 +33,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
-import androidx.core.graphics.drawable.toDrawable
 import androidx.palette.graphics.Palette
 import androidx.preference.PreferenceManager
 import co.revely.gradient.RevelyGradient
@@ -517,10 +516,12 @@ class Player : AppCompatActivity() {
                 if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
                     player_seekbar.progressDrawable.setTint(titleColor!!)
                     player_seekbar.thumb.setTint(titleColor)
+                    window.statusBarColor = titleColor
                     tintControls(0x002171)
                 } else {
                     player_seekbar.progressDrawable.setTint(lightVibrantColor)
                     player_seekbar.thumb.setTint(lightVibrantColor)
+                    window.statusBarColor = lightVibrantColor
                     tintControls(lightVibrantColor)
                 }
             }

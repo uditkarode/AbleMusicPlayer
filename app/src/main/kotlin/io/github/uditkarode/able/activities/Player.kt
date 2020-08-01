@@ -721,7 +721,9 @@ class Player : AppCompatActivity() {
                                 albumName,
                                 this@Player
                             )
+                            didGetArt = true
                         } catch (e: Exception) {
+                            didGetArt = false
                             Log.e("ERR>", e.toString())
                         }
                     }
@@ -729,6 +731,7 @@ class Player : AppCompatActivity() {
                     Log.e("ERR>", e.toString())
                 }
             }
+
             if (!didGetArt) {
                 runOnUiThread {
                     img_albart.visibility = View.GONE

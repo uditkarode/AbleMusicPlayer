@@ -129,7 +129,7 @@ class Shared {
          * The ID will be extracted from the image path and the mp3 or m4a with the same filename
          * will have the image added to it as artwork in the metadata.
          */
-        fun addThumbnails(imageFile: String, albumName: String="", context: Context) {
+        fun addThumbnails(imageFile: String, albumName: String = "", context: Context) {
             try {
                 var id = imageFile.substringAfterLast("/")
                 id = id.substringBeforeLast(".")
@@ -158,7 +158,7 @@ class Shared {
                             .submit()
                             .get()
                         val stream = ByteArrayOutputStream()
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
                         val bitmapData = stream.toByteArray()
                         mp4tag.addField(mp4tag.createArtworkField(bitmapData))
                     }

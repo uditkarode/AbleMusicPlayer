@@ -33,9 +33,13 @@ import com.tonyodev.fetch2.Fetch
 import com.tonyodev.fetch2.Fetch.Impl.getInstance
 import com.tonyodev.fetch2.FetchConfiguration
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
@@ -167,6 +171,9 @@ class Shared {
                 MediaScannerConnection.scanFile(context, arrayOf(imageFile),null,null)
             } catch (e: java.lang.Exception) {
                 e.printStackTrace()
+            }
+            GlobalScope.launch(Dispatchers.Main) {
+                Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
             }
         }
 

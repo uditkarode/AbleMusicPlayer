@@ -693,7 +693,8 @@ class Player : AppCompatActivity() {
                             }
 
                             if (img.exists()) img.delete()
-                            Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
+                            if(!current.isLocal)
+                                Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
 
                             runOnUiThread {
                                 img_albart.setImageBitmap(Shared.getSharedBitmap())

@@ -37,6 +37,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.search.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
@@ -186,6 +187,10 @@ class Search : Fragment() {
 
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as StreamInfoItem
+                                            if(song.thumbnailUrl.contains("ytimg")) {
+                                                val songId = Shared.getIdFromLink(ex.url)
+                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
@@ -208,6 +213,10 @@ class Search : Fragment() {
 
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
+                                            if(song.thumbnailUrl.contains("ytimg")) {
+                                                val songId = Shared.getIdFromLink(ex.url)
+                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
@@ -233,6 +242,10 @@ class Search : Fragment() {
 
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
+                                            if(song.thumbnailUrl.contains("ytimg")) {
+                                                val songId = Shared.getIdFromLink(ex.url)
+                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
@@ -255,6 +268,10 @@ class Search : Fragment() {
 
                                 for (song in extractor.initialPage.items) {
                                     val ex = song as StreamInfoItem
+                                    if(song.thumbnailUrl.contains("ytimg")) {
+                                        val songId = Shared.getIdFromLink(ex.url)
+                                        song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                    }
                                     resultArray.add(
                                         Song(
                                             name = ex.name,

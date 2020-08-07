@@ -499,7 +499,6 @@ class Player : AppCompatActivity() {
     private fun setBgColor(
         color: Int,
         lightVibrantColor: Int? = null,
-        titleColor: Int? = null,
         palette: Palette? = null
     ) {
         RevelyGradient
@@ -612,7 +611,6 @@ class Player : AppCompatActivity() {
                             setBgColor(
                                 it?.getDominantColor(0x002171) ?: 0x002171,
                                 it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                it?.dominantSwatch?.bodyTextColor?: 0x002171,
                                 it
                             )
                         }
@@ -644,7 +642,6 @@ class Player : AppCompatActivity() {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
                                     it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                    it?.lightMutedSwatch?.titleTextColor ?: 0xfbfbfb,
                                     it // causes transparent bar
                                 )
                                 Shared.clearBitmap()
@@ -696,7 +693,6 @@ class Player : AppCompatActivity() {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
                                     it?.getLightVibrantColor(0x002171) ?: 0x002171,
-                                    it?.lightMutedSwatch?.titleTextColor,
                                     it
                                 )
                             }

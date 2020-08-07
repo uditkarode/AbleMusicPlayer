@@ -496,7 +496,12 @@ class Player : AppCompatActivity() {
      * @param lightVibrantColor the color to set on the seekbar, usually
      * derived from the album art.
      */
-    private fun setBgColor(color: Int, lightVibrantColor: Int? = null, titleColor: Int? = null) {
+    private fun setBgColor(
+        color: Int,
+        lightVibrantColor: Int? = null,
+        titleColor: Int? = null,
+        palette: Palette? = null
+    ) {
         RevelyGradient
             .linear()
             .colors(
@@ -514,9 +519,10 @@ class Player : AppCompatActivity() {
             player_queue.setImageDrawable(getDrawable(R.drawable.pl_playlist))
             if (lightVibrantColor != null) {
                 if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
-                    player_seekbar.progressDrawable.setTint(titleColor!!)
-                    player_seekbar.thumb.setTint(titleColor)
-                    window.statusBarColor = titleColor
+                    val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor ?: palette?.dominantSwatch?.titleTextColor
+                    player_seekbar.progressDrawable.setTint(newTitleColor!!)
+                    player_seekbar.thumb.setTint(newTitleColor)
+                    window.statusBarColor = titleColor!!
                     tintControls(0x002171)
                 } else {
                     player_seekbar.progressDrawable.setTint(lightVibrantColor)
@@ -606,7 +612,8 @@ class Player : AppCompatActivity() {
                             setBgColor(
                                 it?.getDominantColor(0x002171) ?: 0x002171,
                                 it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                it?.dominantSwatch?.bodyTextColor ?: 0x002171
+                                it?.dominantSwatch?.bodyTextColor?: 0x002171,
+                                it
                             )
                         }
                     }
@@ -637,7 +644,8 @@ class Player : AppCompatActivity() {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
                                     it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                    it?.lightMutedSwatch?.titleTextColor ?: 0xfbfbfb // causes transparent bar
+                                    it?.lightMutedSwatch?.titleTextColor ?: 0xfbfbfb,
+                                    it // causes transparent bar
                                 )
                                 Shared.clearBitmap()
                             }
@@ -688,7 +696,8 @@ class Player : AppCompatActivity() {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
                                     it?.getLightVibrantColor(0x002171) ?: 0x002171,
-                                    it?.lightMutedSwatch?.titleTextColor
+                                    it?.lightMutedSwatch?.titleTextColor,
+                                    it
                                 )
                             }
 

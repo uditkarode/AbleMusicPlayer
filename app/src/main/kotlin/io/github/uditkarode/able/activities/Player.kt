@@ -636,15 +636,19 @@ class Player : AppCompatActivity() {
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
                                 .into(img_albart)
-
-                            Shared.bmp = GlideBitmapFactory.decodeFile(imgToLoad.absolutePath)
-                            Palette.from(Shared.getSharedBitmap()).generate {
-                                setBgColor(
-                                    it?.getDominantColor(0x002171) ?: 0x002171,
-                                    it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                    it // causes transparent bar
-                                )
-                                Shared.clearBitmap()
+                            try {
+                                Shared.bmp = GlideBitmapFactory.decodeFile(imgToLoad.absolutePath)
+                                Palette.from(Shared.getSharedBitmap()).generate {
+                                    setBgColor(
+                                        it?.getDominantColor(0x002171) ?: 0x002171,
+                                        it?.getLightMutedColor(0x002171) ?: 0x002171,
+                                        it // causes transparent bar
+                                    )
+                                    Shared.clearBitmap()
+                                }
+                            }
+                            catch (e:java.lang.Exception){
+                                e.printStackTrace()
                             }
                         }
                         didGetArt = true

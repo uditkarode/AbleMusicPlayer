@@ -198,9 +198,6 @@ class Home: Fragment() {
             }
 
             if(song.ytmThumbnail.isNotBlank()){
-                if(song.ytmThumbnail.contains("ytimg"))
-                    song.ytmThumbnail = song.ytmThumbnail.substringBefore("?sqp")
-
                 Glide.with(requireContext())
                     .asBitmap()
                     .load(song.ytmThumbnail)

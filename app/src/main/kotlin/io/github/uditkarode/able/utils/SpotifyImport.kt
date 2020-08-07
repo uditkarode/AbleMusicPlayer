@@ -279,7 +279,10 @@ object SpotifyImport {
                             }
 
                             while (!downloadDone) Thread.sleep(1000)
-
+                            if(toAdd.thumbnailUrl.contains("ytimg")) {
+                                val songId = Shared.getIdFromLink(toAdd.url)
+                                toAdd.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                            }
                             songArr.add(
                                 Song(
                                     name = toAdd.name,

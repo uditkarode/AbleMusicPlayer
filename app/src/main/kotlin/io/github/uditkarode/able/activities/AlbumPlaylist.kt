@@ -133,6 +133,10 @@ class AlbumPlaylist: AppCompatActivity() {
             plExtractor.fetchPage()
             for(song in plExtractor.initialPage.items) {
                 val ex = song as StreamInfoItem
+                if(song.thumbnailUrl.contains("ytimg")) {
+                    val songId = Shared.getIdFromLink(ex.url)
+                    song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                }
                 resultArray.add(
                     Song(
                         name = ex.name,

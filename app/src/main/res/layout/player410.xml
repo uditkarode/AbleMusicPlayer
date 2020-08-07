@@ -62,6 +62,7 @@
                     android:layout_height="match_parent"
                     android:layout_centerInParent="true"
                     android:contentDescription="AlbumArt"
+                    android:scaleType="fitXY"
                     app:riv_corner_radius="8dp"
                     tools:ignore="HardcodedText" />
 

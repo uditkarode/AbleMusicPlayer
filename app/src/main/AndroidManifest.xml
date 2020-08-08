@@ -38,7 +38,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme" />
+        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme"
+            android:launchMode="singleTask"/>
         <activity android:name=".activities.Splash" />
         <activity android:name=".activities.Welcome" android:theme="@style/Theme.Intro" />
         <activity android:name=".activities.About" />

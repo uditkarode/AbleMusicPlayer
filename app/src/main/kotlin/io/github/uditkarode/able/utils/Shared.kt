@@ -169,6 +169,7 @@ class Shared {
                 }
                 audioFile.commit()
                 MediaScannerConnection.scanFile(context, arrayOf(imageFile),null,null)
+                albumArt.delete()
             } catch (e: java.lang.Exception) {
                 e.printStackTrace()
             }

@@ -62,7 +62,7 @@ class About: AppCompatActivity() {
         donate.setOnClickListener {
             MaterialDialog(this@About).show {
                 title(text = this@About.getString(R.string.donate))
-                message(text = this@About.getString(R.string.donate_subtext).format("<a href=\"https://paypal.me/uditkarode\">PayPal</a>", "udit.karode@okaxis")) {
+                message(text = this@About.getString(R.string.donate_subtext).format("<a href=\"https://paypal.me/uditkarode\">PayPal</a>", "uditkarode@paytm")) {
                     html()
                 }
             }

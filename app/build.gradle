@@ -62,7 +62,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.2.0-alpha05'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.8.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.8.1'
     implementation 'com.github.TeamNewPipe.NewPipeExtractor:NewPipeExtractor:v0.19.8'
     //noinspection GradleDependency
     implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1.LTS'

@@ -430,8 +430,8 @@ class Player : AppCompatActivity(), CoroutineScope {
 
     private fun onBindDone() {
         mService = Shared.mService
-        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.pause))
-        else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.play))
+        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_pause))
+        else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_play))
         songChangeEvent(GetSongChangedEvent())
     }
 
@@ -551,8 +551,8 @@ class Player : AppCompatActivity(), CoroutineScope {
     private fun playPauseEvent(ss: SongState) {
         playing = ss
         launch(Dispatchers.Main) {
-            if (playing == SongState.playing) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.pause))
-            else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.play))
+            if (playing == SongState.playing) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_pause))
+            else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_play))
         }
 
         if (playing == SongState.playing) {
@@ -791,7 +791,7 @@ class Player : AppCompatActivity(), CoroutineScope {
         if (mService.getMediaPlayer().isPlaying) {
             mService.showNotification(
                 mService.generateAction(
-                    R.drawable.pause,
+                    R.drawable.notif_pause,
                     getString(R.string.pause),
                     "ACTION_PAUSE"
                 ), nameOverride = name, artistOverride = artist
@@ -799,7 +799,7 @@ class Player : AppCompatActivity(), CoroutineScope {
         } else {
             mService.showNotification(
                 mService.generateAction(
-                    R.drawable.play,
+                    R.drawable.notif_play,
                     getString(R.string.play),
                     "ACTION_PLAY"
                 ), nameOverride = name, artistOverride = artist

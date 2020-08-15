@@ -116,7 +116,7 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             }
         }
 
-        launch {
+        launch(Dispatchers.Default){
             resultArray = Shared.getSongsFromPlaylistFile(name)
 
             launch(Dispatchers.Main) {
@@ -161,7 +161,7 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             bindEvent()
         }
 
-        launch {
+        launch(Dispatchers.Default){
             if(Shared.serviceLinked()) {
                 mService = Shared.mService
             } else {

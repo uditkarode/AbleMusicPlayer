@@ -26,6 +26,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
+import android.view.WindowManager
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
@@ -621,6 +622,9 @@ class Player : AppCompatActivity(), CoroutineScope {
                                 it?.getLightMutedColor(0x002171) ?: 0x002171,
                                 it
                             )
+
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                            window.statusBarColor = it?.getDarkMutedColor(0x002171) ?: 0x002171
                         }
                     }
                     didGetArt = true
@@ -652,7 +656,10 @@ class Player : AppCompatActivity(), CoroutineScope {
                                         it?.getLightMutedColor(0x002171) ?: 0x002171,
                                         it // causes transparent bar
                                     )
+
                                     Shared.clearBitmap()
+                                    window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                                    window.statusBarColor = it?.getDarkMutedColor(0x002171) ?: 0x002171
                                 }
                             }
                             catch (e:java.lang.Exception){
@@ -709,6 +716,9 @@ class Player : AppCompatActivity(), CoroutineScope {
                                     it?.getLightVibrantColor(0x002171) ?: 0x002171,
                                     it
                                 )
+
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+                                window.statusBarColor = it?.getDarkMutedColor(0x002171) ?: 0x002171
                             }
 
                             if (img.exists()) img.delete()

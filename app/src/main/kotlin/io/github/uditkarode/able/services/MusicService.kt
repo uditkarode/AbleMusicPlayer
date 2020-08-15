@@ -399,15 +399,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             try {
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
-                launch(Dispatchers.IO){
-                    mediaPlayer.prepare()
-                    EventBus.getDefault().post(GetSongChangedEvent())
-                    EventBus.getDefault().post(GetIndexEvent(currentIndex))
-                    mediaPlayer.setOnPreparedListener {
-                        EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-                        mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
-                        setPlayPause(SongState.playing)
-                    }
+                mediaPlayer.prepareAsync()
+                EventBus.getDefault().post(GetSongChangedEvent())
+                EventBus.getDefault().post(GetIndexEvent(currentIndex))
+                mediaPlayer.setOnPreparedListener {
+                    EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
+                    mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
+                    setPlayPause(SongState.playing)
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")

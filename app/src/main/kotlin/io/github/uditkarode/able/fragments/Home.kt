@@ -176,6 +176,18 @@ class Home : Fragment(), CoroutineScope {
         }
     }
 
+    /**
+     * A helper function that streams a song
+     * This is different from the implementation
+     * in MusicService, since this separates
+     * the caching proxy implementation
+     * from the overly simple method used
+     * in the service. Could be unified in
+     * the future.
+     *
+     * @param song the song to stream.
+     * @param toCache whether we want to save this to the disk.
+     */
     fun streamAudio(song: Song, toCache: Boolean) {
         if (isAdded) {
             if (!Shared.serviceRunning(MusicService::class.java, requireContext())) {

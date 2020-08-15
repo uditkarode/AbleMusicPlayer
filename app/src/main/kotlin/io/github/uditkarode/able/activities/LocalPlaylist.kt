@@ -150,7 +150,7 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         }
     }
 
-    fun itemPressed(song: Song){
+    fun itemPressed(array: ArrayList<Song>, index: Int){
         if(!Shared.serviceRunning(MusicService::class.java, this)){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(Intent(this, MusicService::class.java))
@@ -170,8 +170,8 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             }
 
             val mService = mService!!
-            mService.setQueue(arrayListOf(song))
-            mService.setIndex(0)
+            mService.setQueue(array)
+            mService.setIndex(index)
             mService.setPlayPause(SongState.playing)
         }
     }

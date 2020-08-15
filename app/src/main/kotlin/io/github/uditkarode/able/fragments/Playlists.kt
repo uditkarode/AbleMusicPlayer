@@ -57,10 +57,12 @@ import org.greenrobot.eventbus.ThreadMode
  * Playlists are stored in the JSON format.
  */
 class Playlists : Fragment() {
-    var mService: MusicService? = null
-    var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var isImporting = false
+
+    var mService: MusicService? = null
+    var isBound = false
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,

@@ -73,6 +73,10 @@ import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.player410.img_albart
 import kotlinx.android.synthetic.main.player410.note_ph
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -84,20 +88,22 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 
 /**
  * The Player UI activity.
  */
 
-class Player : AppCompatActivity() {
-    private var onShuffle = false
-    private var onRepeat = false
+class Player : AppCompatActivity(), CoroutineScope {
+    private lateinit var serviceConn: ServiceConnection
+    private lateinit var mService: MusicService
+    private lateinit var timer: Timer
+    
     private var playing = SongState.paused
     private var scheduled = false
-    private lateinit var timer: Timer
-    private lateinit var mService: MusicService
-    private lateinit var serviceConn: ServiceConnection
+    private var onShuffle = false
+    private var onRepeat = false
+    
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -152,7 +158,7 @@ class Player : AppCompatActivity() {
         }
 
         player_center_icon.setOnClickListener {
-            thread {
+            launch {
                 if (playing == SongState.playing) mService.setPlayPause(SongState.paused)
                 else mService.setPlayPause(SongState.playing)
             }
@@ -426,8 +432,8 @@ class Player : AppCompatActivity() {
 
     private fun onBindDone() {
         mService = Shared.mService
-        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
-        else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
+        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.pause))
+        else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.play))
         songChangeEvent(GetSongChangedEvent())
     }
 
@@ -458,7 +464,7 @@ class Player : AppCompatActivity() {
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    runOnUiThread {
+                    launch(Dispatchers.Main) {
                         val songPosition = mService.getMediaPlayer().currentPosition
                         player_seekbar.progress = songPosition
                         player_current_position.text = getDurationFromMs(songPosition)
@@ -514,14 +520,14 @@ class Player : AppCompatActivity() {
             .onBackgroundOf(player_bg)
 
         if (Shared.isColorDark(color)) {
-            player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow))
-            player_queue.setImageDrawable(getDrawable(R.drawable.pl_playlist))
+            player_down_arrow.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.down_arrow))
+            player_queue.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.pl_playlist))
             if (lightVibrantColor != null) {
                 if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
                     val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor ?: palette?.dominantSwatch?.titleTextColor
                     player_seekbar.progressDrawable.setTint(newTitleColor!!)
                     player_seekbar.thumb.setTint(newTitleColor)
-                    window.statusBarColor = titleColor!!
+                    window.statusBarColor = titleColor
                     tintControls(0x002171)
                 } else {
                     player_seekbar.progressDrawable.setTint(lightVibrantColor)
@@ -531,8 +537,8 @@ class Player : AppCompatActivity() {
                 }
             }
         } else {
-            player_down_arrow.setImageDrawable(getDrawable(R.drawable.down_arrow_black))
-            player_queue.setImageDrawable(getDrawable(R.drawable.playlist_black))
+            player_down_arrow.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.down_arrow_black))
+            player_queue.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.playlist_black))
             player_seekbar.progressDrawable.setTint(color)
             player_seekbar.thumb.setTint(color)
             tintControls(color)
@@ -546,9 +552,9 @@ class Player : AppCompatActivity() {
 
     private fun playPauseEvent(ss: SongState) {
         playing = ss
-        runOnUiThread {
-            if (playing == SongState.playing) player_center_icon.setImageDrawable(getDrawable(R.drawable.pause))
-            else player_center_icon.setImageDrawable(getDrawable(R.drawable.play))
+        launch(Dispatchers.Main) {
+            if (playing == SongState.playing) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.pause))
+            else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.play))
         }
 
         if (playing == SongState.playing) {
@@ -577,7 +583,7 @@ class Player : AppCompatActivity() {
             "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
         )
 
-        thread {
+        launch(Dispatchers.IO) {
             /*
             Check priority:
             1) Album art from metadata (if the song is a local song)
@@ -597,13 +603,15 @@ class Player : AppCompatActivity() {
                     note_ph.visibility = View.GONE
                     val sArtworkUri =
                         Uri.parse("content://media/external/audio/albumart")
+
                     Shared.bmp = Glide
                         .with(this@Player)
                         .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
                         .signature(ObjectKey("player"))
                         .submit()
                         .get().toBitmap()
-                    runOnUiThread {
+
+                    launch(Dispatchers.Main) {
                         img_albart.setImageBitmap(Shared.bmp)
                         img_albart.visibility = View.VISIBLE
                         note_ph.visibility = View.GONE
@@ -627,7 +635,7 @@ class Player : AppCompatActivity() {
                     Log.e("INFO>", "Fetching from Able folder")
                     val imgToLoad = if (img.exists()) img else cacheImg
                     if (imgToLoad.exists()) {
-                        runOnUiThread {
+                        launch(Dispatchers.Main) {
                             img_albart.visibility = View.VISIBLE
                             note_ph.visibility = View.GONE
                             Glide.with(this@Player)
@@ -675,7 +683,9 @@ class Player : AppCompatActivity() {
                         .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
                         .build()
                 }
+
                 val response = OkHttpClient().newCall(albumArtRequest).execute().body
+
                 try {
                     if (response != null) {
                         val json = JSONObject(response.string()).getJSONArray("data")
@@ -704,7 +714,7 @@ class Player : AppCompatActivity() {
                             if (img.exists()) img.delete()
                             Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
 
-                            runOnUiThread {
+                            launch(Dispatchers.Main) {
                                 img_albart.setImageBitmap(Shared.getSharedBitmap())
                                 img_albart.visibility = View.VISIBLE
                                 note_ph.visibility = View.GONE
@@ -743,19 +753,19 @@ class Player : AppCompatActivity() {
             }
 
             if (!didGetArt) {
-                runOnUiThread {
+                launch(Dispatchers.Main) {
                     img_albart.visibility = View.GONE
                     note_ph.visibility = View.VISIBLE
                     setBgColor(0x002171)
                     player_seekbar.progressDrawable.setTint(
                         ContextCompat.getColor(
-                            this,
+                            this@Player,
                             R.color.thatAccent
                         )
                     )
                     player_seekbar.thumb.setTint(
                         ContextCompat.getColor(
-                            this,
+                            this@Player,
                             R.color.colorPrimary
                         )
                     )
@@ -766,7 +776,7 @@ class Player : AppCompatActivity() {
     }
 
     private fun changeMetadata(name: String, artist: String) {
-        runOnUiThread {
+        launch(Dispatchers.Main) {
             song_name.text = name
             artist_name.text = artist
         }

@@ -62,6 +62,7 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.home.*
+import kotlinx.coroutines.*
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -69,25 +70,37 @@ import java.io.File
 import java.lang.ref.WeakReference
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 
 /**
  * The first fragment. Shows a list of songs present on the user's device.
  */
 @Suppress("NAME_SHADOWING")
-class Home: Fragment() {
-    private var songList = ArrayList<Song>()
-    var mService: MusicService? = null
-    var isBound = false
-    private lateinit var serviceConn: ServiceConnection
-    private var songId: String = "temp"
+class Home : Fragment(), CoroutineScope {
     private lateinit var mediaLoaderConfig: MediaLoaderConfig
+    private lateinit var serviceConn: ServiceConnection
     private lateinit var mediaLoader: MediaLoader
-    companion object{
+
+    private var songList = ArrayList<Song>()
+    private var songId = "temp"
+
+    var isBound = false
+    var mService: MusicService? = null
+
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
+
+    companion object {
         var songAdapter: SongAdapter? = null
     }
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View? =
+
+    override fun onDestroy() {
+        super.onDestroy()
+        coroutineContext.cancelChildren()
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? =
         inflater.inflate(
             R.layout.home,
             container, false
@@ -103,11 +116,13 @@ class Home: Fragment() {
 
         RevelyGradient
             .linear()
-            .colors(intArrayOf(
-                Color.parseColor("#7F7FD5"),
-                Color.parseColor("#86A8E7"),
-                Color.parseColor("#91EAE4")
-            ))
+            .colors(
+                intArrayOf(
+                    Color.parseColor("#7F7FD5"),
+                    Color.parseColor("#86A8E7"),
+                    Color.parseColor("#91EAE4")
+                )
+            )
             .on(view.findViewById<TextView>(R.id.able_header))
 
         settings.setOnClickListener {
@@ -128,33 +143,41 @@ class Home: Fragment() {
 
         bindEvent()
 
-        thread {
+        launch {
             songList = Shared.getSongList(Constants.ableSongDir)
             songList.addAll(Shared.getLocalSongs(requireContext()))
-            if(songList.isNotEmpty()) songList = ArrayList(songList.sortedBy { it.name.toUpperCase(
-                Locale.getDefault()) })
+            if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
+                it.name.toUpperCase(
+                    Locale.getDefault()
+                )
+            })
             songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
-            activity?.runOnUiThread {
+            launch(Dispatchers.Main) {
                 songs.adapter = songAdapter
                 songs.layoutManager = LinearLayoutManager(requireContext())
-                val itemTouchHelper= ItemTouchHelper(SwipeController(context,"Home"))
+                val itemTouchHelper = ItemTouchHelper(SwipeController(context, "Home"))
                 itemTouchHelper.attachToRecyclerView(songs)
             }
         }
     }
 
-    fun bindEvent(){
-        if(Shared.serviceRunning(MusicService::class.java, requireContext())) {
+    fun bindEvent() {
+        if (Shared.serviceRunning(MusicService::class.java, requireContext())) {
             try {
-                activity?.applicationContext?.bindService(Intent(activity?.applicationContext, MusicService::class.java), serviceConn, 0)
-            } catch(e: Exception){
+                activity?.applicationContext?.bindService(
+                    Intent(
+                        activity?.applicationContext,
+                        MusicService::class.java
+                    ), serviceConn, 0
+                )
+            } catch (e: Exception) {
                 Log.e("ERR>", e.toString())
             }
         }
     }
 
-    fun streamAudio(song: Song, toCache: Boolean){
-        if(isAdded) {
+    fun streamAudio(song: Song, toCache: Boolean) {
+        if (isAdded) {
             if (!Shared.serviceRunning(MusicService::class.java, requireContext())) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     requireActivity().startForegroundService(
@@ -174,14 +197,21 @@ class Home: Fragment() {
 
                 bindEvent()
             }
-        }
-        else
+        } else
             Log.d("ERR", "Context Lost")
 
-        thread {
+        launch(Dispatchers.IO) {
             @Suppress("ControlFlowWithEmptyBody")
-            while(!isBound){}
-            mService?.setPlayQueue(arrayListOf(Song(name = getString(R.string.loading), artist = "")))
+            while (!isBound) {
+            }
+            mService?.setPlayQueue(
+                arrayListOf(
+                    Song(
+                        name = getString(R.string.loading),
+                        artist = ""
+                    )
+                )
+            )
             mService?.setCurrentIndex(0)
             mService?.showNotif()
 
@@ -194,23 +224,25 @@ class Home: Fragment() {
             songId = Shared.getIdFromLink(song.youtubeLink)
 
             File(Constants.ableSongDir, "$songId.tmp.webm").run {
-                if(exists()) delete()
+                if (exists()) delete()
             }
 
-            if(song.ytmThumbnail.isNotBlank()){
+            if (song.ytmThumbnail.isNotBlank()) {
                 Glide.with(requireContext())
                     .asBitmap()
                     .load(song.ytmThumbnail)
                     .diskCacheStrategy(DiskCacheStrategy.NONE)
                     .signature(ObjectKey("save"))
                     .skipMemoryCache(true)
-                    .listener(object: RequestListener<Bitmap> {
+                    .listener(object : RequestListener<Bitmap> {
                         override fun onLoadFailed(
                             e: GlideException?,
                             model: Any?,
                             target: Target<Bitmap>?,
                             isFirstResource: Boolean
-                        ): Boolean { return false }
+                        ): Boolean {
+                            return false
+                        }
 
                         override fun onResourceReady(
                             resource: Bitmap?,
@@ -219,8 +251,8 @@ class Home: Fragment() {
                             dataSource: DataSource?,
                             isFirstResource: Boolean
                         ): Boolean {
-                            if(resource != null) {
-                                if(!toCache)
+                            if (resource != null) {
+                                if (!toCache)
                                     Shared.saveStreamingAlbumArt(
                                         resource,
                                         Shared.getIdFromLink(song.youtubeLink)
@@ -236,7 +268,7 @@ class Home: Fragment() {
                     }).submit()
             }
 
-            if(toCache){
+            if (toCache) {
                 mediaLoaderConfig = MediaLoaderConfig.Builder(activity)
                     .cacheRootDir(
                         Constants.ableSongDir
@@ -249,11 +281,13 @@ class Home: Fragment() {
 
                 mediaLoader.init(mediaLoaderConfig)
 
-                mediaLoader.addDownloadListener(url, object: DownloadListener {
+                mediaLoader.addDownloadListener(url, object : DownloadListener {
                     override fun onProgress(url: String?, file: File?, progress: Int) {
-                        if(progress == 100){
-                            val tempFile = File(Constants.ableSongDir.absolutePath
-                                    + "/" + songId + ".tmp.$ext")
+                        if (progress == 100) {
+                            val tempFile = File(
+                                Constants.ableSongDir.absolutePath
+                                        + "/" + songId + ".tmp.$ext"
+                            )
 
                             val format =
                                 if (PreferenceManager.getDefaultSharedPreferences(
@@ -278,7 +312,7 @@ class Home: Fragment() {
                             when (val rc = FFmpeg.execute(command)) {
                                 Config.RETURN_CODE_SUCCESS -> {
                                     tempFile.delete()
-                                    activity?.runOnUiThread {
+                                    launch(Dispatchers.Main) {
                                         songList = Shared.getSongList(Constants.ableSongDir)
                                         songList.addAll(Shared.getLocalSongs(requireContext()))
                                         songList = ArrayList(songList.sortedBy {
@@ -286,7 +320,7 @@ class Home: Fragment() {
                                                 Locale.getDefault()
                                             )
                                         })
-                                        activity?.runOnUiThread {
+                                        launch(Dispatchers.Main) {
                                             songAdapter?.update(songList)
                                         }
                                         songAdapter?.update(songList)
@@ -319,8 +353,7 @@ class Home: Fragment() {
                 })
 
                 song.filePath = mediaLoader.getProxyUrl(url)
-            }
-            else song.filePath = url
+            } else song.filePath = url
 
             mService?.setPlayQueue(arrayListOf(song))
             mService?.setIndex(0)
@@ -330,11 +363,11 @@ class Home: Fragment() {
     }
 
     @Subscribe(sticky = true)
-    fun updateQueueEvent(uqe: UpdateQueueEvent){
+    fun updateQueueEvent(uqe: UpdateQueueEvent) {
         updateSongList()
     }
 
-    fun updateSongList(){
+    fun updateSongList() {
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(requireContext()))
         songList = ArrayList(songList.sortedBy {
@@ -342,7 +375,7 @@ class Home: Fragment() {
                 Locale.getDefault()
             )
         })
-        activity?.runOnUiThread {
+        launch(Dispatchers.Main) {
             songAdapter?.update(songList)
         }
     }

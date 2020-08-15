@@ -48,6 +48,7 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.coroutines.*
 import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -55,31 +56,32 @@ import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 import kotlin.system.exitProcess
 
 /**
  * The service that plays music.
  */
-class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
+class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, CoroutineScope {
     companion object {
-        val mediaPlayer = MediaPlayer()
-        var currentIndex = -1
-        var previousIndex = -1
-        private var onShuffle = false
-        private var onRepeat = false
-        private var coverArtHeight: Int? = null
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
-        private var isInstantiated = false
-        private var ps = PlaybackState.Builder()
-        private var builder: Notification.Builder? = null
-        private var wakeLock: PowerManager.WakeLock? = null
-        private lateinit var mediaSession: MediaSession
+        val mediaPlayer = MediaPlayer()
+        var previousIndex = -1
+        var currentIndex = -1
+        
         private lateinit var notificationManager: NotificationManager
         private var focusRequest: AudioFocusRequest? = null
+        private var wakeLock: PowerManager.WakeLock? = null
+        private var builder: Notification.Builder? = null
+        private lateinit var mediaSession: MediaSession
+        private var ps = PlaybackState.Builder()
+        private var coverArtHeight: Int? = null
+        private var isInstantiated = false
+        private var onShuffle = false
+        private var onRepeat = false
     }
 
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
     private val binder = MusicBinder(this@MusicService)
 
     fun getMediaPlayer() = mediaPlayer
@@ -196,6 +198,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        coroutineContext.cancelChildren()
         EventBus.getDefault().post(ExitEvent())
         EventBus.getDefault().unregister(this)
         unregisterReceiver(receiver)
@@ -390,19 +393,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener {
             mediaPlayer.reset()
         }
         if (playQueue[currentIndex].filePath == "") {
-            thread {
+            launch {
                 streamAudio()
             }
         } else {
             try {
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
-                mediaPlayer.prepareAsync()
-                EventBus.getDefault().post(GetSongChangedEvent())
-                EventBus.getDefault().post(GetIndexEvent(currentIndex))
-                mediaPlayer.setOnPreparedListener {
-                    EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-                    mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
-                    setPlayPause(SongState.playing)
+                launch(Dispatchers.IO){
+                    mediaPlayer.prepare()
+                    EventBus.getDefault().post(GetSongChangedEvent())
+                    EventBus.getDefault().post(GetIndexEvent(currentIndex))
+                    mediaPlayer.setOnPreparedListener {
+                        EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
+                        mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
+                        setPlayPause(SongState.playing)
+                    }
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")

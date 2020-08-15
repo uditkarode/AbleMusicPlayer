@@ -102,7 +102,7 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
         notifyDataSetChanged()
     }
 
-    inner class PLVH(itemView: View): RecyclerView.ViewHolder(itemView){
+    class PLVH(itemView: View): RecyclerView.ViewHolder(itemView){
         val playlistNameTv = itemView.findViewById<TextView>(R.id.playlist_name)!!
         val numberSongsTv = itemView.findViewById<TextView>(R.id.number_songs)!!
 

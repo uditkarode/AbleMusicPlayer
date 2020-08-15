@@ -37,7 +37,7 @@ import org.greenrobot.eventbus.Subscribe
 /**
  * The service that handles import of Spotify songs.
  */
-class SpotifyImportService(context: Context, workerParams: WorkerParameters) : Worker(
+class SpotifyImportService(context: Context, workerParams: WorkerParameters) : Worker (
     context,
     workerParams
 ) {

@@ -42,18 +42,20 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.albumplaylist.*
 import kotlinx.android.synthetic.main.search.loading_view
+import kotlinx.coroutines.*
 import java.lang.ref.WeakReference
-import kotlin.concurrent.thread
 
 /**
  * The activity that shows up when a user taps on a local playlist from the
  * playlist fragment.
  */
-class LocalPlaylist: AppCompatActivity() {
+class LocalPlaylist: AppCompatActivity(), CoroutineScope {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var resultArray = ArrayList<Song>()
+    
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -99,7 +101,7 @@ class LocalPlaylist: AppCompatActivity() {
                 bindEvent()
             }
 
-            thread {
+            launch(Dispatchers.Default){
                 if(Shared.serviceLinked()) {
                     mService = Shared.mService
                 } else {
@@ -114,12 +116,12 @@ class LocalPlaylist: AppCompatActivity() {
             }
         }
 
-        thread {
+        launch {
             resultArray = Shared.getSongsFromPlaylistFile(name)
 
-            runOnUiThread {
-                ap_rv.adapter = LocalPlaylistAdapter(resultArray, WeakReference(this))
-                ap_rv.layoutManager = LinearLayoutManager(this)
+            launch(Dispatchers.Main) {
+                ap_rv.adapter = LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
+                ap_rv.layoutManager = LinearLayoutManager(this@LocalPlaylist)
                 loading_view.visibility = View.GONE
                 loading_view.pauseAnimation()
                 ap_rv.alpha = 0f
@@ -159,7 +161,7 @@ class LocalPlaylist: AppCompatActivity() {
             bindEvent()
         }
 
-        thread {
+        launch {
             if(Shared.serviceLinked()) {
                 mService = Shared.mService
             } else {

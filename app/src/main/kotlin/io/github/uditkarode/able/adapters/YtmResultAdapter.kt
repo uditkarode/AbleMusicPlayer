@@ -80,7 +80,7 @@ class YtmResultAdapter(private val songList: ArrayList<Song>,
         }
     }
 
-    inner class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
+    class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
         val songName = itemView.findViewById<TextView>(R.id.vid_song)!!
         val songUploader = itemView.findViewById<TextView>(R.id.vid_uploader)!!
         val songAlbumArt = itemView.findViewById<ImageView>(R.id.vid_albart)!!

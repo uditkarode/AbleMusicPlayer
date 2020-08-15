@@ -65,6 +65,7 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.CustomDownloader
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
@@ -73,25 +74,30 @@ import org.schabi.newpipe.extractor.NewPipe
 import java.io.ByteArrayOutputStream
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 
 /**
  * First activity that shows up when the user opens the application
  */
-class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultReceiver.Receiver {
-    private lateinit var okClient: OkHttpClient
-    private lateinit var bottomNavigation: BottomNavigationView
-    private lateinit var mainContent: ViewPager
-    private var mService: MusicService? = null
-    private lateinit var serviceConn: ServiceConnection
+class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultReceiver.Receiver,
+    CoroutineScope {
     private lateinit var mServiceResultReceiver: ServiceResultReceiver
+    private lateinit var bottomNavigation: BottomNavigationView
+    private lateinit var okClient: OkHttpClient
+    private lateinit var serviceConn: ServiceConnection
+    private lateinit var mainContent: ViewPager
+    private lateinit var timer: Timer
+    private lateinit var home: Home
 
+    private var mService: MusicService? = null
+    private var scheduled = false
     private var playing = false
 
-    private lateinit var timer: Timer
-    private var scheduled = false
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
-    private lateinit var home: Home
+    override fun onDestroy() {
+        super.onDestroy()
+        coroutineContext.cancelChildren()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (!Shared.serviceRunning(MusicService::class.java, applicationContext)
@@ -103,27 +109,32 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(applicationContext, Welcome::class.java))
             } else startActivity(Intent(applicationContext, Splash::class.java))
         }
-        thread {  //gets and stores the default Bitmap in a small size
-            Shared.defBitmap = (ResourcesCompat.getDrawable(this.resources,
-                R.drawable.def_albart, null) as BitmapDrawable).bitmap
+        launch {
+            Shared.defBitmap = (ResourcesCompat.getDrawable(
+                resources,
+                R.drawable.def_albart, null
+            ) as BitmapDrawable).bitmap
             val outputStream = ByteArrayOutputStream()
             Shared.defBitmap.compress(Bitmap.CompressFormat.JPEG, 20, outputStream)
             val byte = outputStream.toByteArray()
-            Shared.defBitmap  = BitmapFactory.decodeByteArray(byte,
-                0, byte.size)
-        }
-        thread {
+            Shared.defBitmap = BitmapFactory.decodeByteArray(
+                byte,
+                0, byte.size
+            )
             NewPipe.init(CustomDownloader.instance)
             Shared.setupFetch(this@MainActivity)
+
+            okClient = OkHttpClient()
+            mServiceResultReceiver = ServiceResultReceiver(Handler())
+            mServiceResultReceiver.setReceiver(this@MainActivity)
+
+            FlurryAgent.Builder()
+                .withLogEnabled(false)
+                .build(this@MainActivity, Constants.FLURRY_KEY)
         }
 
-        mServiceResultReceiver = ServiceResultReceiver(Handler())
-        mServiceResultReceiver.setReceiver(this)
         super.onCreate(savedInstanceState)
-        FlurryAgent.Builder()
-            .withLogEnabled(false)
-            .build(this, Constants.FLURRY_KEY)
-        home = Home()
+
         ViewPump.init(
             ViewPump.builder()
                 .addInterceptor(
@@ -136,13 +147,14 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 )
                 .build()
         )
+
         setContentView(R.layout.activity_main)
-        okClient = OkHttpClient()
 
         mainContent = main_content
         bb_icon.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, applicationContext)) {
-                thread {
+
+                launch {
                     if (playing) Shared.mService.setPlayPause(SongState.paused)
                     else Shared.mService.setPlayPause(SongState.playing)
                 }
@@ -161,6 +173,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             (bb_icon.parent as View).touchDelegate = TouchDelegate(rect, bb_icon)
         }
 
+        home = Home()
         mainContent.adapter = ViewPagerAdapter(supportFragmentManager, home)
         mainContent.setPageTransformer(false) { page, _ ->
             page.alpha = 0f
@@ -210,13 +223,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun loadingEvent(homeLoadingEvent: HomeLoadingEvent){
-        bb_ProgressBar?.visibility = if(homeLoadingEvent.loading) View.VISIBLE else View.GONE
-        if(!homeLoadingEvent.loading){
+    fun loadingEvent(homeLoadingEvent: HomeLoadingEvent) {
+        bb_ProgressBar?.visibility = if (homeLoadingEvent.loading) View.VISIBLE else View.GONE
+        if (!homeLoadingEvent.loading) {
             activity_seekbar.visibility = View.VISIBLE
             bn_parent.invalidate()
-        }
-        else {
+        } else {
             activity_seekbar.visibility = View.GONE
             bn_parent.invalidate()
         }
@@ -313,7 +325,9 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) { finish() }
+    fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) {
+        finish()
+    }
 
     override fun onStop() {
         super.onStop()
@@ -322,10 +336,10 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     override fun sendItem(song: Song, mode: String) {
-        var currentMode= PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        var currentMode = PreferenceManager.getDefaultSharedPreferences(applicationContext)
             .getString("mode_key", MusicMode.download)
-        if(mode.isNotEmpty())
-            currentMode=mode
+        if (mode.isNotEmpty())
+            currentMode = mode
         when (currentMode) {
             MusicMode.download -> {
                 val songL = ArrayList<String>()
@@ -337,7 +351,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                     .putStringArrayListExtra("song", songL)
                     .putExtra("receiver", mServiceResultReceiver)
                 enqueueDownload(this, serviceIntentService)
-                Toast.makeText(applicationContext, "${song.name} ${getString(R.string.dl_added)}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    applicationContext,
+                    "${song.name} ${getString(R.string.dl_added)}",
+                    Toast.LENGTH_SHORT
+                ).show()
                 /*
                     * takes user back to the home screen when download starts *
                     mainContent.currentItem = -1
@@ -357,5 +375,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         }
     }
 
-    override fun onReceiveResult(resultCode: Int) { home.updateSongList() }
+    override fun onReceiveResult(resultCode: Int) {
+        home.updateSongList()
+    }
 }

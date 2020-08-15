@@ -43,16 +43,16 @@ import io.github.uditkarode.able.models.DownloadableSong
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.coroutines.*
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.io.IOException
-import kotlin.concurrent.thread
 
 /**
  * The JobIntentService that downloads songs when the play mode is set to download mode
  * and a user taps on a search result.
  */
-class DownloadService: JobIntentService() {
+class DownloadService: JobIntentService(), CoroutineScope {
     companion object {
         private var songQueue = ArrayList<DownloadableSong>()
         private const val JOB_ID = 1000
@@ -66,6 +66,13 @@ class DownloadService: JobIntentService() {
     private var currentIndex = 1
     private lateinit var builder: Notification.Builder
     private lateinit var notification: Notification
+
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
+
+    override fun onDestroy() {
+        super.onDestroy()
+        coroutineContext.cancelChildren()
+    }
 
     override fun onCreate() {
         createNotificationChannel()
@@ -93,10 +100,10 @@ class DownloadService: JobIntentService() {
     }
 
     private fun download(song: DownloadableSong) {
-        thread {
+        launch(Dispatchers.IO){
             if(song.ytmThumbnailLink.isNotBlank()) {
                 val drw = Glide
-                    .with(this)
+                    .with(this@DownloadService)
                     .load(song.ytmThumbnailLink)
                     .diskCacheStrategy(DiskCacheStrategy.NONE)
                     .skipMemoryCache(true)
@@ -113,7 +120,7 @@ class DownloadService: JobIntentService() {
             }
         }
 
-        thread {
+        launch(Dispatchers.IO) {
             val bundle = Bundle()
             val id = song.youtubeLink.run {
                 this.substring(this.lastIndexOf("=") + 1)
@@ -205,7 +212,7 @@ class DownloadService: JobIntentService() {
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
 
                         command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                        thread { //to deal with UI thread Block
+                        launch(Dispatchers.Default) { //to deal with UI thread Block
                         when (val rc = FFmpeg.execute(command)) {
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
@@ -214,7 +221,6 @@ class DownloadService: JobIntentService() {
                                         it.cancel(2)
                                     }
                                     song.resultReceiver.send(123, bundle)
-                                    fetch?.removeListener(this)
                                     if (format == Format.MODE_MP3)
                                         Shared.addThumbnails("$target.mp3", context = applicationContext)
                                     songQueue.clear()

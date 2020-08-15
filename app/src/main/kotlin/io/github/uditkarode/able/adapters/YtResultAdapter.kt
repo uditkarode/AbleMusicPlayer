@@ -62,18 +62,16 @@ class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: Wea
         holder.itemView.setOnClickListener {
             wr.get()?.itemPressed(songList[position])
         }
-        /* Will Show Full Name
-            for the Song held.
-         */
+        /* Will Show Full Name for the Song held */
         holder.itemView.setOnLongClickListener {
-            holder.vidName.isSingleLine=false
+            holder.vidName.isSingleLine = false
            // holder.vidName.setLines(Int.MAX_VALUE)
             notifyItemChanged(position)
             true
         }
     }
 
-    inner class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
+    class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
         val vidName = itemView.findViewById<TextView>(R.id.vid_name)!!
         val vidChannel = itemView.findViewById<TextView>(R.id.vid_uploader)!!
         val titleTxt = itemView.findViewById<TextView>(R.id.title_txt)!!

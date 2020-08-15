@@ -40,25 +40,32 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.search.*
+import kotlinx.coroutines.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.lang.ref.WeakReference
 import java.util.Collections.singletonList
-import kotlin.concurrent.thread
 
 /**
  * The second fragment. Used to search for songs.
  */
-class Search : Fragment() {
+class Search : Fragment(), CoroutineScope {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences
-    companion object{
+    companion object {
         val resultArray = ArrayList<Song>()
     }
     interface SongCallback {
         fun sendItem(song: Song , mode:String = "")
+    }
+    
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
+
+    override fun onDestroy() {
+        super.onDestroy()
+        coroutineContext.cancelChildren()
     }
 
     override fun onCreateView(
@@ -173,7 +180,7 @@ class Search : Fragment() {
                                 .getString("source_key", "Youtube Music") == "Youtube Music")
                         }
 
-                        thread {
+                        launch(Dispatchers.IO) {
                             if (useYtMusic) {
                                 when (sp.getString("mode", "Music")) {
                                     "Music" -> {
@@ -283,7 +290,7 @@ class Search : Fragment() {
                                 }
                             }
 
-                            activity?.runOnUiThread {
+                            launch(Dispatchers.Main) {
                                 if (useYtMusic)
                                     searchRv.adapter =
                                         YtmResultAdapter(

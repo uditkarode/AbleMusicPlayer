@@ -44,20 +44,22 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.albumplaylist.*
 import kotlinx.android.synthetic.main.search.loading_view
+import kotlinx.coroutines.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.lang.ref.WeakReference
-import kotlin.concurrent.thread
 
 /**
  * The activity that shows up when a user taps on an album or playlist
  * from the search results.
  */
-class AlbumPlaylist: AppCompatActivity() {
-    var mService: MusicService? = null
-    var isBound = false
+class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
     private lateinit var serviceConn: ServiceConnection
     private val resultArray = ArrayList<Song>()
+    var mService: MusicService? = null
+    var isBound = false
+
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,7 +115,7 @@ class AlbumPlaylist: AppCompatActivity() {
                 bindEvent()
             }
 
-            thread {
+            launch(Dispatchers.Default){
                 if(Shared.serviceLinked()) {
                     mService = Shared.mService
                 } else {
@@ -128,7 +130,7 @@ class AlbumPlaylist: AppCompatActivity() {
             }
         }
 
-        thread {
+        launch(Dispatchers.IO) {
             val plExtractor = YouTube.getPlaylistExtractor(link)
             plExtractor.fetchPage()
             for(song in plExtractor.initialPage.items) {
@@ -147,9 +149,9 @@ class AlbumPlaylist: AppCompatActivity() {
                 )
             }
 
-            runOnUiThread {
-                ap_rv.adapter = PlaybumAdapter(resultArray, WeakReference(this), "Song")
-                ap_rv.layoutManager = LinearLayoutManager(this)
+            launch(Dispatchers.Main) {
+                ap_rv.adapter = PlaybumAdapter(resultArray, WeakReference(this@AlbumPlaylist), "Song")
+                ap_rv.layoutManager = LinearLayoutManager(this@AlbumPlaylist)
                 loading_view.visibility = View.GONE
                 loading_view.pauseAnimation()
                 ap_rv.alpha = 0f
@@ -192,7 +194,7 @@ class AlbumPlaylist: AppCompatActivity() {
             bindEvent()
         }
 
-        thread {
+        launch {
             if(Shared.serviceLinked()) {
                 mService = Shared.mService
             } else {

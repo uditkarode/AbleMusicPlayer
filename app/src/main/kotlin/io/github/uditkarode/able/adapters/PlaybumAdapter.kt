@@ -64,7 +64,7 @@ class PlaybumAdapter(private val songList: ArrayList<Song>,
             Typeface.createFromAsset(holder.songName.context.assets, "fonts/inter.otf")
 
         holder.itemView.setOnClickListener {
-            wr.get()?.itemPressed(current)
+            wr.get()?.itemPressed(songList, position)
         }
     }
 

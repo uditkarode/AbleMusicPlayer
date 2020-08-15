@@ -42,6 +42,10 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.spotifyplaylist.SpotifyPlaylist
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Shared.Companion.modifyPlaylist
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.greenrobot.eventbus.EventBus
@@ -52,18 +56,19 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.File
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.concurrent.thread
 
 /**
  * object that takes care of inner workings of Spotify songs import.
  */
-object SpotifyImport {
+object SpotifyImport: CoroutineScope {
     private const val auth =
         "https://open.spotify.com/get_access_token?reason=transport&productType=web_player"
 
     private val okClient = OkHttpClient()
     private val gson = Gson()
     var isImporting = true
+
+    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     fun importList(playId: String, builder: Notification.Builder, applicationContext: Context) {
         val authR = Request.Builder().url(auth).removeHeader("User-Agent")
@@ -120,7 +125,7 @@ object SpotifyImport {
                             val streamInfo = StreamInfo.getInfo(toAdd.url)
                             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-                            thread {
+                            launch(Dispatchers.IO) {
                                 if (toAdd.thumbnailUrl.isNotBlank()) {
                                     val drw = Glide
                                         .with(applicationContext)

@@ -74,10 +74,7 @@ import kotlinx.android.synthetic.main.player.song_name
 import kotlinx.android.synthetic.main.player410.*
 import kotlinx.android.synthetic.main.player410.img_albart
 import kotlinx.android.synthetic.main.player410.note_ph
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -890,6 +887,7 @@ class Player : AppCompatActivity(), CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
+        coroutineContext.cancelChildren()
         if (!this.isDestroyed)
             Glide.with(this@Player).clear(img_albart)
     }

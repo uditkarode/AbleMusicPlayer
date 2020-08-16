@@ -100,16 +100,19 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        if (!Shared.serviceRunning(MusicService::class.java, applicationContext)
-            && Shared.isFirstOpen
-        ) {
-            if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                startActivity(Intent(applicationContext, Welcome::class.java))
-            } else startActivity(Intent(applicationContext, Splash::class.java))
-        }
         launch {
+            if (!Shared.serviceRunning(MusicService::class.java, applicationContext)
+                && Shared.isFirstOpen
+            ) {
+                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED
+                ) {
+                    startActivity(Intent(this@MainActivity, Welcome::class.java))
+                } else startActivity(Intent(this@MainActivity, Splash::class.java))
+            }
+        }
+
+        launch(Dispatchers.Main){
             Shared.defBitmap = (ResourcesCompat.getDrawable(
                 resources,
                 R.drawable.def_albart, null

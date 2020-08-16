@@ -52,7 +52,7 @@ import java.io.IOException
  * The JobIntentService that downloads songs when the play mode is set to download mode
  * and a user taps on a search result.
  */
-class DownloadService: JobIntentService(), CoroutineScope {
+class DownloadService : JobIntentService(), CoroutineScope {
     companion object {
         private var songQueue = ArrayList<DownloadableSong>()
         private const val JOB_ID = 1000
@@ -92,7 +92,7 @@ class DownloadService: JobIntentService(), CoroutineScope {
         songQueue.add(DownloadableSong(song[0], song[2], song[1], song[3], mResultReceiver))
         if (songQueue.size == 1) download(songQueue[0])
         else {
-            NotificationManagerCompat.from(applicationContext).apply {
+            NotificationManagerCompat.from(this@DownloadService).apply {
                 builder.setSubText("$currentIndex of ${songQueue.size}")
                 notify(2, builder.build())
             }
@@ -100,8 +100,8 @@ class DownloadService: JobIntentService(), CoroutineScope {
     }
 
     private fun download(song: DownloadableSong) {
-        launch(Dispatchers.IO){
-            if(song.ytmThumbnailLink.isNotBlank()) {
+        launch(Dispatchers.IO) {
+            if (song.ytmThumbnailLink.isNotBlank()) {
                 val drw = Glide
                     .with(this@DownloadService)
                     .load(song.ytmThumbnailLink)
@@ -125,9 +125,9 @@ class DownloadService: JobIntentService(), CoroutineScope {
             val id = song.youtubeLink.run {
                 this.substring(this.lastIndexOf("=") + 1)
             }
-            NotificationManagerCompat.from(applicationContext).apply {
+            NotificationManagerCompat.from(this@DownloadService).apply {
                 builder.setSubText("$currentIndex of ${songQueue.size} ")
-                builder.setContentText("${song.name} ${applicationContext.getString(R.string.starting)}")
+                builder.setContentText("${song.name} ${this@DownloadService.getString(R.string.starting)}")
                 builder.setOngoing(true)
                 notify(2, builder.build())
             }
@@ -148,7 +148,7 @@ class DownloadService: JobIntentService(), CoroutineScope {
             val notifName =
                 if (song.name.length > 25) song.name.substring(0, 25) + "..." else song.name
 
-            NotificationManagerCompat.from(applicationContext).apply {
+            NotificationManagerCompat.from(this@DownloadService).apply {
                 builder.setContentTitle(notifName)
                 builder.setOngoing(true)
                 notify(2, builder.build())
@@ -165,8 +165,8 @@ class DownloadService: JobIntentService(), CoroutineScope {
                     override fun onCancelled(download: Download) {}
 
                     override fun onCompleted(download: Download) {
-                        NotificationManagerCompat.from(applicationContext).apply {
-                            builder.setContentText(applicationContext.getString(R.string.saving))
+                        NotificationManagerCompat.from(this@DownloadService).apply {
+                            builder.setContentText(this@DownloadService.getString(R.string.saving))
                                 .setProgress(100, 100, true)
                             builder.setOngoing(true)
                             notify(2, builder.build())
@@ -201,7 +201,7 @@ class DownloadService: JobIntentService(), CoroutineScope {
                                 "-metadata artist=\"${song.artist}\" "
                         val format =
                             if (PreferenceManager.getDefaultSharedPreferences(
-                                    applicationContext
+                                    this@DownloadService
                                 )
                                     .getString("format_key", "webm") == "mp3"
                             ) Format.MODE_MP3
@@ -210,9 +210,8 @@ class DownloadService: JobIntentService(), CoroutineScope {
                             command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
-
                         command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                        launch(Dispatchers.Default) { //to deal with UI thread Block
+                        Log.e("asd", "DOING")
                         when (val rc = FFmpeg.execute(command)) {
                             Config.RETURN_CODE_SUCCESS -> {
                                 File(target).delete()
@@ -222,7 +221,10 @@ class DownloadService: JobIntentService(), CoroutineScope {
                                     }
                                     song.resultReceiver.send(123, bundle)
                                     if (format == Format.MODE_MP3)
-                                        Shared.addThumbnails("$target.mp3", context = applicationContext)
+                                        Shared.addThumbnails(
+                                            "$target.mp3",
+                                            context = this@DownloadService
+                                        )
                                     songQueue.clear()
                                     stopSelf()
                                 } else {
@@ -248,7 +250,7 @@ class DownloadService: JobIntentService(), CoroutineScope {
                                     )
                                 )
                             }
-                        }}
+                        }
                     }
 
                     override fun onDeleted(download: Download) {}
@@ -278,11 +280,17 @@ class DownloadService: JobIntentService(), CoroutineScope {
                         etaInMilliSeconds: Long,
                         downloadedBytesPerSecond: Long
                     ) {
-                        NotificationManagerCompat.from(applicationContext).apply {
+                        NotificationManagerCompat.from(this@DownloadService).apply {
                             builder.setProgress(100, download.progress, false)
                             builder.setOngoing(true)
                             builder.setSubText("$currentIndex of ${songQueue.size}")
-                            builder.setContentText("${etaInMilliSeconds / 1000}s ${applicationContext.getString(R.string.left)}")
+                            builder.setContentText(
+                                "${etaInMilliSeconds / 1000}s ${
+                                    this@DownloadService.getString(
+                                        R.string.left
+                                    )
+                                }"
+                            )
                             notify(2, builder.build())
                         }
                     }
@@ -308,7 +316,12 @@ class DownloadService: JobIntentService(), CoroutineScope {
                     }
 
                     override fun onWaitingNetwork(download: Download) {
-
+                        NotificationManagerCompat.from(this@DownloadService).apply {
+                            builder.setContentText("Waiting for network...")
+                                .setProgress(100, 100, true)
+                            builder.setOngoing(true)
+                            notify(2, builder.build())
+                        }
                     }
                 })
 

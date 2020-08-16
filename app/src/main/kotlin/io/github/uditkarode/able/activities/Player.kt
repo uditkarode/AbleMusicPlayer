@@ -669,7 +669,7 @@ class Player : AppCompatActivity(), CoroutineScope {
             }
 
             /* (3) Album art from Deezer (regardless of local or not local) */
-            if (!didGetArt) {
+            if (!didGetArt && Shared.isInternetConnected(this@Player)) {
                 Log.e("INFO>", "Fetching from Deezer")
                 val albumArtRequest = if (customSongName == null) {
                     Request.Builder()

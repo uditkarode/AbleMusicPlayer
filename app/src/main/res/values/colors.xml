@@ -6,4 +6,5 @@
     <color name="white">#fbfbfb</color>
     <color name="black">#000000</color>
     <color name="thatAccent">#5e92f3</color>
+    <color name="welcome_bg">#242424</color>
 </resources>

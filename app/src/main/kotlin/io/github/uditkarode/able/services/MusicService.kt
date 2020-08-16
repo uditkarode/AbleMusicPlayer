@@ -704,7 +704,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
             if (song.ytmThumbnail.isNotBlank()) {
-                Glide.with(applicationContext)
+                Glide.with(this@MusicService)
                     .asBitmap()
                     .load(song.ytmThumbnail)
                     .signature(ObjectKey("save"))

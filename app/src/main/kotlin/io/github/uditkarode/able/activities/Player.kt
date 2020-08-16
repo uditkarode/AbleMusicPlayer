@@ -123,7 +123,7 @@ class Player : AppCompatActivity(), CoroutineScope {
             this.ydpi
         }
 
-        when (PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        when (PreferenceManager.getDefaultSharedPreferences(this@Player)
             .getString("player_layout_key", "Default")) {
             "Tiny" -> setContentView(R.layout.player220)
 

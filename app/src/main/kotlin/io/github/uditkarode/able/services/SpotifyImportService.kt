@@ -37,7 +37,7 @@ import org.greenrobot.eventbus.Subscribe
 /**
  * The service that handles import of Spotify songs.
  */
-class SpotifyImportService(context: Context, workerParams: WorkerParameters) : Worker (
+class SpotifyImportService(val context: Context, workerParams: WorkerParameters) : Worker (
     context,
     workerParams
 ) {
@@ -46,7 +46,7 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
     override fun doWork(): Result {
         createNotificationChannel()
         if (runAttemptCount > 2) {
-            (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+            (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
                 it.cancel(3)
             }
             return Result.failure()
@@ -54,14 +54,14 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         return try {
             val playId = inputData.getString("inputId")
             EventBus.getDefault().postSticky(ImportStartedEvent())
-            NotificationManagerCompat.from(applicationContext).apply {
+            NotificationManagerCompat.from(context).apply {
                 builder.setContentText("")
-                builder.setContentTitle(applicationContext.getString(R.string.init_import))
+                builder.setContentTitle(context.getString(R.string.init_import))
                 builder.setProgress(100, 100, true)
                 builder.setOngoing(true)
                 notify(3, builder.build())
             }
-            SpotifyImport.importList(playId.toString(), builder, applicationContext)
+            SpotifyImport.importList(playId.toString(), builder, context)
             Result.success()
         } catch (e: Exception) {
             Result.retry()
@@ -72,7 +72,7 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         SpotifyImport.isImporting = false
         super.onStopped()
         EventBus.getDefault().unregister(this)
-        (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
             it.cancel(3)
         }
 
@@ -88,20 +88,20 @@ class SpotifyImportService(context: Context, workerParams: WorkerParameters) : W
         if(!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this)
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(applicationContext, Constants.CHANNEL_ID)
+            Notification.Builder(context, Constants.CHANNEL_ID)
         } else {
             @Suppress("DEPRECATION")
-            Notification.Builder(applicationContext)
+            Notification.Builder(context)
         }
         builder.apply {
-            setContentTitle(applicationContext.getString(R.string.init_import))
-            setContentText(applicationContext.getString(R.string.pl_wait))
-            setSubText("Spotify ${applicationContext.getString(R.string.imp)}")
+            setContentTitle(context.getString(R.string.init_import))
+            setContentText(context.getString(R.string.pl_wait))
+            setSubText("Spotify ${context.getString(R.string.imp)}")
             setSmallIcon(R.drawable.ic_download_icon)
             builder.setOngoing(true)
         }
         val notificationManager =
-            applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChannel = NotificationChannel(
                 Constants.CHANNEL_ID,

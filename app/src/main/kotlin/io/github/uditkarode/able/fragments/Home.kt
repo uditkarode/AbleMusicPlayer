@@ -164,9 +164,9 @@ class Home : Fragment(), CoroutineScope {
     fun bindEvent() {
         if (Shared.serviceRunning(MusicService::class.java, requireContext())) {
             try {
-                activity?.applicationContext?.bindService(
+                requireContext().bindService(
                     Intent(
-                        activity?.applicationContext,
+                        requireContext(),
                         MusicService::class.java
                     ), serviceConn, 0
                 )

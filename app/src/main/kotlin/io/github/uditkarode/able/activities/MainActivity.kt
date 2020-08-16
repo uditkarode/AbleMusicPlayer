@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     override fun onCreate(savedInstanceState: Bundle?) {
         launch {
-            if (!Shared.serviceRunning(MusicService::class.java, applicationContext)
+            if (!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
                 && Shared.isFirstOpen
             ) {
                 if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
         mainContent = main_content
         bb_icon.setOnClickListener {
-            if (Shared.serviceRunning(MusicService::class.java, applicationContext)) {
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
 
                 launch {
                     if (playing) Shared.mService.setPlayPause(SongState.paused)
@@ -201,13 +201,13 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         bb_song.isSelected = true
 
         bb_song.setOnClickListener {
-            if (Shared.serviceRunning(MusicService::class.java, applicationContext))
-                startActivity(Intent(applicationContext, Player::class.java))
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+                startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
         bb_expand.setOnClickListener {
-            if (Shared.serviceRunning(MusicService::class.java, applicationContext))
-                startActivity(Intent(applicationContext, Player::class.java))
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+                startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
         // bind to the service.
@@ -239,9 +239,9 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     private fun bindService() {
         if (!Shared.serviceLinked()) {
-            if (Shared.serviceRunning(MusicService::class.java, applicationContext))
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 bindService(
-                    Intent(applicationContext, MusicService::class.java),
+                    Intent(this@MainActivity, MusicService::class.java),
                     serviceConn, Context.BIND_IMPORTANT
                 )
         } else {
@@ -339,7 +339,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     override fun sendItem(song: Song, mode: String) {
-        var currentMode = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        var currentMode = PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
             .getString("mode_key", MusicMode.download)
         if (mode.isNotEmpty())
             currentMode = mode
@@ -350,12 +350,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 songL.add(song.youtubeLink)
                 songL.add(song.artist)
                 songL.add(song.ytmThumbnail)
-                val serviceIntentService = Intent(applicationContext, DownloadService::class.java)
+                val serviceIntentService = Intent(this@MainActivity, DownloadService::class.java)
                     .putStringArrayListExtra("song", songL)
                     .putExtra("receiver", mServiceResultReceiver)
                 enqueueDownload(this, serviceIntentService)
                 Toast.makeText(
-                    applicationContext,
+                    this@MainActivity,
                     "${song.name} ${getString(R.string.dl_added)}",
                     Toast.LENGTH_SHORT
                 ).show()

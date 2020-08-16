@@ -70,7 +70,7 @@ object SpotifyImport: CoroutineScope {
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
-    fun importList(playId: String, builder: Notification.Builder, applicationContext: Context) {
+    fun importList(playId: String, builder: Notification.Builder, context: Context) {
         val authR = Request.Builder().url(auth).removeHeader("User-Agent")
             .addHeader("Accept", "application/json").addHeader("Accept-Language", "en").build()
         val resp = okClient.newCall(authR).execute()
@@ -98,7 +98,7 @@ object SpotifyImport: CoroutineScope {
                         val songName = "${item.track.name} - ${item.track.artists[0].name}".run {
                             if (this.length > 25) this.substring(0, 25) + "..." else this
                         }
-                        NotificationManagerCompat.from(applicationContext).apply {
+                        NotificationManagerCompat.from(context).apply {
                             builder.setContentText("$i of ${respPlayList.tracks.items.size}")
                             builder.setContentTitle(songName)
                             builder.setProgress(100, 100, true)
@@ -128,7 +128,7 @@ object SpotifyImport: CoroutineScope {
                             launch(Dispatchers.IO) {
                                 if (toAdd.thumbnailUrl.isNotBlank()) {
                                     val drw = Glide
-                                        .with(applicationContext)
+                                        .with(context)
                                         .load(toAdd.thumbnailUrl)
                                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                                         .skipMemoryCache(true)
@@ -165,7 +165,7 @@ object SpotifyImport: CoroutineScope {
                                     override fun onCancelled(download: Download) {}
 
                                     override fun onCompleted(download: Download) {
-                                        NotificationManagerCompat.from(applicationContext).apply {
+                                        NotificationManagerCompat.from(context).apply {
                                             builder.setContentText((i + 1).toString() + " of ${respPlayList.tracks.items.size}")
                                             builder.setContentTitle("Saving...")
                                                 .setProgress(100, 100, true)
@@ -180,7 +180,7 @@ object SpotifyImport: CoroutineScope {
                                                 "-metadata artist=\"${item.track.artists[0].name}\" -y "
                                         val format =
                                             if (PreferenceManager.getDefaultSharedPreferences(
-                                                    applicationContext
+                                                    context
                                                 )
                                                     .getString("format_key", "webm") == "mp3"
                                             ) Format.MODE_MP3
@@ -241,7 +241,7 @@ object SpotifyImport: CoroutineScope {
                                         etaInMilliSeconds: Long,
                                         downloadedBytesPerSecond: Long
                                     ) {
-                                        NotificationManagerCompat.from(applicationContext).apply {
+                                        NotificationManagerCompat.from(context).apply {
                                             builder.setContentText((i + 1).toString() + " of ${respPlayList.tracks.items.size}")
                                             builder.setContentTitle(songName)
                                             builder.setProgress(100, download.progress, false)
@@ -306,39 +306,39 @@ object SpotifyImport: CoroutineScope {
                 if (songArr.size > 0) {
                     EventBus.getDefault().post(ImportDoneEvent())
                     modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
-                    (applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                    (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
                         it.cancel(3)
                     }
 
                     Toast.makeText(
-                        applicationContext,
-                        applicationContext.getString(R.string.spot_suc),
+                        context,
+                        context.getString(R.string.spot_suc),
                         Toast.LENGTH_LONG
                     ).show()
 
                     isImporting = false
                 } else {
-                    NotificationManagerCompat.from(applicationContext).apply {
-                        builder.setContentText(applicationContext.getString(R.string.spot_fail))
+                    NotificationManagerCompat.from(context).apply {
+                        builder.setContentText(context.getString(R.string.spot_fail))
                         builder.setOngoing(false)
                         notify(3, builder.build())
                     }
                     Toast.makeText(
-                        applicationContext,
-                        applicationContext.getString(R.string.spot_ytfail),
+                        context,
+                        context.getString(R.string.spot_ytfail),
                         Toast.LENGTH_LONG
                     ).show()
                 }
             }
         } else {
-            NotificationManagerCompat.from(applicationContext).apply {
-                builder.setContentText(applicationContext.getString(R.string.spot_fail))
+            NotificationManagerCompat.from(context).apply {
+                builder.setContentText(context.getString(R.string.spot_fail))
                 builder.setOngoing(false)
                 notify(3, builder.build())
             }
             Toast.makeText(
-                applicationContext,
-                applicationContext.getString(R.string.unexpected_err),
+                context,
+                context.getString(R.string.unexpected_err),
                 Toast.LENGTH_LONG
             ).show()
         }

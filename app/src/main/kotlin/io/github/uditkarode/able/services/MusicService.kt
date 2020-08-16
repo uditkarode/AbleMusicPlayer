@@ -149,12 +149,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
             override fun onPause() {
                 super.onPause()
-                onPause()
+                setPlayPause(SongState.paused)
             }
 
             override fun onPlay() {
                 super.onPlay()
-                playAudio()
+                mediaSessionPlay()
+                setPlayPause(SongState.playing)
             }
         })
 

@@ -191,6 +191,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                         0
                     )
                 )
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setDeleteIntent(PendingIntent.getService(this, 1, intent, 0))
                 .setOngoing(true)
                 .style = style

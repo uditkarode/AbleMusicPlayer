@@ -21,7 +21,10 @@ import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.media.MediaScannerConnection
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
@@ -489,6 +492,40 @@ class Shared {
                 songs.add(song)
             else Toast.makeText(context, context.getString(R.string.playlist_dup), Toast.LENGTH_SHORT).show()
             modifyPlaylist(playlist.name, ArrayList(songs.sortedBy { it.name.toUpperCase(Locale.getDefault()) }))
+        }
+
+        /**
+         * @param context Context of the activity
+         * Return True if Internet is Connected otherwise False
+         */
+        @Suppress("DEPRECATION")
+        fun isInternetConnected(context: Context): Boolean {
+            var result = false
+            val connectivityManager =
+                context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val networkCapabilities = connectivityManager.activeNetwork ?: return false
+                val actNw =
+                    connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
+                result = when {
+                    actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                    actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                    actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                    else -> false
+                }
+            } else {
+                connectivityManager.run {
+                    connectivityManager.activeNetworkInfo?.run {
+                        result = when (type) {
+                            ConnectivityManager.TYPE_WIFI -> true
+                            ConnectivityManager.TYPE_MOBILE -> true
+                            ConnectivityManager.TYPE_ETHERNET -> true
+                            else -> false
+                        }
+                    }
+                }
+            }
+            return result
         }
     }
 }

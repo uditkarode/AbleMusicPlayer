@@ -144,7 +144,7 @@ class Search : Fragment(), CoroutineScope {
     private fun getItems(searchBar:EditText, searchRv:RecyclerView){
         searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == 6) {
-                if(isInternetConnected()){
+                if(Shared.isInternetConnected(requireContext())){
                     loading_view.progress = 0.3080229f
                     loading_view.playAnimation()
 
@@ -323,38 +323,8 @@ class Search : Fragment(), CoroutineScope {
         }
     }
 
-    @Suppress("DEPRECATION")
-    private fun isInternetConnected(): Boolean {
-        var result = false
-        val connectivityManager =
-            requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val networkCapabilities = connectivityManager.activeNetwork ?: return false
-            val actNw =
-                connectivityManager.getNetworkCapabilities(networkCapabilities) ?: return false
-            result = when {
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-                actNw.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                else -> false
-            }
-        } else {
-            connectivityManager.run {
-                connectivityManager.activeNetworkInfo?.run {
-                    result = when (type) {
-                        ConnectivityManager.TYPE_WIFI -> true
-                        ConnectivityManager.TYPE_MOBILE -> true
-                        ConnectivityManager.TYPE_ETHERNET -> true
-                        else -> false
-                    }
-                }
-            }
-        }
-        return result
-    }
-
     fun itemPressed(song: Song) {
-        if(isInternetConnected())
+        if(Shared.isInternetConnected(requireContext()))
             itemPressed.sendItem(song)
         else
             Toast.makeText(requireContext(),"No Internet Connection", Toast.LENGTH_LONG).show()

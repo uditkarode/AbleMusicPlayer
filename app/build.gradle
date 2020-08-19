@@ -86,7 +86,7 @@ dependencies {
     implementation 'androidx.palette:palette:1.0.0'
     implementation 'com.amitshekhar.android:glide-bitmap-pool:0.0.1'
     implementation 'com.github.maxbruecken:jaudiotagger-android:995dd88554'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9-native-mt"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9-native-mt"
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
 }

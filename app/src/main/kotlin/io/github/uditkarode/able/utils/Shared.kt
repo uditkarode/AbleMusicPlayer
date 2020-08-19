@@ -146,6 +146,8 @@ class Shared {
                     id= albumName
                 when {
                     imageFile.contains(".mp3") -> {
+                        audioFile.tag.deleteField(FieldKey.ALBUM)
+                        audioFile.tag.deleteArtworkField()
                         audioFile.tag.setField(
                             FieldKey.ALBUM,
                             id
@@ -155,6 +157,7 @@ class Shared {
                     imageFile.contains(".m4a") -> {
                         val mp4tag = audioFile.tag as Mp4Tag
                         mp4tag.deleteField(Mp4FieldKey.ARTWORK)
+                        mp4tag.deleteField(Mp4FieldKey.ALBUM)
                         mp4tag.setField(FieldKey.ALBUM, id)
                         val bitmap = Glide
                             .with(context)

@@ -198,7 +198,7 @@ class Player : AppCompatActivity(), CoroutineScope {
                 cornerRadius(20f)
                 title(text = this@Player.getString(R.string.enter_song))
                 input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
-                    updateAlbumArt(charSequence.toString())
+                    updateAlbumArt(charSequence.toString(), true)
                 }
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }

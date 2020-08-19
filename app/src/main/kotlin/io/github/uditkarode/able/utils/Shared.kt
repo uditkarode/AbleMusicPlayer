@@ -146,6 +146,8 @@ class Shared {
                     id= albumName
                 when {
                     imageFile.contains(".mp3") -> {
+                        audioFile.tag.deleteField(FieldKey.ALBUM)
+                        audioFile.tag.deleteArtworkField()
                         audioFile.tag.setField(
                             FieldKey.ALBUM,
                             id
@@ -155,6 +157,7 @@ class Shared {
                     imageFile.contains(".m4a") -> {
                         val mp4tag = audioFile.tag as Mp4Tag
                         mp4tag.deleteField(Mp4FieldKey.ARTWORK)
+                        mp4tag.deleteField(Mp4FieldKey.ALBUM)
                         mp4tag.setField(FieldKey.ALBUM, id)
                         val bitmap = Glide
                             .with(context)
@@ -381,7 +384,7 @@ class Shared {
                 if(!f.isDirectory){
                     if(f.extension == "tmp" ||
                         (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
-                        || (f.extension != "webm" && f.extension != "mp3")){
+                        || f.extension != "webm"){
                         continue
                     }
                     val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
@@ -433,7 +436,7 @@ class Shared {
             if(songCursor != null && songCursor.moveToFirst()) {
                 do {
                     val path:String=songCursor.getString(2)
-                    if(!path.contains("Able") && !path.contains("WhatsApp")) {
+                    if(!path.contains("webm") && !path.contains("WhatsApp")) {
                         if(path.contains("mp3") || path.contains("m4a")){
                             songs.add(
                                 Song(

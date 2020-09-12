@@ -5,9 +5,6 @@ steps:
   - name: Construction
     pull: if-not-exists
     image: uditkarode/android-sdk-arch:latest
-    trigger:
-      branch:
-        - master
     commands:
       - "export GH_TOKEN"
       - "export FLURRY_KEY"
@@ -34,3 +31,7 @@ steps:
         from_secret: STORE_PASS
       TG_BOT_KEY:
         from_secret: TG_BOT_KEY
+
+trigger:
+      branch:
+        - master

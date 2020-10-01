@@ -55,7 +55,7 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
@@ -78,9 +78,6 @@ import kotlinx.coroutines.*
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 import org.json.JSONObject
 import java.io.File
 import java.util.*
@@ -91,7 +88,7 @@ import kotlin.collections.ArrayList
  * The Player UI activity.
  */
 
-class Player : AppCompatActivity(), CoroutineScope {
+class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
     private lateinit var serviceConn: ServiceConnection
     private lateinit var mService: MusicService
     private lateinit var timer: Timer
@@ -301,7 +298,6 @@ class Player : AppCompatActivity(), CoroutineScope {
                                                 name = current.name,
                                                 artist = charSequence.toString()
                                             )
-
                                         }
                                     })
                             }
@@ -390,7 +386,9 @@ class Player : AppCompatActivity(), CoroutineScope {
         }
 
         player_queue?.setOnClickListener {
-            /* TODO add to settings val additive = if(!mService.onRepeat){
+            /* TODO add to settings
+
+                val additive = if(!mService.onRepeat){
                 val ret = arrayListOf<Song>()
                 ret.add(Song(name = "(repeat)", placeholder = true))
                 if(mService.getPlayQueue.size > 3){
@@ -432,7 +430,8 @@ class Player : AppCompatActivity(), CoroutineScope {
         mService = Shared.mService
         if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_pause))
         else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_play))
-        songChangeEvent(GetSongChangedEvent())
+        songChangeEvent()
+        MusicService.registerClient(this)
     }
 
     private fun bindEvent() {
@@ -453,7 +452,8 @@ class Player : AppCompatActivity(), CoroutineScope {
             timer.cancel()
             timer.purge()
         }
-        EventBus.getDefault().unregister(this)
+
+        MusicService.unregisterClient(this)
     }
 
     private fun startSeekbarUpdates() {
@@ -541,11 +541,6 @@ class Player : AppCompatActivity(), CoroutineScope {
             player_seekbar.thumb.setTint(color)
             tintControls(color)
         }
-    }
-
-    @Subscribe
-    fun getPlayPauseEvent(pp: GetPlayPauseEvent) {
-        playPauseEvent(pp.state)
     }
 
     private fun playPauseEvent(ss: SongState) {
@@ -806,11 +801,10 @@ class Player : AppCompatActivity(), CoroutineScope {
             )
         }
 
-        EventBus.getDefault().postSticky(UpdateQueueEvent())
+        // TODO MusicService.registeredClients.forEach { it.queueChanged() }
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun songChangeEvent(@Suppress("UNUSED_PARAMETER") songChangedEvent: GetSongChangedEvent) {
+    private fun songChangeEvent() {
         updateAlbumArt()
 
         val duration = mService.getMediaPlayer().duration
@@ -822,28 +816,6 @@ class Player : AppCompatActivity(), CoroutineScope {
         artist_name.text = song.artist
         player_seekbar.progress = mService.getMediaPlayer().currentPosition
         playPauseEvent(SongState.playing)
-    }
-
-    @Subscribe
-    fun setupShuffleRepeat(songEvent: GetShuffleRepeatEvent) {
-        onShuffle = songEvent.onShuffle
-        onRepeat = songEvent.onRepeat
-
-        if (onShuffle)
-            DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#805e92f3"))
-        else
-            DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#fbfbfb"))
-    }
-
-    @Subscribe
-    fun durationUpdate(durationEvent: GetDurationEvent) {
-        player_seekbar.max = durationEvent.duration
-        complete_position.text = getDurationFromMs(durationEvent.duration)
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) {
-        finish()
     }
 
     private fun getDurationFromMs(durtn: Int): String {
@@ -865,16 +837,8 @@ class Player : AppCompatActivity(), CoroutineScope {
     override fun onResume() {
         if (!Shared.serviceRunning(MusicService::class.java, this@Player))
             finish()
-        if (!EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().register(this)
         bindEvent()
         super.onResume()
-    }
-
-    override fun onStop() {
-        if (EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().unregister(this)
-        super.onStop()
     }
 
     override fun onBackPressed() {
@@ -888,7 +852,42 @@ class Player : AppCompatActivity(), CoroutineScope {
     override fun onDestroy() {
         super.onDestroy()
         coroutineContext.cancelChildren()
+        MusicService.unregisterClient(this)
         if (!this.isDestroyed)
             Glide.with(this@Player).clear(img_albart)
     }
+
+    override fun playStateChanged(state: SongState) {
+        playPauseEvent(state)
+    }
+
+    override fun songChanged() {
+        songChangeEvent()
+    }
+
+    override fun durationChanged(duration: Int) {
+        player_seekbar.max = duration
+        complete_position.text = getDurationFromMs(duration)
+    }
+
+    override fun isExiting() {
+        finish()
+    }
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {}
+
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
+        launch(Dispatchers.Main) {
+            if (onShuffle)
+                DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#805e92f3"))
+            else
+                DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#fbfbfb"))
+        }
+    }
+
+    override fun indexChanged(index: Int) {}
+
+    override fun isLoading(doLoad: Boolean) {}
+
+    override fun spotifyImportChange(starting: Boolean) {}
 }

@@ -43,31 +43,62 @@ import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
-import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
-import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
+import java.lang.ClassCastException
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.system.exitProcess
 
 /**
  * The service that plays music.
  */
+
 class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, CoroutineScope {
+
+    interface MusicClient {
+        fun playStateChanged(state: SongState)
+        fun songChanged()
+        fun durationChanged(duration: Int)
+        fun isExiting()
+        fun queueChanged(arrayList: ArrayList<Song>)
+        fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean)
+        fun indexChanged(index: Int)
+        fun isLoading(doLoad: Boolean)
+        fun spotifyImportChange(starting: Boolean)
+    }
+
     companion object {
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
         val mediaPlayer = MediaPlayer()
         var previousIndex = -1
         var currentIndex = -1
+
+        val registeredClients = ArrayList<MusicClient>()
+
+        fun registerClient(client: Any){
+            try {
+                val toAdd = client as MusicClient
+                if(!registeredClients.contains(toAdd))
+                    registeredClients.add(toAdd)
+                Log.e("INFO>", "Client registered! $registeredClients")
+            } catch(e: ClassCastException){
+                Log.e("ERR>", "Could not register client!")
+            }
+        }
+
+        fun unregisterClient(client: Any){
+            try {
+                registeredClients.remove(client as MusicClient)
+            } catch(e: ClassCastException){}
+        }
         
         private lateinit var notificationManager: NotificationManager
         private var focusRequest: AudioFocusRequest? = null
@@ -112,7 +143,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onCreate() {
         super.onCreate()
-
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
@@ -200,11 +230,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.e("HEREEER", "$playQueue")
         coroutineContext.cancelChildren()
-        EventBus.getDefault().post(ExitEvent())
-        EventBus.getDefault().unregister(this)
         unregisterReceiver(receiver)
-        exitProcess(0)
+        //exitProcess(0)
     }
 
     class MusicBinder(private val service: MusicService) : Binder() {
@@ -253,7 +282,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun addToQueue(song: Song) {
         addToPlayQueue(song)
-        EventBus.getDefault().post(GetQueueEvent(playQueue))
+        launch(Dispatchers.IO) {
+            launch(Dispatchers.IO) {
+                registeredClients.forEach { it.queueChanged(playQueue) }
+            }
+        }
     }
 
     /**
@@ -261,7 +294,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun setQueue(queue: ArrayList<Song>) {
         playQueue = queue
-        EventBus.getDefault().post(GetQueueEvent(playQueue))
+        launch(Dispatchers.IO) {
+            launch(Dispatchers.IO) {
+                registeredClients.forEach { it.queueChanged(playQueue) }
+            }
+        }
     }
 
     /**
@@ -271,7 +308,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
         setShuffle(shuffle)
         onRepeat = repeat
-        EventBus.getDefault().post(GetShuffleRepeatEvent(onShuffle, onRepeat))
+        launch(Dispatchers.IO)  {
+            registeredClients.forEach { it.shuffleRepeatChanged(onShuffle, onRepeat) }
+        }
     }
 
     /**
@@ -281,7 +320,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         previousIndex = currentIndex
         currentIndex = index
         songChanged()
-        EventBus.getDefault().post(GetIndexEvent(currentIndex))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.indexChanged(currentIndex) }
+        }
     }
 
     /**
@@ -291,7 +332,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         if (state == SongState.playing) playAudio()
         else pauseAudio()
 
-        EventBus.getDefault().post(GetPlayPauseEvent(state))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.playStateChanged(state) }
+        }
     }
 
     /**
@@ -323,8 +366,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             currentIndex = playQueue.indexOf(currSong)
         }
 
-        EventBus.getDefault().post(GetQueueEvent(playQueue))
-        EventBus.getDefault().post(GetIndexEvent(currentIndex))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.queueChanged(playQueue) }
+        }
+
+        launch(Dispatchers.IO)  {
+            registeredClients.forEach { it.indexChanged(currentIndex) }
+        }
     }
 
     /**
@@ -402,10 +450,18 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             try {
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
                 mediaPlayer.prepareAsync()
-                EventBus.getDefault().post(GetSongChangedEvent())
-                EventBus.getDefault().post(GetIndexEvent(currentIndex))
+                launch(Dispatchers.IO) {
+                    registeredClients.forEach(MusicClient::songChanged)
+                }
+                launch(Dispatchers.IO) {
+                    registeredClients.forEach { it.indexChanged(currentIndex) }
+                }
+
                 mediaPlayer.setOnPreparedListener {
-                    EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
+                    val dur = mediaPlayer.duration
+                    launch(Dispatchers.IO) {
+                        registeredClients.forEach { it.durationChanged(dur) }
+                    }
                     mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
                     setPlayPause(SongState.playing)
                 }
@@ -519,18 +575,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         )
 
         mediaPlayer.pause()
-        EventBus.getDefault().post(GetPlayPauseEvent(run {
-            if (mediaPlayer.isPlaying) SongState.playing
-            else SongState.paused
-        }))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.playStateChanged(run {
+                if (mediaPlayer.isPlaying) SongState.playing
+                else SongState.paused
+            }) }
+        }
     }
 
     /**
      * releases the media session and wakelock and gets ready to die.
      */
     private fun cleanUp() {
-        EventBus.getDefault().post(ExitEvent())
-        EventBus.getDefault().unregister(this)
+        launch(Dispatchers.IO) {
+            registeredClients.forEach(MusicClient::isExiting)
+        }
         mediaPlayer.stop()
         mediaSession.release()
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {

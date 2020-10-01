@@ -52,8 +52,6 @@ import com.vincan.medialoader.download.DownloadListener
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.events.HomeLoadingEvent
-import io.github.uditkarode.able.events.UpdateQueueEvent
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -63,8 +61,6 @@ import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.home.*
 import kotlinx.coroutines.*
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
@@ -75,7 +71,7 @@ import kotlin.collections.ArrayList
  * The first fragment. Shows a list of songs present on the user's device.
  */
 @Suppress("NAME_SHADOWING")
-class Home : Fragment(), CoroutineScope {
+class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     private lateinit var mediaLoaderConfig: MediaLoaderConfig
     private lateinit var serviceConn: ServiceConnection
     private lateinit var mediaLoader: MediaLoader
@@ -95,6 +91,7 @@ class Home : Fragment(), CoroutineScope {
     override fun onDestroy() {
         super.onDestroy()
         coroutineContext.cancelChildren()
+        MusicService.unregisterClient(this)
     }
 
     override fun onCreateView(
@@ -159,6 +156,8 @@ class Home : Fragment(), CoroutineScope {
                 itemTouchHelper.attachToRecyclerView(songs)
             }
         }
+
+        MusicService.registerClient(this)
     }
 
     fun bindEvent() {
@@ -369,14 +368,9 @@ class Home : Fragment(), CoroutineScope {
 
             mService?.setPlayQueue(arrayListOf(song))
             mService?.setIndex(0)
-            EventBus.getDefault().postSticky(HomeLoadingEvent(false))
+            MusicService.registeredClients.forEach { it.isLoading(false) }
             mService?.setPlayPause(SongState.playing)
         }
-    }
-
-    @Subscribe(sticky = true)
-    fun updateQueueEvent(uqe: UpdateQueueEvent) {
-        updateSongList()
     }
 
     fun updateSongList() {
@@ -391,4 +385,24 @@ class Home : Fragment(), CoroutineScope {
             songAdapter?.update(songList)
         }
     }
+
+    override fun playStateChanged(state: SongState) {}
+
+    override fun songChanged() {
+        updateSongList()
+    }
+
+    override fun durationChanged(duration: Int) {}
+
+    override fun isExiting() {}
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {}
+
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {}
+
+    override fun indexChanged(index: Int) {}
+
+    override fun isLoading(doLoad: Boolean) {}
+
+    override fun spotifyImportChange(starting: Boolean) {}
 }

@@ -41,30 +41,24 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.signature.ObjectKey
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.events.GetIndexEvent
-import io.github.uditkarode.able.events.GetQueueEvent
-import io.github.uditkarode.able.events.GetShuffleRepeatEvent
-import io.github.uditkarode.able.events.GetSongChangedEvent
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 import java.io.File
 import java.lang.ref.WeakReference
 
 /**
  * Shows songs on the Home fragment.
  */
-class SongAdapter(
+class SongAdapter (
     private var songList: ArrayList<Song>,
     private val wr: WeakReference<Home>? = null,
     private val showArt: Boolean = false
-) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope {
+) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope, MusicService.MusicClient {
     private var registered = false
     
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
@@ -72,7 +66,7 @@ class SongAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH {
         if (!registered) {
             registered = true
-            EventBus.getDefault().register(this)
+            MusicService.registerClient(this)
         }
 
         val layoutId = if (showArt) R.layout.song_img else R.layout.rv_item
@@ -288,28 +282,41 @@ class SongAdapter(
         notifyDataSetChanged()
     }
 
-    @Subscribe
-    fun setupShuffleRepeat(songEvent: GetShuffleRepeatEvent) {
-        onShuffle = songEvent.onShuffle
+    override fun playStateChanged(state: SongState) {
+        
     }
 
-    @Subscribe
-    fun indexUpdate(indexEvent: GetIndexEvent) {
-        currentIndex = indexEvent.index
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun indexUpdate(@Suppress("UNUSED_PARAMETER") sce: GetSongChangedEvent) {
+    override fun songChanged() {
         playingSong = wr?.get()?.mService.run {
             this!!.getPlayQueue()[this.getCurrentIndex()]
         }
-        notifyItemChanged(Shared.mService.getPreviousIndex())
-        notifyItemChanged(Shared.mService.getCurrentIndex())
+        launch(Dispatchers.Main) {
+            notifyItemChanged(Shared.mService.getPreviousIndex())
+            notifyItemChanged(Shared.mService.getCurrentIndex())
+        }
     }
 
-
-    @Subscribe
-    fun getQueueUpdate(songEvent: GetQueueEvent) {
-        if (!showArt) songList = songEvent.queue
+    override fun durationChanged(duration: Int) {
+        
     }
+
+    override fun isExiting() {
+        
+    }
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {
+        if (!showArt) songList = arrayList
+    }
+
+    override fun shuffleRepeatChanged(fnOnShuffle: Boolean, onRepeat: Boolean) {
+        onShuffle = fnOnShuffle
+    }
+
+    override fun indexChanged(index: Int) {
+        currentIndex = index
+    }
+
+    override fun isLoading(doLoad: Boolean) {}
+
+    override fun spotifyImportChange(starting: Boolean) {}
 }

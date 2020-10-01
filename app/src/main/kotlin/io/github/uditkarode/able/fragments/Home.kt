@@ -226,6 +226,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             mService?.setCurrentIndex(0)
             mService?.showNotif()
 
+            Log.d(tag, "Streaming song from ${song.youtubeLink}")
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.run { this[size - 1] }
 

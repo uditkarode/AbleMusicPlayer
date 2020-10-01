@@ -861,7 +861,7 @@ class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
         playPauseEvent(state)
     }
 
-    override fun songChanged() {
+    override fun songChanged() = runOnUiThread {
         songChangeEvent()
     }
 

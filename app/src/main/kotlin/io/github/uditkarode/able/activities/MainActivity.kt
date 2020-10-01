@@ -362,12 +362,16 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             MusicMode.stream -> {
                 home.streamAudio(song, false)
-                loadingEvent(true)
+                runOnUiThread {
+                    loadingEvent(true)
+                }
             }
 
             MusicMode.both -> {
                 home.streamAudio(song, true)
-                loadingEvent(true)
+                runOnUiThread {
+                    loadingEvent(true)
+                }
             }
         }
     }
@@ -400,7 +404,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     override fun indexChanged(index: Int) {}
 
-    override fun isLoading(doLoad: Boolean) {
+    override fun isLoading(doLoad: Boolean) = runOnUiThread {
         loadingEvent(doLoad)
     }
 

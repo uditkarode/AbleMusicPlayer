@@ -866,8 +866,10 @@ class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
     }
 
     override fun durationChanged(duration: Int) {
-        player_seekbar.max = duration
-        complete_position.text = getDurationFromMs(duration)
+        launch(Dispatchers.Main) {
+            player_seekbar.max = duration
+            complete_position.text = getDurationFromMs(duration)
+        }
     }
 
     override fun isExiting() {

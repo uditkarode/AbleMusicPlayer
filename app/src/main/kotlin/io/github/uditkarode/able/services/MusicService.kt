@@ -88,7 +88,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 val toAdd = client as MusicClient
                 if(!registeredClients.contains(toAdd))
                     registeredClients.add(toAdd)
-                Log.e("INFO>", "Client registered! $registeredClients")
             } catch(e: ClassCastException){
                 Log.e("ERR>", "Could not register client!")
             }
@@ -230,7 +229,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.e("HEREEER", "$playQueue")
         coroutineContext.cancelChildren()
         unregisterReceiver(receiver)
         //exitProcess(0)

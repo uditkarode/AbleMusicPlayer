@@ -392,9 +392,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
     override fun playStateChanged(state: SongState) {}
 
-    override fun songChanged() {
-        updateSongList()
-    }
+    override fun songChanged() {}
 
     override fun durationChanged(duration: Int) {}
 

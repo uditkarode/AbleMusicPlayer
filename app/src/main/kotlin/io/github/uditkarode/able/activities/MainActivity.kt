@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             }
         }
 
-        launch(Dispatchers.Main){
+        launch(Dispatchers.Main) {
             Shared.defBitmap = (ResourcesCompat.getDrawable(
                 resources,
                 R.drawable.def_albart, null
@@ -154,11 +154,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         mainContent = main_content
         bb_icon.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
-
-                launch {
-                    if (playing) Shared.mService.setPlayPause(SongState.paused)
-                    else Shared.mService.setPlayPause(SongState.playing)
-                }
+                if (playing) Shared.mService.setPlayPause(SongState.paused)
+                else Shared.mService.setPlayPause(SongState.playing)
             }
         }
         // extend the touchable area for the play button, since it's so small.
@@ -227,7 +224,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     private fun loadingEvent(loading: Boolean) {
         bb_ProgressBar?.visibility = if (loading) View.VISIBLE else View.GONE
         if (!
-            loading) {
+            loading
+        ) {
             activity_seekbar.visibility = View.VISIBLE
             bn_parent.invalidate()
         } else {
@@ -237,19 +235,14 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     private fun bindService() {
-        Log.e("ye", "bru243h")
         if (!Shared.serviceLinked()) {
-            Log.e("ye", "bruhette")
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)){
-                val gibs = applicationContext.bindService(
+            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
+                applicationContext.bindService(
                     Intent(this@MainActivity, MusicService::class.java),
                     serviceConn, Context.BIND_IMPORTANT
                 )
-
-                Log.e("hi", "$gibs")
             }
         } else {
-            Log.e("ye", "bruh")
             mService = Shared.mService
             MusicService.registerClient(this@MainActivity)
             songChange()
@@ -262,8 +255,16 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     fun playPauseEvent(state: SongState) {
         launch(Dispatchers.Main) {
-            if (state == SongState.playing) Glide.with(this@MainActivity).load(R.drawable.pause).into(bb_icon)
-            else Glide.with(this@MainActivity).load(R.drawable.play).into(bb_icon)
+            if (state == SongState.playing){
+                Glide.with(this@MainActivity).load(R.drawable.pause)
+                    .into(bb_icon)
+
+                playing = true
+            }
+            else {
+                playing = false
+                Glide.with(this@MainActivity).load(R.drawable.play).into(bb_icon)
+            }
 
             if (state == SongState.playing) startSeekbarUpdates()
             else {

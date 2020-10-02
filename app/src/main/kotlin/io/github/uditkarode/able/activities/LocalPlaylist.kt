@@ -150,6 +150,9 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         }
     }
 
+    /**
+     * invoked when an item is pressed in the recyclerview.
+     */
     fun itemPressed(array: ArrayList<Song>, index: Int){
         if(!Shared.serviceRunning(MusicService::class.java, this)){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -161,18 +164,16 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             bindEvent()
         }
 
-        launch(Dispatchers.Default){
+        launch(Dispatchers.IO){
             if(Shared.serviceLinked()) {
                 mService = Shared.mService
             } else {
                 @Suppress("ControlFlowWithEmptyBody")
                 while(!isBound){}
+                val mService = mService!!
+                mService.setQueue(array)
+                mService.setIndex(index)
             }
-
-            val mService = mService!!
-            mService.setQueue(array)
-            mService.setIndex(index)
-            mService.setPlayPause(SongState.playing)
         }
     }
 

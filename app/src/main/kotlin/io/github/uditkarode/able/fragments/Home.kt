@@ -19,6 +19,7 @@
 package io.github.uditkarode.able.fragments
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Bitmap
@@ -392,7 +393,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
     fun updateSongList() {
         songList = Shared.getSongList(Constants.ableSongDir)
-        songList.addAll(Shared.getLocalSongs(requireContext()))
+        if(context != null) songList.addAll(Shared.getLocalSongs(context as Context))
         songList = ArrayList(songList.sortedBy {
             it.name.toUpperCase(
                 Locale.getDefault()

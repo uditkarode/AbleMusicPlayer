@@ -191,6 +191,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         mediaPlayer.setOnErrorListener { _, _, _ ->
             true
         }
+
         mediaPlayer.setOnCompletionListener {
             previousIndex = currentIndex
             nextSong()
@@ -383,7 +384,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             if (currentIndex == 0) currentIndex = playQueue.size - 1
             else currentIndex--
             songChanged()
-            playAudio()
         }
     }
 
@@ -395,11 +395,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         if (currentIndex + 1 < playQueue.size) {
             if (!onRepeat) currentIndex++
             songChanged()
-            playAudio()
         } else {
             currentIndex = 0
             songChanged()
-            playAudio()
         }
     }
 
@@ -446,7 +444,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         } else {
             try {
-                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
+                // inside, try to handle a case where file is not found but still shows in songList
+                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
                 mediaPlayer.prepareAsync()
                 launch(Dispatchers.IO) {
                     registeredClients.forEach(MusicClient::songChanged)
@@ -460,7 +459,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                     launch(Dispatchers.IO) {
                         registeredClients.forEach { it.durationChanged(dur) }
                     }
-                    mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
+                    mediaSessionPlay()
                     setPlayPause(SongState.playing)
                 }
             } catch (e: java.lang.Exception) {
@@ -469,7 +468,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
     }
 
-    /* user might sleep with songs on, let it jam */
+    /* user might sleep with songs still playing, let it jam */
     @SuppressLint("WakelockTimeout")
 
     /**
@@ -757,48 +756,59 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * fetches the album art and streams the song.
      */
     private fun streamAudio() {
-        try {
-            val song = playQueue[currentIndex]
-            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
-            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+        launch(Dispatchers.IO) {
+            try {
+                val song = playQueue[currentIndex]
+                val tmp: StreamInfo?
+                try {
+                    tmp = StreamInfo.getInfo(song.youtubeLink)
+                } catch (e: java.lang.Exception) {
+                    Log.e("ERR>", e.toString())
+                    nextSong()
+                    return@launch
+                }
+                val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
+                val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-            if (song.ytmThumbnail.isNotBlank()) {
-                Glide.with(this@MusicService)
-                    .asBitmap()
-                    .load(song.ytmThumbnail)
-                    .signature(ObjectKey("save"))
-                    .listener(object : RequestListener<Bitmap> {
-                        override fun onLoadFailed(
-                            e: GlideException?,
-                            model: Any?,
-                            target: Target<Bitmap>?,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            return false
-                        }
+                if (song.ytmThumbnail.isNotBlank()) {
+                    Glide.with(this@MusicService)
+                        .asBitmap()
+                        .load(song.ytmThumbnail)
+                        .signature(ObjectKey("save"))
+                        .listener(object : RequestListener<Bitmap> {
+                            override fun onLoadFailed(
+                                e: GlideException?,
+                                model: Any?,
+                                target: Target<Bitmap>?,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                return false
+                            }
 
-                        override fun onResourceReady(
-                            resource: Bitmap?,
-                            model: Any?,
-                            target: Target<Bitmap>?,
-                            dataSource: DataSource?,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            if (resource != null)
-                                Shared.saveStreamingAlbumArt(
-                                    resource,
-                                    Shared.getIdFromLink(song.youtubeLink)
-                                )
-                            return false
-                        }
-                    }).submit()
+                            override fun onResourceReady(
+                                resource: Bitmap?,
+                                model: Any?,
+                                target: Target<Bitmap>?,
+                                dataSource: DataSource?,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                if (resource != null)
+                                    Shared.saveStreamingAlbumArt(
+                                        resource,
+                                        Shared.getIdFromLink(song.youtubeLink)
+                                    )
+                                return false
+                            }
+                        }).submit()
 
-                val url = stream.url
-                playQueue[currentIndex].filePath = url
-                songChanged()
+                    val url = stream.url
+                    playQueue[currentIndex].filePath = url
+                    songChanged()
+                }
+            } catch (e: java.lang.Exception) {
+                Log.e("ERR>", e.toString())
+                nextSong()
             }
-        } catch (e: java.lang.Exception) {
-            nextSong()
         }
     }
 }

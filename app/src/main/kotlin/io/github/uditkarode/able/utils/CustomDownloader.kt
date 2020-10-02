@@ -79,7 +79,7 @@ class CustomDownloader private constructor(builder: OkHttpClient.Builder) : Down
          * @param builder if null, default builder will be used
          * @return a new instance of [CustomDownloader]
          */
-        private fun init(builder: OkHttpClient.Builder?): CustomDownloader? {
+        private fun init(@Suppress("SameParameterValue") builder: OkHttpClient.Builder?): CustomDownloader? {
             instance = CustomDownloader(
                 builder ?: OkHttpClient.Builder()
             )

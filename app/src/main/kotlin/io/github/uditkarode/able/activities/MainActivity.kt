@@ -110,6 +110,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             }
         }
 
+        NewPipe.init(CustomDownloader.getInstance())
+
         launch(Dispatchers.Main) {
             Shared.defBitmap = (ResourcesCompat.getDrawable(
                 resources,
@@ -122,7 +124,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 byte,
                 0, byte.size
             )
-            NewPipe.init(CustomDownloader.instance)
             Shared.setupFetch(this@MainActivity)
 
             okClient = OkHttpClient()

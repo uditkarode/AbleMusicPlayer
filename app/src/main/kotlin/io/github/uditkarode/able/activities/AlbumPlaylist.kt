@@ -194,18 +194,19 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
             bindEvent()
         }
 
-        launch {
+        launch(Dispatchers.IO) {
             if(Shared.serviceLinked()) {
                 mService = Shared.mService
+                val mService = mService!!
+                mService.setQueue(array)
+                mService.setIndex(index)
             } else {
                 @Suppress("ControlFlowWithEmptyBody")
                 while(!isBound){}
+                val mService = mService!!
+                mService.setQueue(array)
+                mService.setIndex(index)
             }
-
-            val mService = mService!!
-            mService.setQueue(array)
-            mService.setIndex(index)
-            mService.setPlayPause(SongState.playing)
         }
     }
 

@@ -31,6 +31,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -229,8 +230,20 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             mService?.setCurrentIndex(0)
             mService?.showNotif()
 
-            Log.d(tag, "Streaming song from ${song.youtubeLink}")
-            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
+            val tmp: StreamInfo?
+
+            try {
+                tmp = StreamInfo.getInfo(song.youtubeLink)
+            } catch(e: Exception) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT).show()
+                    MusicService.registeredClients.forEach { it.isLoading(false) }
+                }
+                Log.e("ERR>", e.toString())
+                return@launch
+            }
+
+            val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.run { this[size - 1] }
 
             val url = stream.url

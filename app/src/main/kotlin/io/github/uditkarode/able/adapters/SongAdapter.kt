@@ -287,29 +287,28 @@ class SongAdapter (
     }
 
     override fun songChanged() {
-        playingSong = wr?.get()?.mService.run {
-            this!!.getPlayQueue()[this.getCurrentIndex()]
-        }
-        launch(Dispatchers.Main) {
-            notifyItemChanged(Shared.mService.getPreviousIndex())
-            notifyItemChanged(Shared.mService.getCurrentIndex())
+        val service = wr?.get()?.mService
+        if(service != null) {
+            playingSong = service.run {
+                this.getPlayQueue()[this.getCurrentIndex()]
+            }
+            launch(Dispatchers.Main) {
+                notifyItemChanged(Shared.mService.getPreviousIndex())
+                notifyItemChanged(Shared.mService.getCurrentIndex())
+            }
         }
     }
 
-    override fun durationChanged(duration: Int) {
-        
-    }
+    override fun durationChanged(duration: Int) {}
 
-    override fun isExiting() {
-        
-    }
+    override fun isExiting() {}
 
     override fun queueChanged(arrayList: ArrayList<Song>) {
         if (!showArt) songList = arrayList
     }
 
-    override fun shuffleRepeatChanged(fnOnShuffle: Boolean, onRepeat: Boolean) {
-        onShuffle = fnOnShuffle
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
+        this.onShuffle = onShuffle
     }
 
     override fun indexChanged(index: Int) {

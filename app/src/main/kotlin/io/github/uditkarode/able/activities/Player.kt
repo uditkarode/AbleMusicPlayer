@@ -98,6 +98,8 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
     private var scheduled = false
     private var onShuffle = false
     private var onRepeat = false
+
+    private var lastSelectedColor = 0x00fbfbfb
     
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
@@ -514,6 +516,8 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
         else
             ColorUtils.blendARGB(rawColor, Color.WHITE, 0.3F)
 
+        lastSelectedColor = color
+
         previous_song.run {
             this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
@@ -608,6 +612,8 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                     R.drawable.nobg_play
                 )
             )
+
+            tintControls(lastSelectedColor)
         }
 
         if (playing == SongState.playing) {

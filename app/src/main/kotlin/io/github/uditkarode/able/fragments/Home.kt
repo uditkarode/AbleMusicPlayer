@@ -235,9 +235,10 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
             try {
                 tmp = StreamInfo.getInfo(song.youtubeLink)
-            } catch(e: Exception) {
+            } catch (e: Exception) {
                 launch(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT)
+                        .show()
                     MusicService.registeredClients.forEach { it.isLoading(false) }
                 }
                 Log.e("ERR>", e.toString())
@@ -291,109 +292,128 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                                         resource,
                                         File(Constants.albumArtDir, songId)
                                     )
+                                if (toCache) {
+                                    mediaLoaderConfig = MediaLoaderConfig.Builder(activity)
+                                        .cacheRootDir(
+                                            Constants.ableSongDir
+                                        )
+                                        .cacheFileNameGenerator {
+                                            "$songId.tmp.webm"
+                                        }
+                                        .downloadThreadPriority(Thread.NORM_PRIORITY)
+                                        .build()
+
+                                    mediaLoader.init(mediaLoaderConfig)
+
+                                    mediaLoader.addDownloadListener(
+                                        url,
+                                        object : DownloadListener {
+                                            override fun onProgress(
+                                                url: String?,
+                                                file: File?,
+                                                progress: Int
+                                            ) {
+                                                if (progress == 100) {
+                                                    val tempFile = File(
+                                                        Constants.ableSongDir.absolutePath
+                                                                + "/" + songId + ".tmp.$ext"
+                                                    )
+
+                                                    val format =
+                                                        if (PreferenceManager.getDefaultSharedPreferences(
+                                                                context
+                                                            )
+                                                                .getString(
+                                                                    "format_key",
+                                                                    "webm"
+                                                                ) == "mp3"
+                                                        ) Format.MODE_MP3
+                                                        else Format.MODE_WEBM
+
+                                                    var command = "-i " +
+                                                            "\"${tempFile.absolutePath}\" -c copy " +
+                                                            "-metadata title=\"${song.name}\" " +
+                                                            "-metadata artist=\"${song.artist}\" -y "
+
+                                                    if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
+                                                        command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
+
+                                                    command += "\"${
+                                                        tempFile.absolutePath.replace(
+                                                            "tmp.webm",
+                                                            ""
+                                                        )
+                                                    }"
+
+                                                    command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+
+                                                    when (val rc = FFmpeg.execute(command)) {
+                                                        Config.RETURN_CODE_SUCCESS -> {
+                                                            tempFile.delete()
+                                                            launch(Dispatchers.Main) {
+                                                                songList =
+                                                                    Shared.getSongList(Constants.ableSongDir)
+                                                                songList.addAll(
+                                                                    Shared.getLocalSongs(
+                                                                        requireContext()
+                                                                    )
+                                                                )
+                                                                songList =
+                                                                    ArrayList(songList.sortedBy {
+                                                                        it.name.toUpperCase(
+                                                                            Locale.getDefault()
+                                                                        )
+                                                                    })
+                                                                launch(Dispatchers.Main) {
+                                                                    songAdapter?.update(songList)
+                                                                }
+                                                                songAdapter?.update(songList)
+                                                                songAdapter?.notifyDataSetChanged()
+                                                            }
+                                                        }
+                                                        Config.RETURN_CODE_CANCEL -> {
+                                                            Log.e(
+                                                                "ERR>",
+                                                                "Command execution cancelled by user."
+                                                            )
+                                                        }
+                                                        else -> {
+                                                            Log.e(
+                                                                "ERR>",
+                                                                String.format(
+                                                                    "Command execution failed with rc=%d and the output below.",
+                                                                    rc
+                                                                )
+                                                            )
+                                                        }
+                                                    }
+                                                    mediaLoader.removeDownloadListener(this)
+                                                }
+                                            }
+
+                                            override fun onError(e: Throwable?) {
+                                                Log.e("ERR>", e.toString())
+                                            }
+                                        })
+
+                                    song.filePath = mediaLoader.getProxyUrl(url)
+                                } else song.filePath = url
+
+                                mService?.setPlayQueue(arrayListOf(song))
+                                mService?.setIndex(0)
+                                MusicService.registeredClients.forEach { it.isLoading(false) }
+                                mService?.setPlayPause(SongState.playing)
                             }
                             return false
                         }
                     }).submit()
             }
-
-            if (toCache) {
-                mediaLoaderConfig = MediaLoaderConfig.Builder(activity)
-                    .cacheRootDir(
-                        Constants.ableSongDir
-                    )
-                    .cacheFileNameGenerator {
-                        "$songId.tmp.webm"
-                    }
-                    .downloadThreadPriority(Thread.NORM_PRIORITY)
-                    .build()
-
-                mediaLoader.init(mediaLoaderConfig)
-
-                mediaLoader.addDownloadListener(url, object : DownloadListener {
-                    override fun onProgress(url: String?, file: File?, progress: Int) {
-                        if (progress == 100) {
-                            val tempFile = File(
-                                Constants.ableSongDir.absolutePath
-                                        + "/" + songId + ".tmp.$ext"
-                            )
-
-                            val format =
-                                if (PreferenceManager.getDefaultSharedPreferences(
-                                        context
-                                    )
-                                        .getString("format_key", "webm") == "mp3"
-                                ) Format.MODE_MP3
-                                else Format.MODE_WEBM
-
-                            var command = "-i " +
-                                    "\"${tempFile.absolutePath}\" -c copy " +
-                                    "-metadata title=\"${song.name}\" " +
-                                    "-metadata artist=\"${song.artist}\" -y "
-
-                            if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
-                                command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
-
-                            command += "\"${tempFile.absolutePath.replace("tmp.webm", "")}"
-
-                            command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
-
-                            when (val rc = FFmpeg.execute(command)) {
-                                Config.RETURN_CODE_SUCCESS -> {
-                                    tempFile.delete()
-                                    launch(Dispatchers.Main) {
-                                        songList = Shared.getSongList(Constants.ableSongDir)
-                                        songList.addAll(Shared.getLocalSongs(requireContext()))
-                                        songList = ArrayList(songList.sortedBy {
-                                            it.name.toUpperCase(
-                                                Locale.getDefault()
-                                            )
-                                        })
-                                        launch(Dispatchers.Main) {
-                                            songAdapter?.update(songList)
-                                        }
-                                        songAdapter?.update(songList)
-                                        songAdapter?.notifyDataSetChanged()
-                                    }
-                                }
-                                Config.RETURN_CODE_CANCEL -> {
-                                    Log.e(
-                                        "ERR>",
-                                        "Command execution cancelled by user."
-                                    )
-                                }
-                                else -> {
-                                    Log.e(
-                                        "ERR>",
-                                        String.format(
-                                            "Command execution failed with rc=%d and the output below.",
-                                            rc
-                                        )
-                                    )
-                                }
-                            }
-                            mediaLoader.removeDownloadListener(this)
-                        }
-                    }
-
-                    override fun onError(e: Throwable?) {
-                        Log.e("ERR>", e.toString())
-                    }
-                })
-
-                song.filePath = mediaLoader.getProxyUrl(url)
-            } else song.filePath = url
-
-            mService?.setPlayQueue(arrayListOf(song))
-            mService?.setIndex(0)
-            MusicService.registeredClients.forEach { it.isLoading(false) }
-            mService?.setPlayPause(SongState.playing)
         }
     }
 
     fun updateSongList() {
         songList = Shared.getSongList(Constants.ableSongDir)
-        if(context != null) songList.addAll(Shared.getLocalSongs(context as Context))
+        if (context != null) songList.addAll(Shared.getLocalSongs(context as Context))
         songList = ArrayList(songList.sortedBy {
             it.name.toUpperCase(
                 Locale.getDefault()

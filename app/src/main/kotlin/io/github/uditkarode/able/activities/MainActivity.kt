@@ -34,7 +34,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.text.Html
-import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
@@ -206,11 +205,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
+        MusicService.unregisterClient(this)
+
         // bind to the service.
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
-                Log.e("YE", "YES IM HERE")
                 songChange()
                 playPauseEvent(service.getService().getMediaPlayer().run {
                     if (this.isPlaying) SongState.playing
@@ -245,7 +245,6 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             }
         } else {
             mService = Shared.mService
-            MusicService.registerClient(this@MainActivity)
             songChange()
             playPauseEvent(mService!!.getMediaPlayer().run {
                 if (this.isPlaying) SongState.playing
@@ -325,13 +324,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     override fun onResume() {
         super.onResume()
-        MusicService.registerClient(this@MainActivity)
         bindService()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        MusicService.unregisterClient(this)
     }
 
     override fun sendItem(song: Song, mode: String) {

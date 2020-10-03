@@ -797,13 +797,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                                         resource,
                                         Shared.getIdFromLink(song.youtubeLink)
                                     )
+                                val url = stream.url
+                                playQueue[currentIndex].filePath = url
+                                songChanged()
                                 return false
                             }
                         }).submit()
-
-                    val url = stream.url
-                    playQueue[currentIndex].filePath = url
-                    songChanged()
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", e.toString())

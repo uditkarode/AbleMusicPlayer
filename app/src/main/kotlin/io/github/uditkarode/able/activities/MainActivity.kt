@@ -18,13 +18,11 @@
 
 package io.github.uditkarode.able.activities
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
@@ -37,7 +35,6 @@ import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
 import androidx.preference.PreferenceManager
@@ -93,23 +90,10 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun onDestroy() {
         super.onDestroy()
-        
         coroutineContext.cancelChildren()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        launch(Dispatchers.IO){
-            if (!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
-                && Shared.isFirstOpen
-            ) {
-                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    startActivity(Intent(this@MainActivity, Welcome::class.java))
-                } else startActivity(Intent(this@MainActivity, Splash::class.java))
-            }
-        }
-
         NewPipe.init(CustomDownloader.getInstance())
 
         launch(Dispatchers.Main) {
@@ -205,8 +189,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
-
-        
 
         // bind to the service.
         serviceConn = object : ServiceConnection {

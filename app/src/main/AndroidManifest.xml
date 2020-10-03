@@ -32,15 +32,15 @@
             android:exported="true"
             />
 
-        <activity android:name=".activities.MainActivity" android:windowSoftInputMode="adjustNothing" >
+        <activity android:name=".activities.MainActivity" android:windowSoftInputMode="adjustNothing" />
+        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme"
+            android:launchMode="singleTask"/>
+        <activity android:name=".activities.Splash" android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme"
-            android:launchMode="singleTask"/>
-        <activity android:name=".activities.Splash" />
         <activity android:name=".activities.Welcome" android:theme="@style/Theme.Intro" />
         <activity android:name=".activities.About" />
         <activity android:name=".activities.LocalPlaylist" />

@@ -105,7 +105,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             container, false
         )
 
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -142,25 +141,21 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
         bindEvent()
 
-        launch {
-            songList = Shared.getSongList(Constants.ableSongDir)
-            songList.addAll(Shared.getLocalSongs(requireContext()))
-            if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
-                it.name.toUpperCase(
-                    Locale.getDefault()
-                )
-            })
-            songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
-            launch(Dispatchers.Main) {
-                songs.adapter = songAdapter
-                val lam = LinearLayoutManager(requireContext())
-                lam.initialPrefetchItemCount = 6
-                lam.isItemPrefetchEnabled = true
-                songs.layoutManager = lam
-                val itemTouchHelper = ItemTouchHelper(SwipeController(context, "Home"))
-                itemTouchHelper.attachToRecyclerView(songs)
-            }
-        }
+        songList = Shared.getSongList(Constants.ableSongDir)
+        songList.addAll(Shared.getLocalSongs(requireContext()))
+        if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
+            it.name.toUpperCase(
+                Locale.getDefault()
+            )
+        })
+        songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
+        songs.adapter = songAdapter
+        val lam = LinearLayoutManager(requireContext())
+        lam.initialPrefetchItemCount = 6
+        lam.isItemPrefetchEnabled = true
+        songs.layoutManager = lam
+        val itemTouchHelper = ItemTouchHelper(SwipeController(context, "Home"))
+        itemTouchHelper.attachToRecyclerView(songs)
     }
 
     override fun onResume() {

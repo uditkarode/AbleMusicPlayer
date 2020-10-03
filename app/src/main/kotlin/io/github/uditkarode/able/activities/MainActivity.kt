@@ -23,6 +23,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
@@ -46,6 +47,7 @@ import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
+import android.Manifest
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ViewPagerAdapter
 import io.github.uditkarode.able.fragments.Home
@@ -95,6 +97,14 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
+
+        launch {
+            if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                startActivity(Intent(this@MainActivity, Welcome::class.java))
+            }
+        }
 
         launch(Dispatchers.Main) {
             Shared.defBitmap = (ResourcesCompat.getDrawable(

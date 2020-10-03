@@ -33,7 +33,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
-import androidx.core.view.marginBottom
 import androidx.palette.graphics.Palette
 import androidx.preference.PreferenceManager
 import co.revely.gradient.RevelyGradient
@@ -89,7 +88,7 @@ import kotlin.collections.ArrayList
  * The Player UI activity.
  */
 
-class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
+class Player : MusicClientActivity() {
     private lateinit var serviceConn: ServiceConnection
     private lateinit var mService: MusicService
     private lateinit var timer: Timer
@@ -100,8 +99,6 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
     private var onRepeat = false
 
     private var lastSelectedColor = 0x00fbfbfb
-    
-    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -909,8 +906,6 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
 
     override fun onDestroy() {
         super.onDestroy()
-        coroutineContext.cancelChildren()
-        
         if (!this.isDestroyed)
             Glide.with(this@Player).clear(img_albart)
     }

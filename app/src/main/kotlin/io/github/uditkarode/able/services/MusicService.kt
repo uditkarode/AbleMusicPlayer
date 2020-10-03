@@ -81,13 +81,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         var previousIndex = -1
         var currentIndex = -1
 
-        val registeredClients = ArrayList<MusicClient>()
+        val registeredClients = mutableSetOf<MusicClient>()
 
         fun registerClient(client: Any){
             try {
-                val toAdd = client as MusicClient
-                if(!registeredClients.contains(toAdd))
-                    registeredClients.add(toAdd)
+                registeredClients.add(client as MusicClient)
             } catch(e: ClassCastException){
                 Log.e("ERR>", "Could not register client!")
             }

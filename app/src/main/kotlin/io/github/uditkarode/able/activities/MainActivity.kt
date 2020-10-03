@@ -74,8 +74,7 @@ import kotlin.collections.ArrayList
 /**
  * First activity that shows up when the user opens the application
  */
-class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultReceiver.Receiver,
-    CoroutineScope, MusicService.MusicClient {
+class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultReceiver.Receiver {
     private lateinit var mServiceResultReceiver: ServiceResultReceiver
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var okClient: OkHttpClient
@@ -87,8 +86,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     private var mService: MusicService? = null
     private var scheduled = false
     private var playing = false
-
-    override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onDestroy() {
         super.onDestroy()

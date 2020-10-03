@@ -26,14 +26,14 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
-import android.view.WindowManager
+import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
+import androidx.core.view.marginBottom
 import androidx.palette.graphics.Palette
 import androidx.preference.PreferenceManager
 import co.revely.gradient.RevelyGradient
@@ -141,6 +141,26 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
             }
         }
 
+        /**
+         * Since we don't use fitSystemWindows, we need to manually
+         * apply window insets as margin.
+         */
+        if(bottom_cast != null) {
+            bottom_cast.setOnApplyWindowInsetsListener { v, insets ->
+                val kek = bottom_cast.layoutParams as ViewGroup.MarginLayoutParams
+                kek.setMargins(0, 0, 0, insets.systemWindowInsetBottom)
+                insets
+            }
+        }
+
+        if(top_controls != null) {
+            top_controls.setOnApplyWindowInsetsListener { v, insets ->
+                val kek = top_controls.layoutParams as ViewGroup.MarginLayoutParams
+                kek.setMargins(0, insets.systemWindowInsetTop, 0, 0)
+                insets
+            }
+        }
+
         player_down_arrow?.setOnClickListener {
             finish()
         }
@@ -201,6 +221,7 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
         }
+
         album_art.setOnLongClickListener {
             MaterialDialog(this@Player).show {
                 cornerRadius(20f)
@@ -429,8 +450,18 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
 
     private fun onBindDone() {
         mService = Shared.mService
-        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_pause))
-        else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_play))
+        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(
+            ContextCompat.getDrawable(
+                this@Player,
+                R.drawable.nobg_pause
+            )
+        )
+        else player_center_icon.setImageDrawable(
+            ContextCompat.getDrawable(
+                this@Player,
+                R.drawable.nobg_play
+            )
+        )
         songChangeEvent()
         
     }
@@ -519,25 +550,43 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
             .onBackgroundOf(player_bg)
 
         if (Shared.isColorDark(color)) {
-            player_down_arrow.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.down_arrow))
-            player_queue.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.pl_playlist))
+            player_down_arrow.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this@Player,
+                    R.drawable.down_arrow
+                )
+            )
+            player_queue.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this@Player,
+                    R.drawable.pl_playlist
+                )
+            )
             if (lightVibrantColor != null) {
                 if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
                     val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor ?: palette?.dominantSwatch?.titleTextColor
                     player_seekbar.progressDrawable.setTint(newTitleColor!!)
                     player_seekbar.thumb.setTint(newTitleColor)
-                    window.statusBarColor = titleColor
                     tintControls(0x002171)
                 } else {
                     player_seekbar.progressDrawable.setTint(lightVibrantColor)
                     player_seekbar.thumb.setTint(lightVibrantColor)
-                    window.statusBarColor = lightVibrantColor
                     tintControls(lightVibrantColor)
                 }
             }
         } else {
-            player_down_arrow.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.down_arrow_black))
-            player_queue.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.playlist_black))
+            player_down_arrow.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this@Player,
+                    R.drawable.down_arrow_black
+                )
+            )
+            player_queue.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this@Player,
+                    R.drawable.playlist_black
+                )
+            )
             player_seekbar.progressDrawable.setTint(color)
             player_seekbar.thumb.setTint(color)
             tintControls(color)
@@ -547,8 +596,18 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
     private fun playPauseEvent(ss: SongState) {
         playing = ss
         launch(Dispatchers.Main) {
-            if (playing == SongState.playing) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_pause))
-            else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_play))
+            if (playing == SongState.playing) player_center_icon.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this@Player,
+                    R.drawable.nobg_pause
+                )
+            )
+            else player_center_icon.setImageDrawable(
+                ContextCompat.getDrawable(
+                    this@Player,
+                    R.drawable.nobg_play
+                )
+            )
         }
 
         if (playing == SongState.playing) {
@@ -615,9 +674,6 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                                 it?.getLightMutedColor(0x002171) ?: 0x002171,
                                 it
                             )
-
-                            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-                            window.statusBarColor = it?.getDarkMutedColor(0x002171) ?: 0x002171
                         }
                     }
                     didGetArt = true
@@ -651,11 +707,9 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                                     )
 
                                     Shared.clearBitmap()
-                                    window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-                                    window.statusBarColor = it?.getDarkMutedColor(0x002171) ?: 0x002171
                                 }
                             }
-                            catch (e:java.lang.Exception){
+                            catch (e: java.lang.Exception){
                                 e.printStackTrace()
                             }
                         }
@@ -709,9 +763,6 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                                     it?.getLightVibrantColor(0x002171) ?: 0x002171,
                                     it
                                 )
-
-                                window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
-                                window.statusBarColor = it?.getDarkMutedColor(0x002171) ?: 0x002171
                             }
 
                             if (img.exists()) img.delete()

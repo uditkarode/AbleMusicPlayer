@@ -62,6 +62,7 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.ServiceResultReceiver
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.CustomDownloader
+import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
@@ -74,7 +75,7 @@ import kotlin.collections.ArrayList
 /**
  * First activity that shows up when the user opens the application
  */
-class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultReceiver.Receiver,
+class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultReceiver.Receiver,
     CoroutineScope, MusicService.MusicClient {
     private lateinit var mServiceResultReceiver: ServiceResultReceiver
     private lateinit var bottomNavigation: BottomNavigationView
@@ -92,12 +93,12 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
     override fun onDestroy() {
         super.onDestroy()
-        MusicService.unregisterClient(this)
+        
         coroutineContext.cancelChildren()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        launch {
+        launch(Dispatchers.IO){
             if (!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
                 && Shared.isFirstOpen
             ) {
@@ -205,7 +206,7 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
-        MusicService.unregisterClient(this)
+        
 
         // bind to the service.
         serviceConn = object : ServiceConnection {

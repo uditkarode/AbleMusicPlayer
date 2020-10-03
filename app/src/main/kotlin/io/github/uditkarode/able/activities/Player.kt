@@ -59,6 +59,7 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.player.artist_name
 import kotlinx.android.synthetic.main.player.complete_position
@@ -88,7 +89,7 @@ import kotlin.collections.ArrayList
  * The Player UI activity.
  */
 
-class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
+class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
     private lateinit var serviceConn: ServiceConnection
     private lateinit var mService: MusicService
     private lateinit var timer: Timer
@@ -431,7 +432,7 @@ class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
         if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_pause))
         else player_center_icon.setImageDrawable(ContextCompat.getDrawable(this@Player, R.drawable.nobg_play))
         songChangeEvent()
-        MusicService.registerClient(this)
+        
     }
 
     private fun bindEvent() {
@@ -453,7 +454,7 @@ class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
             timer.purge()
         }
 
-        MusicService.unregisterClient(this)
+        
     }
 
     private fun startSeekbarUpdates() {
@@ -852,7 +853,7 @@ class Player : AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
     override fun onDestroy() {
         super.onDestroy()
         coroutineContext.cancelChildren()
-        MusicService.unregisterClient(this)
+        
         if (!this.isDestroyed)
             Glide.with(this@Player).clear(img_albart)
     }

@@ -161,8 +161,16 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 itemTouchHelper.attachToRecyclerView(songs)
             }
         }
+    }
 
+    override fun onResume() {
+        super.onResume()
         MusicService.registerClient(this)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        MusicService.unregisterClient(this)
     }
 
     fun bindEvent() {

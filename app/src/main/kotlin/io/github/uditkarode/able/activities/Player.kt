@@ -148,7 +148,7 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
          * apply window insets as margin.
          */
         if(bottom_cast != null) {
-            bottom_cast.setOnApplyWindowInsetsListener { v, insets ->
+            bottom_cast.setOnApplyWindowInsetsListener { _, insets ->
                 val kek = bottom_cast.layoutParams as ViewGroup.MarginLayoutParams
                 kek.setMargins(0, 0, 0, insets.systemWindowInsetBottom)
                 insets
@@ -156,7 +156,7 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
         }
 
         if(top_controls != null) {
-            top_controls.setOnApplyWindowInsetsListener { v, insets ->
+            top_controls.setOnApplyWindowInsetsListener { _, insets ->
                 val kek = top_controls.layoutParams as ViewGroup.MarginLayoutParams
                 kek.setMargins(0, insets.systemWindowInsetTop, 0, 0)
                 insets
@@ -400,9 +400,9 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
             val rect = Rect().also {
                 player_center_icon.getHitRect(it)
                 it.top -= 200
-                it.left -= 150
+                it.left -= 50
                 it.bottom += 200
-                it.right += 150
+                it.right += 50
             }
 
             (player_center_icon.parent as View).touchDelegate =
@@ -647,9 +647,9 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
             Check priority:
             1) Album art from metadata (if the song is a local song)
             2) Album art from disk (if the song is not a local song)
-            3) Album art from Deezer (regardless of local or not local)
+            3) Album art from Deezer (regardless of song being local or not)
 
-            in state (3), if the song is local, the album art should be added
+            in case (3), if the song is local, the album art should be added
             to the song metadata, and if not, it should be stored in the Able
             album art folder.
             */
@@ -724,7 +724,7 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                 }
             }
 
-            /* (3) Album art from Deezer (regardless of local or not local) */
+            /* (3) Album art from Deezer (regardless of song being local or not) */
             if (!didGetArt && Shared.isInternetConnected(this@Player)) {
                 Log.e("INFO>", "Fetching from Deezer")
                 val albumArtRequest = if (customSongName == null) {
@@ -942,6 +942,14 @@ class Player : MusicClientActivity(), CoroutineScope, MusicService.MusicClient {
                 DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#805e92f3"))
             else
                 DrawableCompat.setTint(shuffle_button.drawable, Color.parseColor("#fbfbfb"))
+
+            if (onRepeat)
+                DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#805e92f3"))
+            else
+                DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#fbfbfb"))
+
+            (this@Player).onShuffle = onShuffle
+            (this@Player).onRepeat = onRepeat
         }
     }
 

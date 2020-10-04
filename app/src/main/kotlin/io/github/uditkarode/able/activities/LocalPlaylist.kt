@@ -100,9 +100,9 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch(Dispatchers.Default) {
-                @Suppress("ControlFlowWithEmptyBody")
+            launch(Dispatchers.IO) {
                 while (!isBound) {
+                    Thread.sleep(30)
                 }
 
                 val mService = mService!!
@@ -161,8 +161,8 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
         }
 
         launch(Dispatchers.IO) {
-            @Suppress("ControlFlowWithEmptyBody")
             while (!isBound) {
+                Thread.sleep(30)
             }
             val mService = mService!!
             mService.setQueue(array)

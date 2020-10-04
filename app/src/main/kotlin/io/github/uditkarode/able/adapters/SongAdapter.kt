@@ -155,9 +155,9 @@ class SongAdapter (
                     freshStart = true
                 }
 
-                launch(Dispatchers.Default) {
-                    @Suppress("ControlFlowWithEmptyBody")
+                launch(Dispatchers.IO) {
                     while (!wr?.get()!!.isBound) {
+                        Thread.sleep(30)
                     }
                     val mService = wr.get()!!.mService!!
 

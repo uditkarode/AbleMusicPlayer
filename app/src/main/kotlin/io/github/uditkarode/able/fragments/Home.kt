@@ -221,8 +221,8 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             Log.d("ERR", "Context Lost")
 
         launch(Dispatchers.IO) {
-            @Suppress("ControlFlowWithEmptyBody")
             while (!isBound) {
+                Thread.sleep(30)
             }
             mService?.setPlayQueue(
                 arrayListOf(

@@ -60,7 +60,7 @@ class SongAdapter (
     private val showArt: Boolean = false
 ) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope, MusicService.MusicClient {
     private var registered = false
-    
+
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH {
@@ -123,8 +123,9 @@ class SongAdapter (
         if (currentIndex >= 0 && currentIndex < songList.size && songList.size != 0) {
             if (current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
-                if (Shared.serviceLinked()) {
-                    if (current.filePath == Shared.mService.getPlayQueue()[Shared.mService.getCurrentIndex()].filePath) {
+                val service = wr?.get()?.mService
+                if(service != null) {
+                    if (current.filePath == service.getPlayQueue()[service.getCurrentIndex()].filePath) {
                         holder.songName.setTextColor(Color.parseColor("#5e92f3"))
                     } else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
                 }
@@ -132,6 +133,7 @@ class SongAdapter (
         }
 
         holder.itemView.setOnClickListener {
+            var freshStart = false;
             if (!current.placeholder) {
                 if (!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -149,18 +151,15 @@ class SongAdapter (
                             )
                         )
                     }
-
                     wr?.get()!!.bindEvent()
+                    freshStart = true
                 }
 
                 launch(Dispatchers.Default) {
-                    val mService: MusicService = if (Shared.serviceLinked()) {
-                        Shared.mService
-                    } else {
-                        @Suppress("ControlFlowWithEmptyBody")
-                        while (!wr?.get()!!.isBound) {}
-                        wr.get()!!.mService!!
+                    @Suppress("ControlFlowWithEmptyBody")
+                    while (!wr?.get()!!.isBound) {
                     }
+                    val mService = wr.get()!!.mService!!
 
                     if (currentIndex != position) {
                         currentIndex = position
@@ -172,9 +171,10 @@ class SongAdapter (
                                 currentIndex = position
                                 mService.setQueue(songList)
                                 mService.setIndex(position)
-                                //    mService.setPlayPause(SongState.playing) //Reason:setIndex call setSong which then calls setPlayPause, so no need of this,
                             }
-                            //  notifyDataSetChanged()// Reason:No need. Called by GetSongChangedEvent() from songChanged(),
+
+                            if(freshStart)
+                                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                         }
                     }
                 }
@@ -283,18 +283,18 @@ class SongAdapter (
     }
 
     override fun playStateChanged(state: SongState) {
-        
+
     }
 
     override fun songChanged() {
         val service = wr?.get()?.mService
-        if(service != null) {
+        if (service != null) {
             playingSong = service.run {
                 this.getPlayQueue()[this.getCurrentIndex()]
             }
             launch(Dispatchers.Main) {
-                notifyItemChanged(Shared.mService.getPreviousIndex())
-                notifyItemChanged(Shared.mService.getCurrentIndex())
+                notifyItemChanged(service.getPreviousIndex())
+                notifyItemChanged(service.getCurrentIndex())
             }
         }
     }
@@ -318,4 +318,6 @@ class SongAdapter (
     override fun isLoading(doLoad: Boolean) {}
 
     override fun spotifyImportChange(starting: Boolean) {}
+
+    override fun serviceStarted() {}
 }

@@ -149,4 +149,6 @@ class SpotifyImportService(val context: Context, workerParams: WorkerParameters)
             SpotifyImport.isImporting = false
         }
     }
+
+    override fun serviceStarted() {}
 }

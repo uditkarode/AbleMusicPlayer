@@ -18,6 +18,7 @@
 
 package io.github.uditkarode.able.activities
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
@@ -28,10 +29,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
+import android.os.*
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
@@ -47,7 +45,6 @@ import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
-import android.Manifest
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ViewPagerAdapter
 import io.github.uditkarode.able.fragments.Home
@@ -64,7 +61,8 @@ import io.github.uditkarode.able.utils.CustomDownloader
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.NewPipe
 import java.io.ByteArrayOutputStream
@@ -86,11 +84,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     private var mService: MusicService? = null
     private var scheduled = false
     private var playing = false
-
-    override fun onDestroy() {
-        super.onDestroy()
-        coroutineContext.cancelChildren()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
@@ -118,7 +111,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
             Shared.setupFetch(this@MainActivity)
 
             okClient = OkHttpClient()
-            mServiceResultReceiver = ServiceResultReceiver(Handler())
+            mServiceResultReceiver = ServiceResultReceiver(Handler(Looper.getMainLooper()))
             mServiceResultReceiver.setReceiver(this@MainActivity)
 
             FlurryAgent.Builder()
@@ -146,8 +139,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
         mainContent = main_content
         bb_icon.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
-                if (playing) Shared.mService.setPlayPause(SongState.paused)
-                else Shared.mService.setPlayPause(SongState.playing)
+                if (playing) mService?.setPlayPause(SongState.paused)
+                else mService?.setPlayPause(SongState.playing)
             }
         }
         // extend the touchable area for the play button, since it's so small.
@@ -197,7 +190,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
-        // bind to the service.
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
@@ -226,32 +218,22 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     }
 
     private fun bindService() {
-        if (!Shared.serviceLinked()) {
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
-                applicationContext.bindService(
-                    Intent(this@MainActivity, MusicService::class.java),
-                    serviceConn, Context.BIND_IMPORTANT
-                )
-            }
-        } else {
-            mService = Shared.mService
-            songChange()
-            playPauseEvent(mService!!.getMediaPlayer().run {
-                if (this.isPlaying) SongState.playing
-                else SongState.paused
-            })
-        }
+        if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+            bindService(
+                Intent(this@MainActivity, MusicService::class.java),
+                serviceConn,
+                Context.BIND_IMPORTANT
+            )
     }
 
     fun playPauseEvent(state: SongState) {
         launch(Dispatchers.Main) {
-            if (state == SongState.playing){
+            if (state == SongState.playing) {
                 Glide.with(this@MainActivity).load(R.drawable.pause)
                     .into(bb_icon)
 
                 playing = true
-            }
-            else {
+            } else {
                 playing = false
                 Glide.with(this@MainActivity).load(R.drawable.play).into(bb_icon)
             }
@@ -273,7 +255,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    activity_seekbar.progress = Shared.mService.getMediaPlayer().currentPosition
+                    activity_seekbar.progress =
+                        mService?.getMediaPlayer()?.currentPosition ?: 0 //todo fix
                 }
             }, 0, 1000)
         }
@@ -281,20 +264,22 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     @SuppressLint("SetTextI18n")
     fun songChange() {
-        launch(Dispatchers.Main) {
-            activity_seekbar.progress = 0
-            activity_seekbar.max = Shared.mService.getMediaPlayer().duration
+        if(mService != null) {
+            launch(Dispatchers.Main) {
+                activity_seekbar.progress = 0
+                activity_seekbar.max = mService!!.getMediaPlayer().duration
 
-            startSeekbarUpdates()
-            val song = Shared.mService.getPlayQueue()[Shared.mService.getCurrentIndex()]
+                startSeekbarUpdates()
+                val song = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                bb_song.text = Html.fromHtml(
-                    "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
-                    HtmlCompat.FROM_HTML_MODE_LEGACY
-                )
-            } else {
-                bb_song.text = "${song.name} • ${song.artist}"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    bb_song.text = Html.fromHtml(
+                        "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
+                        HtmlCompat.FROM_HTML_MODE_LEGACY
+                    )
+                } else {
+                    bb_song.text = "${song.name} • ${song.artist}"
+                }
             }
         }
     }
@@ -394,4 +379,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     }
 
     override fun spotifyImportChange(starting: Boolean) {}
+
+    override fun serviceStarted() {
+        bindService()
+    }
 }

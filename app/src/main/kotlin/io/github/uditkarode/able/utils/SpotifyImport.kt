@@ -41,7 +41,6 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.spotifyplaylist.SpotifyPlaylist
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.services.MusicService
-import io.github.uditkarode.able.utils.Shared.Companion.modifyPlaylist
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -304,7 +303,7 @@ object SpotifyImport: CoroutineScope {
 
                 if (songArr.size > 0) {
                     MusicService.registeredClients.forEach { it.spotifyImportChange(false) }
-                    modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
+                    Shared.modifyPlaylist("Spotify: ${respPlayList.name}.json", songArr)
                     (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
                         it.cancel(3)
                     }

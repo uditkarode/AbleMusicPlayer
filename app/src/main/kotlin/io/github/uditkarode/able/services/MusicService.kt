@@ -29,7 +29,6 @@ import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
-import android.os.IBinder
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
@@ -50,7 +49,6 @@ import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
-import java.lang.ClassCastException
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.util.*
@@ -72,6 +70,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         fun indexChanged(index: Int)
         fun isLoading(doLoad: Boolean)
         fun spotifyImportChange(starting: Boolean)
+        fun serviceStarted()
     }
 
     companion object {
@@ -239,9 +238,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return binder
-    }
+    override fun onBind(intent: Intent?) = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         handleIntent(intent)

@@ -18,11 +18,8 @@
 
 package io.github.uditkarode.able.fragments
 
-import android.content.ComponentName
-import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
-import android.os.IBinder
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -54,28 +51,13 @@ import kotlinx.android.synthetic.main.playlists.*
  * Playlists are stored in the JSON format.
  */
 class Playlists : Fragment(), MusicService.MusicClient {
-    private lateinit var serviceConn: ServiceConnection
     private var isImporting = false
-
-    var mService: MusicService? = null
-    var isBound = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         MusicService.registerClient(this)
-        serviceConn = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                mService = (service as MusicService.MusicBinder).getService()
-                Shared.mService = service.getService()
-                isBound = true
-            }
-
-            override fun onServiceDisconnected(name: ComponentName) {
-                isBound = false
-            }
-        }
         return inflater.inflate(R.layout.playlists, container, false)
     }
 
@@ -134,37 +116,21 @@ class Playlists : Fragment(), MusicService.MusicClient {
         MusicService.unregisterClient(this)
     }
 
-    override fun playStateChanged(state: SongState) {
-        
-    }
+    override fun playStateChanged(state: SongState) {}
 
-    override fun songChanged() {
-        
-    }
+    override fun songChanged() {}
 
-    override fun durationChanged(duration: Int) {
-        
-    }
+    override fun durationChanged(duration: Int) {}
 
-    override fun isExiting() {
-        
-    }
+    override fun isExiting() {}
 
-    override fun queueChanged(arrayList: ArrayList<Song>) {
-        
-    }
+    override fun queueChanged(arrayList: ArrayList<Song>) {}
 
-    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
-        
-    }
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {}
 
-    override fun indexChanged(index: Int) {
-        
-    }
+    override fun indexChanged(index: Int) {}
 
-    override fun isLoading(doLoad: Boolean) {
-        
-    }
+    override fun isLoading(doLoad: Boolean) {}
 
     override fun spotifyImportChange(starting: Boolean) {
         if(starting){
@@ -179,4 +145,6 @@ class Playlists : Fragment(), MusicService.MusicClient {
             }
         }
     }
+
+    override fun serviceStarted() {}
 }

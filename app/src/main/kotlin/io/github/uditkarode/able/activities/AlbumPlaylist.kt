@@ -22,10 +22,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
+import android.os.*
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -53,7 +50,7 @@ import java.lang.ref.WeakReference
  * The activity that shows up when a user taps on an album or playlist
  * from the search results.
  */
-class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
+class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
     private lateinit var serviceConn: ServiceConnection
     private val resultArray = ArrayList<Song>()
     var mService: MusicService? = null
@@ -78,15 +75,14 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
         setContentView(R.layout.albumplaylist)
         loading_view.progress = 0.3080229f
         loading_view.playAnimation()
-        val name = intent.getStringExtra("name")?:""
-        val artist = intent.getStringExtra("artist")?:""
-        val art = intent.getStringExtra("art")?:""
-        val link = intent.getStringExtra("link")?:""
+        val name = intent.getStringExtra("name") ?: ""
+        val artist = intent.getStringExtra("artist") ?: ""
+        val art = intent.getStringExtra("art") ?: ""
+        val link = intent.getStringExtra("link") ?: ""
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
-                Shared.mService = service.getService()
                 isBound = true
             }
 
@@ -103,9 +99,9 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
             .diskCacheStrategy(DiskCacheStrategy.NONE)
             .skipMemoryCache(true)
             .into(playbum_art)
-        
+
         playbum_play.setOnClickListener {
-            if(!Shared.serviceRunning(MusicService::class.java, this)){
+            if (!Shared.serviceRunning(MusicService::class.java, this)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(Intent(this, MusicService::class.java))
                 } else {
@@ -115,12 +111,9 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch(Dispatchers.Default){
-                if(Shared.serviceLinked()) {
-                    mService = Shared.mService
-                } else {
-                    @Suppress("ControlFlowWithEmptyBody")
-                    while(!isBound){}
+            launch(Dispatchers.Default) {
+                @Suppress("ControlFlowWithEmptyBody")
+                while (!isBound) {
                 }
 
                 val mService = mService!!
@@ -133,9 +126,9 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
         launch(Dispatchers.IO) {
             val plExtractor = YouTube.getPlaylistExtractor(link)
             plExtractor.fetchPage()
-            for(song in plExtractor.initialPage.items) {
+            for (song in plExtractor.initialPage.items) {
                 val ex = song as StreamInfoItem
-                if(song.thumbnailUrl.contains("ytimg")) {
+                if (song.thumbnailUrl.contains("ytimg")) {
                     val songId = Shared.getIdFromLink(ex.url)
                     song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
                 }
@@ -150,7 +143,8 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
             }
 
             launch(Dispatchers.Main) {
-                ap_rv.adapter = PlaybumAdapter(resultArray, WeakReference(this@AlbumPlaylist), "Song")
+                ap_rv.adapter =
+                    PlaybumAdapter(resultArray, WeakReference(this@AlbumPlaylist), "Song")
                 ap_rv.layoutManager = LinearLayoutManager(this@AlbumPlaylist)
                 loading_view.visibility = View.GONE
                 loading_view.pauseAnimation()
@@ -183,8 +177,9 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
     /**
      * invoked when an item is pressed in the recyclerview.
      */
-    fun itemPressed(array: ArrayList<Song>, index: Int){
-        if(!Shared.serviceRunning(MusicService::class.java, this)){
+    fun itemPressed(array: ArrayList<Song>, index: Int) {
+        var freshStart = false
+        if (!Shared.serviceRunning(MusicService::class.java, this)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(Intent(this, MusicService::class.java))
             } else {
@@ -192,28 +187,25 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
             }
 
             bindEvent()
+            freshStart = true
         }
 
         launch(Dispatchers.IO) {
-            if(Shared.serviceLinked()) {
-                mService = Shared.mService
-                val mService = mService!!
-                mService.setQueue(array)
-                mService.setIndex(index)
-            } else {
-                @Suppress("ControlFlowWithEmptyBody")
-                while(!isBound){}
-                val mService = mService!!
-                mService.setQueue(array)
-                mService.setIndex(index)
+            @Suppress("ControlFlowWithEmptyBody")
+            while (!isBound) {
             }
+            val mService = mService!!
+            mService.setQueue(array)
+            mService.setIndex(index)
+            if(freshStart)
+                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
         }
     }
 
     override fun onBackPressed() {
         super.onBackPressed()
-        Handler().postDelayed({
-            if(!this.isDestroyed)
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (!this.isDestroyed)
                 Glide.with(this).clear(playbum_art)
         }, 300)
         Glide.with(this).clear(playbum_art)
@@ -222,7 +214,7 @@ class AlbumPlaylist: AppCompatActivity(), CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
-        if(!this.isDestroyed)
+        if (!this.isDestroyed)
             Glide.with(this).clear(playbum_art)
     }
 }

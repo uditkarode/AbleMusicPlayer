@@ -130,7 +130,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
-                Shared.mService = service.getService()
                 isBound = true
             }
 
@@ -141,20 +140,22 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
         bindEvent()
 
-        songList = Shared.getSongList(Constants.ableSongDir)
-        songList.addAll(Shared.getLocalSongs(requireContext()))
-        if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
-            it.name.toUpperCase(
-                Locale.getDefault()
-            )
-        })
+        if (songList.isEmpty()) {
+            songList = Shared.getSongList(Constants.ableSongDir)
+            songList.addAll(Shared.getLocalSongs(requireContext()))
+            if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
+                it.name.toUpperCase(
+                    Locale.getDefault()
+                )
+            })
+        }
         songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
-        songs.adapter = songAdapter
         val lam = LinearLayoutManager(requireContext())
-        lam.initialPrefetchItemCount = 6
+        lam.initialPrefetchItemCount = 12
         lam.isItemPrefetchEnabled = true
-        songs.layoutManager = lam
         val itemTouchHelper = ItemTouchHelper(SwipeController(context, "Home"))
+        songs.adapter = songAdapter
+        songs.layoutManager = lam
         itemTouchHelper.attachToRecyclerView(songs)
     }
 
@@ -444,4 +445,8 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     override fun isLoading(doLoad: Boolean) {}
 
     override fun spotifyImportChange(starting: Boolean) {}
+
+    override fun serviceStarted() {
+        bindEvent()
+    }
 }

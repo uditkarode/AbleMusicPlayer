@@ -22,6 +22,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.TouchDelegate
@@ -90,9 +91,9 @@ import kotlin.collections.ArrayList
 
 class Player : MusicClientActivity() {
     private lateinit var serviceConn: ServiceConnection
-    private lateinit var mService: MusicService
+    private var mService: MusicService? = null
     private lateinit var timer: Timer
-    
+
     private var playing = SongState.paused
     private var scheduled = false
     private var onShuffle = false
@@ -144,7 +145,7 @@ class Player : MusicClientActivity() {
          * Since we don't use fitSystemWindows, we need to manually
          * apply window insets as margin.
          */
-        if(bottom_cast != null) {
+        if (bottom_cast != null) {
             bottom_cast.setOnApplyWindowInsetsListener { _, insets ->
                 val kek = bottom_cast.layoutParams as ViewGroup.MarginLayoutParams
                 kek.setMargins(0, 0, 0, insets.systemWindowInsetBottom)
@@ -152,7 +153,7 @@ class Player : MusicClientActivity() {
             }
         }
 
-        if(top_controls != null) {
+        if (top_controls != null) {
             top_controls.setOnApplyWindowInsetsListener { _, insets ->
                 val kek = top_controls.layoutParams as ViewGroup.MarginLayoutParams
                 kek.setMargins(0, insets.systemWindowInsetTop, 0, 0)
@@ -166,44 +167,47 @@ class Player : MusicClientActivity() {
 
         shuffle_button.setOnClickListener {
             if (onShuffle) {
-                mService.setShuffleRepeat(shuffle = false, repeat = onRepeat)
+                mService?.setShuffleRepeat(shuffle = false, repeat = onRepeat)
             } else {
-                mService.setShuffleRepeat(shuffle = true, repeat = onRepeat)
+                mService?.setShuffleRepeat(shuffle = true, repeat = onRepeat)
             }
         }
 
         player_center_icon.setOnClickListener {
             launch {
-                if (playing == SongState.playing) mService.setPlayPause(SongState.paused)
-                else mService.setPlayPause(SongState.playing)
+                if (playing == SongState.playing) mService?.setPlayPause(SongState.paused)
+                else mService?.setPlayPause(SongState.playing)
             }
         }
 
         repeat_button.setOnClickListener {
             if (onRepeat) {
-                mService.setShuffleRepeat(shuffle = onShuffle, repeat = false)
+                mService?.setShuffleRepeat(shuffle = onShuffle, repeat = false)
                 DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#80fbfbfb"))
             } else {
-                mService.setShuffleRepeat(shuffle = onShuffle, repeat = true)
+                mService?.setShuffleRepeat(shuffle = onShuffle, repeat = true)
                 DrawableCompat.setTint(repeat_button.drawable, Color.parseColor("#805e92f3"))
             }
         }
 
         next_song.setOnClickListener {
-            mService.setNextPrevious(next = true)
+            mService?.setNextPrevious(next = true)
         }
 
         previous_song.setOnClickListener {
-            mService.setNextPrevious(next = false)
+            mService?.setNextPrevious(next = false)
         }
 
         setBgColor(0x002171)
 
         player_seekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                mService.seekTo(seekBar.progress)
-                player_seekbar.progress = mService.getMediaPlayer().currentPosition
-                player_current_position.text = getDurationFromMs(player_seekbar.progress)
+                if(mService != null) {
+                    val ms = mService as MusicService
+                    ms.seekTo(seekBar.progress)
+                    player_seekbar.progress = ms.getMediaPlayer().currentPosition
+                    player_current_position.text = getDurationFromMs(player_seekbar.progress)
+                }
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
@@ -222,126 +226,135 @@ class Player : MusicClientActivity() {
         }
 
         album_art.setOnLongClickListener {
-            MaterialDialog(this@Player).show {
-                cornerRadius(20f)
-                title(text = this@Player.getString(R.string.enter_song))
-                input(prefill = mService.getPlayQueue()[mService.getCurrentIndex()].name) { _, charSequence ->
-                    updateAlbumArt(charSequence.toString(), true)
+            if(mService != null) {
+                val ms = mService as MusicService
+                MaterialDialog(this@Player).show {
+                    cornerRadius(20f)
+                    title(text = this@Player.getString(R.string.enter_song))
+                    input(prefill = ms.getPlayQueue()[ms.getCurrentIndex()].name) { _, charSequence ->
+                        updateAlbumArt(charSequence.toString(), true)
+                    }
+                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
-                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
             true
         }
 
         song_name.setOnClickListener {
-            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            MaterialDialog(this@Player).show {
-                title(text = this@Player.getString(R.string.enter_new_song))
-                input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
-                    val ext = current.filePath.run {
-                        this.substring(this.lastIndexOf(".") + 1)
-                    }
-                    when (val rc = FFmpeg.execute(
-                        "-i " +
-                                "\"${current.filePath}\" -y -c copy " +
-                                "-metadata title=\"$charSequence\" " +
-                                "-metadata artist=\"${current.artist}\"" +
-                                " \"${current.filePath}.new.$ext\""
-                    )) {
-                        Config.RETURN_CODE_SUCCESS -> {
-                            File(current.filePath).delete()
-                            File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            if (current.isLocal) {
-                                /* update media store for the song in question */
-                                MediaScannerConnection.scanFile(this@Player,
-                                    arrayOf(current.filePath), null,
-                                    object : MediaScannerConnection.MediaScannerConnectionClient {
-                                        override fun onMediaScannerConnected() {}
+            if(mService != null) {
+                val mService = this.mService as MusicService
+                val current = mService.getPlayQueue()[mService.getCurrentIndex()]
+                MaterialDialog(this@Player).show {
+                    title(text = this@Player.getString(R.string.enter_new_song))
+                    input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
+                        val ext = current.filePath.run {
+                            this.substring(this.lastIndexOf(".") + 1)
+                        }
+                        when (val rc = FFmpeg.execute(
+                            "-i " +
+                                    "\"${current.filePath}\" -y -c copy " +
+                                    "-metadata title=\"$charSequence\" " +
+                                    "-metadata artist=\"${current.artist}\"" +
+                                    " \"${current.filePath}.new.$ext\""
+                        )) {
+                            Config.RETURN_CODE_SUCCESS -> {
+                                File(current.filePath).delete()
+                                File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                if (current.isLocal) {
+                                    /* update media store for the song in question */
+                                    MediaScannerConnection.scanFile(this@Player,
+                                        arrayOf(current.filePath), null,
+                                        object : MediaScannerConnection.MediaScannerConnectionClient {
+                                            override fun onMediaScannerConnected() {}
 
-                                        override fun onScanCompleted(path: String?, uri: Uri?) {
-                                            changeMetadata(
-                                                name = charSequence.toString(),
-                                                artist = current.artist
-                                            )
-                                        }
-                                    })
+                                            override fun onScanCompleted(path: String?, uri: Uri?) {
+                                                changeMetadata(
+                                                    name = charSequence.toString(),
+                                                    artist = current.artist
+                                                )
+                                            }
+                                        })
+                                }
+                            }
+                            Config.RETURN_CODE_CANCEL -> {
+                                Log.e(
+                                    "ERR>",
+                                    "Command execution cancelled by user."
+                                )
+                            }
+                            else -> {
+                                Log.e(
+                                    "ERR>",
+                                    String.format(
+                                        "Command execution failed with rc=%d and the output below.",
+                                        rc
+                                    )
+                                )
                             }
                         }
-                        Config.RETURN_CODE_CANCEL -> {
-                            Log.e(
-                                "ERR>",
-                                "Command execution cancelled by user."
-                            )
-                        }
-                        else -> {
-                            Log.e(
-                                "ERR>",
-                                String.format(
-                                    "Command execution failed with rc=%d and the output below.",
-                                    rc
-                                )
-                            )
-                        }
                     }
+                    getInputField().setText(current.name)
+                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
-                getInputField().setText(current.name)
-                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
         }
 
         artist_name.setOnClickListener {
-            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            MaterialDialog(this@Player).show {
-                title(text = this@Player.getString(R.string.enter_new_art))
-                input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
-                    val ext = current.filePath.run {
-                        this.substring(this.lastIndexOf(".") + 1)
-                    }
-                    when (val rc = FFmpeg.execute(
-                        "-i " +
-                                "\"${current.filePath}\" -c copy " +
-                                "-metadata title=\"${current.name}\" " +
-                                "-metadata artist=\"$charSequence\"" +
-                                " \"${current.filePath}.new.$ext\""
-                    )) {
-                        Config.RETURN_CODE_SUCCESS -> {
-                            File(current.filePath).delete()
-                            File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                            if (current.isLocal) {
-                                /* update media store for the song in question */
-                                MediaScannerConnection.scanFile(this@Player,
-                                    arrayOf(current.filePath), null,
-                                    object : MediaScannerConnection.MediaScannerConnectionClient {
-                                        override fun onMediaScannerConnected() {}
+            if(mService != null) {
+                val mService = this.mService as MusicService
+                val current = mService.getPlayQueue()[mService.getCurrentIndex()]
+                MaterialDialog(this@Player).show {
+                    title(text = this@Player.getString(R.string.enter_new_art))
+                    input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
+                        val ext = current.filePath.run {
+                            this.substring(this.lastIndexOf(".") + 1)
+                        }
+                        when (val rc = FFmpeg.execute(
+                            "-i " +
+                                    "\"${current.filePath}\" -c copy " +
+                                    "-metadata title=\"${current.name}\" " +
+                                    "-metadata artist=\"$charSequence\"" +
+                                    " \"${current.filePath}.new.$ext\""
+                        )) {
+                            Config.RETURN_CODE_SUCCESS -> {
+                                File(current.filePath).delete()
+                                File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                if (current.isLocal) {
+                                    /* update media store for the song in question */
+                                    MediaScannerConnection.scanFile(this@Player,
+                                        arrayOf(current.filePath), null,
+                                        object : MediaScannerConnection.MediaScannerConnectionClient {
+                                            override fun onMediaScannerConnected() {}
 
-                                        override fun onScanCompleted(path: String?, uri: Uri?) {
-                                            changeMetadata(
-                                                name = current.name,
-                                                artist = charSequence.toString()
-                                            )
-                                        }
-                                    })
+                                            override fun onScanCompleted(path: String?, uri: Uri?) {
+                                                changeMetadata(
+                                                    name = current.name,
+                                                    artist = charSequence.toString()
+                                                )
+                                            }
+                                        })
+                                }
+                            }
+                            Config.RETURN_CODE_CANCEL -> {
+                                Log.e(
+                                    "ERR>",
+                                    "Command execution cancelled by user."
+                                )
+                            }
+                            else -> {
+                                Log.e(
+                                    "ERR>",
+                                    String.format(
+                                        "Command execution failed with rc=%d and the output below.",
+                                        rc
+                                    )
+                                )
                             }
                         }
-                        Config.RETURN_CODE_CANCEL -> {
-                            Log.e(
-                                "ERR>",
-                                "Command execution cancelled by user."
-                            )
-                        }
-                        else -> {
-                            Log.e(
-                                "ERR>",
-                                String.format(
-                                    "Command execution failed with rc=%d and the output below.",
-                                    rc
-                                )
-                            )
-                        }
                     }
+                    getInputField().setText(current.artist)
+                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
-                getInputField().setText(current.artist)
-                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
             }
         }
 
@@ -407,38 +420,27 @@ class Player : MusicClientActivity() {
         }
 
         player_queue?.setOnClickListener {
-            /* TODO add to settings
-
-                val additive = if(!mService.onRepeat){
-                val ret = arrayListOf<Song>()
-                ret.add(Song(name = "(repeat)", placeholder = true))
-                if(mService.getPlayQueue.size > 3){
-                    ret += mService.getPlayQueue.subList(0, 3)
-                    ret.add(Song(name = "...", placeholder = true))
-                    ret
-                }
-                else ret + mService.getPlayQueue
-            } else {
-                arrayListOf()
-            } */
-
-            MaterialDialog(this@Player, BottomSheet()).show {
-                customListAdapter(
-                    SongAdapter(
-                        ArrayList(
-                            mService.getPlayQueue().subList(
-                                mService.getCurrentIndex(),
-                                mService.getPlayQueue().size
-                            ) //+ additive
+            if(mService != null) {
+                val mService = this.mService as MusicService
+                MaterialDialog(this@Player, BottomSheet()).show {
+                    customListAdapter(
+                        SongAdapter(
+                            ArrayList(
+                                mService.getPlayQueue().subList(
+                                    mService.getCurrentIndex(),
+                                    mService.getPlayQueue().size
+                                )
+                            )
                         )
                     )
-                )
+                }
             }
         }
 
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                mService = (service as MusicService.MusicBinder).getService()
                 onBindDone()
             }
 
@@ -448,8 +450,7 @@ class Player : MusicClientActivity() {
     }
 
     private fun onBindDone() {
-        mService = Shared.mService
-        if (mService.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(
+        if (mService!!.getMediaPlayer().isPlaying) player_center_icon.setImageDrawable(
             ContextCompat.getDrawable(
                 this@Player,
                 R.drawable.nobg_pause
@@ -462,18 +463,16 @@ class Player : MusicClientActivity() {
             )
         )
         songChangeEvent()
-        
+
     }
 
     private fun bindEvent() {
-        if (!Shared.serviceLinked()) {
-            if (Shared.serviceRunning(MusicService::class.java, this@Player))
-                bindService(
-                    Intent(this@Player, MusicService::class.java),
-                    serviceConn,
-                    Context.BIND_IMPORTANT
-                )
-        } else onBindDone()
+        if (Shared.serviceRunning(MusicService::class.java, this@Player))
+            bindService(
+                Intent(this@Player, MusicService::class.java),
+                serviceConn,
+                Context.BIND_IMPORTANT
+            )
     }
 
     override fun onPause() {
@@ -483,8 +482,6 @@ class Player : MusicClientActivity() {
             timer.cancel()
             timer.purge()
         }
-
-        
     }
 
     private fun startSeekbarUpdates() {
@@ -493,10 +490,13 @@ class Player : MusicClientActivity() {
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    launch(Dispatchers.Main) {
-                        val songPosition = mService.getMediaPlayer().currentPosition
-                        player_seekbar.progress = songPosition
-                        player_current_position.text = getDurationFromMs(songPosition)
+                    if(mService != null) {
+                        val mService = mService as MusicService
+                        launch(Dispatchers.Main) {
+                            val songPosition = mService.getMediaPlayer().currentPosition
+                            player_seekbar.progress = songPosition
+                            player_current_position.text = getDurationFromMs(songPosition)
+                        }
                     }
                 }
             }, 0, 1000)
@@ -565,7 +565,8 @@ class Player : MusicClientActivity() {
             )
             if (lightVibrantColor != null) {
                 if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
-                    val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor ?: palette?.dominantSwatch?.titleTextColor
+                    val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor
+                        ?: palette?.dominantSwatch?.titleTextColor
                     player_seekbar.progressDrawable.setTint(newTitleColor!!)
                     player_seekbar.thumb.setTint(newTitleColor)
                     tintControls(0x002171)
@@ -625,252 +626,260 @@ class Player : MusicClientActivity() {
     }
 
     private fun updateAlbumArt(customSongName: String? = null, forceDeezer: Boolean = false) {
-        /* set helper variables */
-        img_albart.visibility = View.GONE
-        note_ph.visibility = View.VISIBLE
-        var didGetArt = false
-        val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-        val img = File(
-            Constants.ableSongDir.absolutePath + "/album_art",
-            File(current.filePath).nameWithoutExtension
-        )
-        val cacheImg = File(
-            Constants.ableSongDir.absolutePath + "/cache",
-            "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
-        )
+        if(mService != null) {
+            val mService = mService as MusicService
+            /* set helper variables */
+            img_albart.visibility = View.GONE
+            note_ph.visibility = View.VISIBLE
+            var didGetArt = false
+            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
+            val img = File(
+                Constants.ableSongDir.absolutePath + "/album_art",
+                File(current.filePath).nameWithoutExtension
+            )
+            val cacheImg = File(
+                Constants.ableSongDir.absolutePath + "/cache",
+                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
+            )
 
-        launch(Dispatchers.IO) {
-            /*
-            Check priority:
-            1) Album art from metadata (if the song is a local song)
-            2) Album art from disk (if the song is not a local song)
-            3) Album art from Deezer (regardless of song being local or not)
+            launch(Dispatchers.IO) {
+                /*
+                Check priority:
+                1) Album art from metadata (if the song is a local song)
+                2) Album art from disk (if the song is not a local song)
+                3) Album art from Deezer (regardless of song being local or not)
 
-            in case (3), if the song is local, the album art should be added
-            to the song metadata, and if not, it should be stored in the Able
-            album art folder.
-            */
+                in case (3), if the song is local, the album art should be added
+                to the song metadata, and if not, it should be stored in the Able
+                album art folder.
+                */
 
 
-            /* (1) Check albumart in song metadata (if the song is a local song) */
-            if (current.isLocal && !forceDeezer) {
-                Log.e("INFO>", "Fetching from metadata")
-                try {
-                    note_ph.visibility = View.GONE
-                    val sArtworkUri =
-                        Uri.parse("content://media/external/audio/albumart")
-
-                    Shared.bmp = Glide
-                        .with(this@Player)
-                        .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
-                        .signature(ObjectKey("player"))
-                        .submit()
-                        .get().toBitmap()
-
-                    launch(Dispatchers.Main) {
-                        img_albart.setImageBitmap(Shared.bmp)
-                        img_albart.visibility = View.VISIBLE
+                /* (1) Check albumart in song metadata (if the song is a local song) */
+                if (current.isLocal && !forceDeezer) {
+                    Log.e("INFO>", "Fetching from metadata")
+                    try {
                         note_ph.visibility = View.GONE
-                        Palette.from(Shared.getSharedBitmap()).generate {
-                            setBgColor(
-                                it?.getDominantColor(0x002171) ?: 0x002171,
-                                it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                it
-                            )
-                        }
-                    }
-                    didGetArt = true
-                } catch (e: java.lang.Exception) {
-                    didGetArt = false
-                }
-            }
+                        val sArtworkUri =
+                            Uri.parse("content://media/external/audio/albumart")
 
-            /* (2) Album art from disk (if the song is not a local song) */
-            if (!didGetArt && !forceDeezer) {
-                if (!current.isLocal) {
-                    Log.e("INFO>", "Fetching from Able folder")
-                    val imgToLoad = if (img.exists()) img else cacheImg
-                    if (imgToLoad.exists()) {
+                        Shared.bmp = Glide
+                            .with(this@Player)
+                            .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                            .signature(ObjectKey("player"))
+                            .submit()
+                            .get().toBitmap()
+
                         launch(Dispatchers.Main) {
+                            img_albart.setImageBitmap(Shared.bmp)
                             img_albart.visibility = View.VISIBLE
                             note_ph.visibility = View.GONE
-                            Glide.with(this@Player)
-                                .load(imgToLoad)
-                                .centerCrop()
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .skipMemoryCache(true)
-                                .into(img_albart)
-                            try {
-                                Shared.bmp = GlideBitmapFactory.decodeFile(imgToLoad.absolutePath)
-                                Palette.from(Shared.getSharedBitmap()).generate {
-                                    setBgColor(
-                                        it?.getDominantColor(0x002171) ?: 0x002171,
-                                        it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                        it // causes transparent bar
-                                    )
-
-                                    Shared.clearBitmap()
-                                }
-                            }
-                            catch (e: java.lang.Exception){
-                                e.printStackTrace()
-                            }
-                        }
-                        didGetArt = true
-                    }
-                }
-            }
-
-            /* (3) Album art from Deezer (regardless of song being local or not) */
-            if (!didGetArt && Shared.isInternetConnected(this@Player)) {
-                Log.e("INFO>", "Fetching from Deezer")
-                val albumArtRequest = if (customSongName == null) {
-                    Request.Builder()
-                        .url(Constants.DEEZER_API + current.name)
-                        .get()
-                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                        .cacheControl(CacheControl.FORCE_NETWORK)
-                        .build()
-                } else {
-                    Request.Builder()
-                        .url(Constants.DEEZER_API + customSongName)
-                        .get()
-                        .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                        .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                        .build()
-                }
-
-                val response = OkHttpClient().newCall(albumArtRequest).execute().body
-
-                try {
-                    if (response != null) {
-                        val json = JSONObject(response.string()).getJSONArray("data")
-                            .getJSONObject(0).getJSONObject("album")
-                        val imgLink = json.getString("cover_big")
-                        val albumName = json.getString("title")
-
-                        try {
-                            Shared.bmp = Glide
-                                .with(this@Player)
-                                .load(imgLink)
-                                .centerCrop()
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .skipMemoryCache(true)
-                                .submit()
-                                .get().toBitmap()
-
                             Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
-                                    it?.getLightVibrantColor(0x002171) ?: 0x002171,
+                                    it?.getLightMutedColor(0x002171) ?: 0x002171,
                                     it
                                 )
                             }
+                        }
+                        didGetArt = true
+                    } catch (e: java.lang.Exception) {
+                        didGetArt = false
+                    }
+                }
 
-                            if (img.exists()) img.delete()
-                            Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
-
+                /* (2) Album art from disk (if the song is not a local song) */
+                if (!didGetArt && !forceDeezer) {
+                    if (!current.isLocal) {
+                        Log.e("INFO>", "Fetching from Able folder")
+                        val imgToLoad = if (img.exists()) img else cacheImg
+                        if (imgToLoad.exists()) {
                             launch(Dispatchers.Main) {
-                                img_albart.setImageBitmap(Shared.getSharedBitmap())
                                 img_albart.visibility = View.VISIBLE
                                 note_ph.visibility = View.GONE
-                                if (mService.getMediaPlayer().isPlaying) {
-                                    mService.showNotification(
-                                        mService.generateAction(
-                                            R.drawable.notif_pause,
-                                            "Pause",
-                                            "ACTION_PAUSE"
-                                        ), Shared.getSharedBitmap()
-                                    )
-                                } else {
-                                    mService.showNotification(
-                                        mService.generateAction(
-                                            R.drawable.notif_play,
-                                            "Play",
-                                            "ACTION_PLAY"
-                                        ), Shared.getSharedBitmap()
-                                    )
+                                Glide.with(this@Player)
+                                    .load(imgToLoad)
+                                    .centerCrop()
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .into(img_albart)
+                                try {
+                                    Shared.bmp = GlideBitmapFactory.decodeFile(imgToLoad.absolutePath)
+                                    Palette.from(Shared.getSharedBitmap()).generate {
+                                        setBgColor(
+                                            it?.getDominantColor(0x002171) ?: 0x002171,
+                                            it?.getLightMutedColor(0x002171) ?: 0x002171,
+                                            it // causes transparent bar
+                                        )
+
+                                        Shared.clearBitmap()
+                                    }
+                                } catch (e: java.lang.Exception) {
+                                    e.printStackTrace()
                                 }
                             }
-                            Shared.addThumbnails(
-                                current.filePath,
-                                albumName,
-                                this@Player
-                            )
                             didGetArt = true
-                        } catch (e: Exception) {
-                            didGetArt = false
-                            Log.e("ERR>", e.toString())
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e("ERR>", e.toString())
                 }
-            }
 
-            if (!didGetArt) {
-                launch(Dispatchers.Main) {
-                    img_albart.visibility = View.GONE
-                    note_ph.visibility = View.VISIBLE
-                    setBgColor(0x002171)
-                    player_seekbar.progressDrawable.setTint(
-                        ContextCompat.getColor(
-                            this@Player,
-                            R.color.thatAccent
+                /* (3) Album art from Deezer (regardless of song being local or not) */
+                if (!didGetArt && Shared.isInternetConnected(this@Player)) {
+                    Log.e("INFO>", "Fetching from Deezer")
+                    val albumArtRequest = if (customSongName == null) {
+                        Request.Builder()
+                            .url(Constants.DEEZER_API + current.name)
+                            .get()
+                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                            .cacheControl(CacheControl.FORCE_NETWORK)
+                            .build()
+                    } else {
+                        Request.Builder()
+                            .url(Constants.DEEZER_API + customSongName)
+                            .get()
+                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
+                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
+                            .build()
+                    }
+
+                    val response = OkHttpClient().newCall(albumArtRequest).execute().body
+
+                    try {
+                        if (response != null) {
+                            val json = JSONObject(response.string()).getJSONArray("data")
+                                .getJSONObject(0).getJSONObject("album")
+                            val imgLink = json.getString("cover_big")
+                            val albumName = json.getString("title")
+
+                            try {
+                                Shared.bmp = Glide
+                                    .with(this@Player)
+                                    .load(imgLink)
+                                    .centerCrop()
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .submit()
+                                    .get().toBitmap()
+
+                                Palette.from(Shared.getSharedBitmap()).generate {
+                                    setBgColor(
+                                        it?.getDominantColor(0x002171) ?: 0x002171,
+                                        it?.getLightVibrantColor(0x002171) ?: 0x002171,
+                                        it
+                                    )
+                                }
+
+                                if (img.exists()) img.delete()
+                                Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
+
+                                launch(Dispatchers.Main) {
+                                    img_albart.setImageBitmap(Shared.getSharedBitmap())
+                                    img_albart.visibility = View.VISIBLE
+                                    note_ph.visibility = View.GONE
+                                    if (mService.getMediaPlayer().isPlaying) {
+                                        mService.showNotification(
+                                            mService.generateAction(
+                                                R.drawable.notif_pause,
+                                                "Pause",
+                                                "ACTION_PAUSE"
+                                            ), Shared.getSharedBitmap()
+                                        )
+                                    } else {
+                                        mService.showNotification(
+                                            mService.generateAction(
+                                                R.drawable.notif_play,
+                                                "Play",
+                                                "ACTION_PLAY"
+                                            ), Shared.getSharedBitmap()
+                                        )
+                                    }
+                                }
+                                Shared.addThumbnails(
+                                    current.filePath,
+                                    albumName,
+                                    this@Player
+                                )
+                                didGetArt = true
+                            } catch (e: Exception) {
+                                didGetArt = false
+                                Log.e("ERR>", e.toString())
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ERR>", e.toString())
+                    }
+                }
+
+                if (!didGetArt) {
+                    launch(Dispatchers.Main) {
+                        img_albart.visibility = View.GONE
+                        note_ph.visibility = View.VISIBLE
+                        setBgColor(0x002171)
+                        player_seekbar.progressDrawable.setTint(
+                            ContextCompat.getColor(
+                                this@Player,
+                                R.color.thatAccent
+                            )
                         )
-                    )
-                    player_seekbar.thumb.setTint(
-                        ContextCompat.getColor(
-                            this@Player,
-                            R.color.colorPrimary
+                        player_seekbar.thumb.setTint(
+                            ContextCompat.getColor(
+                                this@Player,
+                                R.color.colorPrimary
+                            )
                         )
-                    )
-                    tintControls(0x002171)
+                        tintControls(0x002171)
+                    }
                 }
             }
         }
     }
 
     private fun changeMetadata(name: String, artist: String) {
-        launch(Dispatchers.Main) {
-            song_name.text = name
-            artist_name.text = artist
-        }
+        if(mService != null) {
+            val mService = mService as MusicService
+            launch(Dispatchers.Main) {
+                song_name.text = name
+                artist_name.text = artist
+            }
 
-        if (mService.getMediaPlayer().isPlaying) {
-            mService.showNotification(
-                mService.generateAction(
-                    R.drawable.notif_pause,
-                    getString(R.string.pause),
-                    "ACTION_PAUSE"
-                ), nameOverride = name, artistOverride = artist
-            )
-        } else {
-            mService.showNotification(
-                mService.generateAction(
-                    R.drawable.notif_play,
-                    getString(R.string.play),
-                    "ACTION_PLAY"
-                ), nameOverride = name, artistOverride = artist
-            )
-        }
+            if (mService.getMediaPlayer().isPlaying) {
+                mService.showNotification(
+                    mService.generateAction(
+                        R.drawable.notif_pause,
+                        getString(R.string.pause),
+                        "ACTION_PAUSE"
+                    ), nameOverride = name, artistOverride = artist
+                )
+            } else {
+                mService.showNotification(
+                    mService.generateAction(
+                        R.drawable.notif_play,
+                        getString(R.string.play),
+                        "ACTION_PLAY"
+                    ), nameOverride = name, artistOverride = artist
+                )
+            }
 
-        // TODO MusicService.registeredClients.forEach { it.queueChanged() }
+            // TODO MusicService.registeredClients.forEach { it.queueChanged() }
+        }
     }
 
     private fun songChangeEvent() {
-        updateAlbumArt()
+        if(mService != null) {
+            val mService = mService as MusicService
+            updateAlbumArt()
 
-        val duration = mService.getMediaPlayer().duration
-        player_seekbar.max = duration
-        complete_position.text = getDurationFromMs(duration)
+            val duration = mService.getMediaPlayer().duration
+            player_seekbar.max = duration
+            complete_position.text = getDurationFromMs(duration)
 
-        val song = mService.getPlayQueue()[mService.getCurrentIndex()]
-        song_name.text = song.name
-        artist_name.text = song.artist
-        player_seekbar.progress = mService.getMediaPlayer().currentPosition
-        playPauseEvent(SongState.playing)
+            val song = mService.getPlayQueue()[mService.getCurrentIndex()]
+            song_name.text = song.name
+            artist_name.text = song.artist
+            player_seekbar.progress = mService.getMediaPlayer().currentPosition
+            playPauseEvent(SongState.playing)
+        }
     }
 
     private fun getDurationFromMs(durtn: Int): String {
@@ -898,7 +907,7 @@ class Player : MusicClientActivity() {
 
     override fun onBackPressed() {
         super.onBackPressed()
-        Handler().postDelayed({
+        Handler(Looper.getMainLooper()).postDelayed({
             if (!this.isDestroyed) Glide.with(this@Player).clear(img_albart)
         }, 300)
         finish()
@@ -953,4 +962,8 @@ class Player : MusicClientActivity() {
     override fun isLoading(doLoad: Boolean) {}
 
     override fun spotifyImportChange(starting: Boolean) {}
+
+    override fun serviceStarted() {
+        bindEvent()
+    }
 }

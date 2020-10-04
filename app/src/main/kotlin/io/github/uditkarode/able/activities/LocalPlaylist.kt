@@ -49,12 +49,12 @@ import java.lang.ref.WeakReference
  * The activity that shows up when a user taps on a local playlist from the
  * playlist fragment.
  */
-class LocalPlaylist: AppCompatActivity(), CoroutineScope {
+class LocalPlaylist : AppCompatActivity(), CoroutineScope {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var resultArray = ArrayList<Song>()
-    
+
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,12 +74,11 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         setContentView(R.layout.localplaylist)
         loading_view.progress = 0.3080229f
         loading_view.playAnimation()
-        val name = intent.getStringExtra("name")?:""
+        val name = intent.getStringExtra("name") ?: ""
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
-                Shared.mService = service.getService()
                 isBound = true
             }
 
@@ -89,9 +88,9 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         }
 
         playbum_name.text = name.replace(".json", "")
-        
+
         playbum_play.setOnClickListener {
-            if(!Shared.serviceRunning(MusicService::class.java, this)){
+            if (!Shared.serviceRunning(MusicService::class.java, this)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(Intent(this, MusicService::class.java))
                 } else {
@@ -101,12 +100,9 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch(Dispatchers.Default){
-                if(Shared.serviceLinked()) {
-                    mService = Shared.mService
-                } else {
-                    @Suppress("ControlFlowWithEmptyBody")
-                    while(!isBound){}
+            launch(Dispatchers.Default) {
+                @Suppress("ControlFlowWithEmptyBody")
+                while (!isBound) {
                 }
 
                 val mService = mService!!
@@ -116,7 +112,7 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             }
         }
 
-        launch(Dispatchers.Default){
+        launch(Dispatchers.Default) {
             resultArray = Shared.getSongsFromPlaylistFile(name)
 
             launch(Dispatchers.Main) {
@@ -153,8 +149,8 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
     /**
      * invoked when an item is pressed in the recyclerview.
      */
-    fun itemPressed(array: ArrayList<Song>, index: Int){
-        if(!Shared.serviceRunning(MusicService::class.java, this)){
+    fun itemPressed(array: ArrayList<Song>, index: Int) {
+        if (!Shared.serviceRunning(MusicService::class.java, this)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(Intent(this, MusicService::class.java))
             } else {
@@ -164,22 +160,19 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             bindEvent()
         }
 
-        launch(Dispatchers.IO){
-            if(Shared.serviceLinked()) {
-                mService = Shared.mService
-            } else {
-                @Suppress("ControlFlowWithEmptyBody")
-                while(!isBound){}
-                val mService = mService!!
-                mService.setQueue(array)
-                mService.setIndex(index)
+        launch(Dispatchers.IO) {
+            @Suppress("ControlFlowWithEmptyBody")
+            while (!isBound) {
             }
+            val mService = mService!!
+            mService.setQueue(array)
+            mService.setIndex(index)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if(!this.isDestroyed)
+        if (!this.isDestroyed)
             Glide.with(this).clear(playbum_art)
     }
 }

@@ -42,6 +42,7 @@ import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
+import io.github.uditkarode.able.models.CacheStatus
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
@@ -435,11 +436,113 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
         if (playQueue[currentIndex].filePath == "") {
             launch {
-                streamAudio()
+                getStreamArt()
+            }
+        }
+
+        mediaPlayer.setOnPreparedListener {
+            mediaSessionPlay()
+            setPlayPause(SongState.playing)
+
+            val dur = mediaPlayer.duration
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.durationChanged(dur) }
+            }
+        }
+
+        if (playQueue[currentIndex].cacheStatus != CacheStatus.NULL) { // Cache while streaming
+            var fplay = false
+            var prevDur = 0
+            var prevOff = 0
+            var prevProg = 0
+            var songDur = 0
+            val tmpf = File("${Constants.ableSongDir.absolutePath}/tmp_stream-$currentIndex.tmp")
+
+            launch(Dispatchers.IO) {
+                registeredClients.forEach(MusicClient::songChanged)
+            }
+            launch(Dispatchers.IO) {
+                registeredClients.forEach { it.indexChanged(currentIndex) }
+            }
+
+            launch(Dispatchers.IO) {
+                while (playQueue[currentIndex].cacheStatus != CacheStatus.NULL) {
+                    while (
+                        (playQueue[currentIndex].streamProg < 10) or
+                        (playQueue[currentIndex].streamProg - prevProg < 10) or
+                        (playQueue[currentIndex].streamMutexes[0].isLocked and
+                                playQueue[currentIndex].streamMutexes[1].isLocked) or
+                        mediaPlayer.isPlaying
+                    ) {
+                        Thread.sleep(50)
+                    }
+                    val prog = playQueue[currentIndex].streamProg
+                    prevProg = prog
+
+                    val streamNum =
+                        if (playQueue[currentIndex].streamMutexes[0].isLocked) 1 else 0
+
+                    playQueue[currentIndex].streamMutexes[streamNum].lock()
+
+                    tmpf.outputStream().use {
+                        it.write(playQueue[currentIndex].streams[streamNum])
+                    }
+                    try {
+                        tmpf.inputStream().use {
+                                mediaPlayer.setDataSource(it.fd)
+                        }
+                    } catch (e: Exception) {
+                        mediaPlayer.stop()
+                        mediaPlayer.reset()
+                        continue
+                    } finally {
+                        playQueue[currentIndex].streamMutexes[streamNum].unlock()
+                    }
+
+                    var sleepT: Long
+
+                    try {
+                        mediaPlayer.prepare()
+
+                        if (fplay) {
+                            seekTo(prevOff)
+                        }
+
+                        if ((songDur == 0) and (mediaPlayer.duration > 0)) songDur = mediaPlayer.duration; fplay = true
+                    } catch (e: Exception) {
+                        mediaPlayer.stop()
+                        mediaPlayer.reset()
+                        continue
+                    } finally {
+                        sleepT = ((prog * songDur) / 100).toLong()
+                        if ((sleepT > 0) and (sleepT < songDur)) {
+                            prevOff = sleepT.toInt()
+                        }
+                    }
+
+
+                    while (mediaPlayer.currentPosition < sleepT) {
+                        prevDur = if (mediaPlayer.currentPosition < prevOff) mediaPlayer.currentPosition else prevOff
+                        Thread.sleep(100)
+                    }
+
+                    mediaPlayer.stop()
+                    mediaPlayer.reset()
+                }
+
+                tmpf.delete()
+
+                if (prevDur < songDur) {
+                    val dur = prevDur
+
+                    mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
+                    mediaPlayer.prepare()
+
+                    seekTo(dur)
+                }
             }
         } else {
             try {
-                // inside, try to handle a case where file is not found but still shows in songList
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
                 mediaPlayer.prepareAsync()
                 launch(Dispatchers.IO) {
@@ -447,15 +550,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 }
                 launch(Dispatchers.IO) {
                     registeredClients.forEach { it.indexChanged(currentIndex) }
-                }
-
-                mediaPlayer.setOnPreparedListener {
-                    val dur = mediaPlayer.duration
-                    launch(Dispatchers.IO) {
-                        registeredClients.forEach { it.durationChanged(dur) }
-                    }
-                    mediaSessionPlay()
-                    setPlayPause(SongState.playing)
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")
@@ -750,7 +844,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * it is assumed that it contains a youtubeLink.
      * fetches the album art and streams the song.
      */
-    private fun streamAudio() {
+    private fun getStreamArt() {
         launch(Dispatchers.IO) {
             try {
                 val song = playQueue[currentIndex]
@@ -787,14 +881,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                                 dataSource: DataSource?,
                                 isFirstResource: Boolean
                             ): Boolean {
-                                if (resource != null)
+                                if (resource != null) {
                                     Shared.saveStreamingAlbumArt(
                                         resource,
                                         Shared.getIdFromLink(song.youtubeLink)
                                     )
+                                }
                                 val url = stream.url
                                 playQueue[currentIndex].filePath = url
-                                songChanged()
                                 return false
                             }
                         }).submit()

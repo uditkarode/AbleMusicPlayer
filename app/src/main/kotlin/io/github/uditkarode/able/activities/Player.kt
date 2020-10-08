@@ -55,6 +55,7 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
@@ -818,6 +819,9 @@ class Player : MusicClientActivity() {
                                     this@Player
                                 )
                                 didGetArt = true
+                                launch(Dispatchers.Main) {
+                                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
+                                }
                             } catch (e: Exception) {
                                 didGetArt = false
                                 Log.e("ERR>", e.toString())

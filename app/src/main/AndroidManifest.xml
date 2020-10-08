@@ -26,8 +26,7 @@
 
         <activity android:name=".activities.MainActivity" android:windowSoftInputMode="adjustNothing" />
 
-        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme"
-            android:launchMode="singleTask"/>
+        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme" android:noHistory="true"/>
 
         <activity android:name=".activities.Splash" android:theme="@style/SplashTheme">
             <intent-filter>

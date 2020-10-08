@@ -14,6 +14,7 @@
 
 package io.github.uditkarode.able.utils
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.ContentResolver
 import android.content.Context
@@ -49,7 +50,6 @@ import java.io.*
 import java.util.*
 import kotlin.collections.ArrayList
 
-@Suppress("DEPRECATION")
 object Shared {
     /** To only show the splash screen on the first launch of
      *  the MainActivity in a session.
@@ -409,13 +409,14 @@ object Shared {
         return songs
     }
 
+    @SuppressLint("InlinedApi")
     fun getLocalSongs(context: Context): ArrayList<Song> {
         val songs: ArrayList<Song> = ArrayList()
 
         val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
         val contentResolver: ContentResolver = context.contentResolver
         val songUri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
+        @Suppress("DEPRECATION") val projection = arrayOf(
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.DATA,
@@ -431,7 +432,7 @@ object Shared {
         if (songCursor != null && songCursor.moveToFirst()) {
             do {
                 val path: String = songCursor.getString(2)
-                if (!path.contains("webm") && !path.contains("WhatsApp")) {
+                if (!path.contains("webm") && !path.contains("WhatsApp") && path.contains("sdcard")) {
                     if (path.contains("mp3") || path.contains("m4a")) {
                         songs.add(
                             Song(

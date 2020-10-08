@@ -249,10 +249,6 @@ class Search : Fragment(), CoroutineScope {
 
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
-                                            if(song.thumbnailUrl.contains("ytimg")) {
-                                                val songId = Shared.getIdFromLink(ex.url)
-                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
-                                            }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,

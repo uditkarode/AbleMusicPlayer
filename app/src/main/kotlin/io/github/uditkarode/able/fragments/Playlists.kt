@@ -18,11 +18,8 @@
 
 package io.github.uditkarode.able.fragments
 
-import android.content.ComponentName
-import android.content.ServiceConnection
 import android.graphics.Color
 import android.os.Bundle
-import android.os.IBinder
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -42,61 +39,26 @@ import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaylistAdapter
-import io.github.uditkarode.able.events.ImportDoneEvent
-import io.github.uditkarode.able.events.ImportStartedEvent
+import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.SpotifyImportService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.playlists.*
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 
 /**
  * The third fragment. Used to view/edit/play locally stored playlists.
  * Playlists are stored in the JSON format.
  */
-class Playlists : Fragment() {
-    private lateinit var serviceConn: ServiceConnection
+class Playlists : Fragment(), MusicService.MusicClient {
     private var isImporting = false
-
-    var mService: MusicService? = null
-    var isBound = false
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        EventBus.getDefault().register(this)
-        serviceConn = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                mService = (service as MusicService.MusicBinder).getService()
-                Shared.mService = service.getService()
-                isBound = true
-            }
-
-            override fun onServiceDisconnected(name: ComponentName) {
-                isBound = false
-            }
-        }
+        MusicService.registerClient(this)
         return inflater.inflate(R.layout.playlists, container, false)
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun importStarted(@Suppress("UNUSED_PARAMETER") importStartedEvent: ImportStartedEvent){
-        isImporting = true
-        spotbut.setImageResource(R.drawable.ic_cancle_action)
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun importDone(@Suppress("UNUSED_PARAMETER") importDoneEvent: ImportDoneEvent){
-        isImporting = false
-        WorkManager.getInstance(requireContext()).cancelUniqueWork("SpotifyImport")
-        (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
-            playlistAdapter.update(Shared.getPlaylists())
-            spotbut.setImageResource(R.drawable.ic_spot)
-        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -143,15 +105,46 @@ class Playlists : Fragment() {
                     }
                 }
             } else {
-                EventBus.getDefault().post(ImportDoneEvent())
+                MusicService.registeredClients.forEach { it.spotifyImportChange(false) }
                 WorkManager.getInstance(view.context).cancelUniqueWork("SpotifyImport")
             }
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        if (EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().unregister(this)
+    override fun onDestroy() {
+        super.onDestroy()
+        MusicService.unregisterClient(this)
     }
+
+    override fun playStateChanged(state: SongState) {}
+
+    override fun songChanged() {}
+
+    override fun durationChanged(duration: Int) {}
+
+    override fun isExiting() {}
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {}
+
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {}
+
+    override fun indexChanged(index: Int) {}
+
+    override fun isLoading(doLoad: Boolean) {}
+
+    override fun spotifyImportChange(starting: Boolean) {
+        if(starting){
+            isImporting = true
+            spotbut.setImageResource(R.drawable.ic_cancle_action)
+        } else {
+            isImporting = false
+            WorkManager.getInstance(requireContext()).cancelUniqueWork("SpotifyImport")
+            (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
+                playlistAdapter.update(Shared.getPlaylists())
+                spotbut.setImageResource(R.drawable.ic_spot)
+            }
+        }
+    }
+
+    override fun serviceStarted() {}
 }

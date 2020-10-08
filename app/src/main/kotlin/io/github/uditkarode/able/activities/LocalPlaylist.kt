@@ -49,12 +49,12 @@ import java.lang.ref.WeakReference
  * The activity that shows up when a user taps on a local playlist from the
  * playlist fragment.
  */
-class LocalPlaylist: AppCompatActivity(), CoroutineScope {
+class LocalPlaylist : AppCompatActivity(), CoroutineScope {
     var mService: MusicService? = null
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var resultArray = ArrayList<Song>()
-    
+
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,12 +74,11 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         setContentView(R.layout.localplaylist)
         loading_view.progress = 0.3080229f
         loading_view.playAnimation()
-        val name = intent.getStringExtra("name")?:""
+        val name = intent.getStringExtra("name") ?: ""
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
-                Shared.mService = service.getService()
                 isBound = true
             }
 
@@ -89,9 +88,9 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         }
 
         playbum_name.text = name.replace(".json", "")
-        
+
         playbum_play.setOnClickListener {
-            if(!Shared.serviceRunning(MusicService::class.java, this)){
+            if (!Shared.serviceRunning(MusicService::class.java, this)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(Intent(this, MusicService::class.java))
                 } else {
@@ -101,12 +100,14 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch(Dispatchers.Default){
-                if(Shared.serviceLinked()) {
-                    mService = Shared.mService
-                } else {
-                    @Suppress("ControlFlowWithEmptyBody")
-                    while(!isBound){}
+            launch {
+                /**
+                 * on average, a bind takes anywhere between 10 and 15ms
+                 * waiting for 30 should be enough for almost all supported
+                 * devices to bind by the first iteration.
+                 */
+                while (!isBound) {
+                    delay(30)
                 }
 
                 val mService = mService!!
@@ -116,7 +117,7 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             }
         }
 
-        launch(Dispatchers.Default){
+        launch(Dispatchers.Default) {
             resultArray = Shared.getSongsFromPlaylistFile(name)
 
             launch(Dispatchers.Main) {
@@ -150,8 +151,11 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
         }
     }
 
-    fun itemPressed(array: ArrayList<Song>, index: Int){
-        if(!Shared.serviceRunning(MusicService::class.java, this)){
+    /**
+     * invoked when an item is pressed in the recyclerview.
+     */
+    fun itemPressed(array: ArrayList<Song>, index: Int) {
+        if (!Shared.serviceRunning(MusicService::class.java, this)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(Intent(this, MusicService::class.java))
             } else {
@@ -161,24 +165,24 @@ class LocalPlaylist: AppCompatActivity(), CoroutineScope {
             bindEvent()
         }
 
-        launch(Dispatchers.Default){
-            if(Shared.serviceLinked()) {
-                mService = Shared.mService
-            } else {
-                @Suppress("ControlFlowWithEmptyBody")
-                while(!isBound){}
+        launch {
+            /**
+             * on average, a bind takes anywhere between 10 and 15ms
+             * waiting for 30 should be enough for almost all supported
+             * devices to bind by the first iteration.
+             */
+            while (!isBound) {
+                delay(30)
             }
-
             val mService = mService!!
             mService.setQueue(array)
             mService.setIndex(index)
-            mService.setPlayPause(SongState.playing)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if(!this.isDestroyed)
+        if (!this.isDestroyed)
             Glide.with(this).clear(playbum_art)
     }
 }

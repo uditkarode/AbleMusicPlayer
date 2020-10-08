@@ -73,7 +73,7 @@ class SwipeControllerActions(private var mode: String) {
                 MaterialDialog(context).show {
                     listItems(items = names) { _, index, _ ->
                         when (index) {
-                            0 -> Shared.mService.addToQueue(current)
+                            0 -> 5//mService.addToQueue(current)
                             1 -> {
                                 MaterialDialog(context).show {
                                     title(text = context.getString(R.string.playlist_namei))

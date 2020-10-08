@@ -23,30 +23,35 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="UnusedAttribute">
-        <service android:name=".services.MusicService"
-            android:description="@string/app_name"
-            android:enabled="true"
-            />
-        <service android:name=".services.DownloadService"
-            android:permission="android.permission.BIND_JOB_SERVICE"
-            android:exported="true"
-            />
 
-        <activity android:name=".activities.MainActivity" android:windowSoftInputMode="adjustNothing" >
+        <activity android:name=".activities.MainActivity" android:windowSoftInputMode="adjustNothing" />
+
+        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme"
+            android:launchMode="singleTask"/>
+
+        <activity android:name=".activities.Splash" android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".activities.Player" android:theme="@style/PlayerTheme"
-            android:launchMode="singleTask"/>
-        <activity android:name=".activities.Splash" />
+
         <activity android:name=".activities.Welcome" android:theme="@style/Theme.Intro" />
         <activity android:name=".activities.About" />
         <activity android:name=".activities.LocalPlaylist" />
         <activity android:name=".activities.AlbumPlaylist" />
         <activity android:name=".activities.Settings" android:theme="@style/SettingsTheme"
             android:parentActivityName=".activities.MainActivity" />
+
+        <service
+            android:name="io.github.uditkarode.able.services.MusicService"
+            android:description="@string/app_name"
+            android:enabled="true" />
+
+        <service android:name=".services.DownloadService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="true"
+            />
     </application>
 
 </manifest>

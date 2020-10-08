@@ -29,7 +29,6 @@ import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.Binder
 import android.os.Build
-import android.os.IBinder
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
@@ -43,31 +42,60 @@ import com.glidebitmappool.GlideBitmapFactory
 import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
-import io.github.uditkarode.able.events.*
+import io.github.uditkarode.able.models.CacheStatus
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
-import org.greenrobot.eventbus.EventBus
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.system.exitProcess
 
 /**
  * The service that plays music.
  */
+
 class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, CoroutineScope {
+
+    interface MusicClient {
+        fun playStateChanged(state: SongState)
+        fun songChanged()
+        fun durationChanged(duration: Int)
+        fun isExiting()
+        fun queueChanged(arrayList: ArrayList<Song>)
+        fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean)
+        fun indexChanged(index: Int)
+        fun isLoading(doLoad: Boolean)
+        fun spotifyImportChange(starting: Boolean)
+        fun serviceStarted()
+    }
+
     companion object {
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
         val mediaPlayer = MediaPlayer()
         var previousIndex = -1
         var currentIndex = -1
+
+        val registeredClients = mutableSetOf<MusicClient>()
+
+        fun registerClient(client: Any){
+            try {
+                registeredClients.add(client as MusicClient)
+            } catch(e: ClassCastException){
+                Log.e("ERR>", "Could not register client!")
+            }
+        }
+
+        fun unregisterClient(client: Any){
+            try {
+                registeredClients.remove(client as MusicClient)
+            } catch(e: ClassCastException){}
+        }
         
         private lateinit var notificationManager: NotificationManager
         private var focusRequest: AudioFocusRequest? = null
@@ -88,10 +116,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun getPlayQueue() = playQueue
     fun getCurrentIndex() = currentIndex
     fun getPreviousIndex() = previousIndex
-    fun setPlayQueue(arrayList: ArrayList<Song>) {
-        playQueue = arrayList
-    }
-
     fun setCurrentIndex(ind: Int) {
         currentIndex = ind
     }
@@ -112,7 +136,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onCreate() {
         super.onCreate()
-
         registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
@@ -162,6 +185,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         mediaPlayer.setOnErrorListener { _, _, _ ->
             true
         }
+
         mediaPlayer.setOnCompletionListener {
             previousIndex = currentIndex
             nextSong()
@@ -201,10 +225,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     override fun onDestroy() {
         super.onDestroy()
         coroutineContext.cancelChildren()
-        EventBus.getDefault().post(ExitEvent())
-        EventBus.getDefault().unregister(this)
         unregisterReceiver(receiver)
-        exitProcess(0)
+        //exitProcess(0)
     }
 
     class MusicBinder(private val service: MusicService) : Binder() {
@@ -213,9 +235,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return binder
-    }
+    override fun onBind(intent: Intent?) = binder
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         handleIntent(intent)
@@ -253,7 +273,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun addToQueue(song: Song) {
         addToPlayQueue(song)
-        EventBus.getDefault().post(GetQueueEvent(playQueue))
+        launch(Dispatchers.IO) {
+            launch(Dispatchers.IO) {
+                registeredClients.forEach { it.queueChanged(playQueue) }
+            }
+        }
     }
 
     /**
@@ -261,7 +285,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun setQueue(queue: ArrayList<Song>) {
         playQueue = queue
-        EventBus.getDefault().post(GetQueueEvent(playQueue))
+        launch(Dispatchers.IO) {
+            launch(Dispatchers.IO) {
+                registeredClients.forEach { it.queueChanged(playQueue) }
+            }
+        }
     }
 
     /**
@@ -271,7 +299,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
         setShuffle(shuffle)
         onRepeat = repeat
-        EventBus.getDefault().post(GetShuffleRepeatEvent(onShuffle, onRepeat))
+        launch(Dispatchers.IO)  {
+            registeredClients.forEach { it.shuffleRepeatChanged(onShuffle, onRepeat) }
+        }
     }
 
     /**
@@ -281,7 +311,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         previousIndex = currentIndex
         currentIndex = index
         songChanged()
-        EventBus.getDefault().post(GetIndexEvent(currentIndex))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.indexChanged(currentIndex) }
+        }
     }
 
     /**
@@ -291,7 +323,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         if (state == SongState.playing) playAudio()
         else pauseAudio()
 
-        EventBus.getDefault().post(GetPlayPauseEvent(state))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.playStateChanged(state) }
+        }
     }
 
     /**
@@ -323,8 +357,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             currentIndex = playQueue.indexOf(currSong)
         }
 
-        EventBus.getDefault().post(GetQueueEvent(playQueue))
-        EventBus.getDefault().post(GetIndexEvent(currentIndex))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.queueChanged(playQueue) }
+        }
+
+        launch(Dispatchers.IO)  {
+            registeredClients.forEach { it.indexChanged(currentIndex) }
+        }
     }
 
     /**
@@ -337,7 +376,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             if (currentIndex == 0) currentIndex = playQueue.size - 1
             else currentIndex--
             songChanged()
-            playAudio()
         }
     }
 
@@ -349,11 +387,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         if (currentIndex + 1 < playQueue.size) {
             if (!onRepeat) currentIndex++
             songChanged()
-            playAudio()
         } else {
             currentIndex = 0
             songChanged()
-            playAudio()
         }
     }
 
@@ -396,18 +432,120 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
         if (playQueue[currentIndex].filePath == "") {
             launch {
-                streamAudio()
+                getStreamArt()
+            }
+        }
+
+        mediaPlayer.setOnPreparedListener {
+            mediaSessionPlay()
+            setPlayPause(SongState.playing)
+
+            val dur = mediaPlayer.duration
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.durationChanged(dur) }
+            }
+        }
+
+        if (playQueue[currentIndex].cacheStatus != CacheStatus.NULL) { // Cache while streaming
+            var fplay = false
+            var prevDur = 0
+            var prevOff = 0
+            var prevProg = 0
+            var songDur = 0
+            val tmpf = File("${Constants.ableSongDir.absolutePath}/tmp_stream-$currentIndex.tmp")
+
+            launch(Dispatchers.IO) {
+                registeredClients.forEach(MusicClient::songChanged)
+            }
+            launch(Dispatchers.IO) {
+                registeredClients.forEach { it.indexChanged(currentIndex) }
+            }
+
+            launch(Dispatchers.IO) {
+                while (playQueue[currentIndex].cacheStatus != CacheStatus.NULL) {
+                    while (
+                        (playQueue[currentIndex].streamProg < 10) or
+                        (playQueue[currentIndex].streamProg - prevProg < 10) or
+                        (playQueue[currentIndex].streamMutexes[0].isLocked and
+                                playQueue[currentIndex].streamMutexes[1].isLocked) or
+                        mediaPlayer.isPlaying
+                    ) {
+                        delay(50)
+                    }
+                    val prog = playQueue[currentIndex].streamProg
+                    prevProg = prog
+
+                    val streamNum =
+                        if (playQueue[currentIndex].streamMutexes[0].isLocked) 1 else 0
+
+                    playQueue[currentIndex].streamMutexes[streamNum].lock()
+
+                    tmpf.outputStream().use {
+                        it.write(playQueue[currentIndex].streams[streamNum])
+                    }
+                    try {
+                        tmpf.inputStream().use {
+                                mediaPlayer.setDataSource(it.fd)
+                        }
+                    } catch (e: Exception) {
+                        mediaPlayer.stop()
+                        mediaPlayer.reset()
+                        continue
+                    } finally {
+                        playQueue[currentIndex].streamMutexes[streamNum].unlock()
+                    }
+
+                    var sleepT: Long
+
+                    try {
+                        mediaPlayer.prepare()
+
+                        if (fplay) {
+                            seekTo(prevOff)
+                        }
+
+                        if ((songDur == 0) and (mediaPlayer.duration > 0)) songDur = mediaPlayer.duration; fplay = true
+                    } catch (e: Exception) {
+                        mediaPlayer.stop()
+                        mediaPlayer.reset()
+                        continue
+                    } finally {
+                        sleepT = ((prog * songDur) / 100).toLong()
+                        if ((sleepT > 0) and (sleepT < songDur)) {
+                            prevOff = sleepT.toInt()
+                        }
+                    }
+
+
+                    while (mediaPlayer.currentPosition < sleepT) {
+                        prevDur = if (mediaPlayer.currentPosition < prevOff) mediaPlayer.currentPosition else prevOff
+                        delay(100)
+                    }
+
+                    mediaPlayer.stop()
+                    mediaPlayer.reset()
+                }
+
+                tmpf.delete()
+
+                if (prevDur < songDur) {
+                    val dur = prevDur
+
+                    mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
+                    mediaPlayer.prepare()
+
+                    seekTo(dur)
+                }
             }
         } else {
             try {
-                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)//Inside Try To Handle in case File is not found but still shows in songList
+                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
                 mediaPlayer.prepareAsync()
-                EventBus.getDefault().post(GetSongChangedEvent())
-                EventBus.getDefault().post(GetIndexEvent(currentIndex))
-                mediaPlayer.setOnPreparedListener {
-                    EventBus.getDefault().post(GetDurationEvent(mediaPlayer.duration))
-                    mediaSessionPlay()//start notification seekbar after prepared, if not in onPrepared, then seekbar start moving before song starts playing
-                    setPlayPause(SongState.playing)
+                launch(Dispatchers.IO) {
+                    registeredClients.forEach(MusicClient::songChanged)
+                }
+                launch(Dispatchers.IO) {
+                    registeredClients.forEach { it.indexChanged(currentIndex) }
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")
@@ -415,7 +553,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
     }
 
-    /* user might sleep with songs on, let it jam */
+    /* user might sleep with songs still playing, let it jam */
     @SuppressLint("WakelockTimeout")
 
     /**
@@ -519,18 +657,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         )
 
         mediaPlayer.pause()
-        EventBus.getDefault().post(GetPlayPauseEvent(run {
-            if (mediaPlayer.isPlaying) SongState.playing
-            else SongState.paused
-        }))
+        launch(Dispatchers.IO) {
+            registeredClients.forEach { it.playStateChanged(run {
+                if (mediaPlayer.isPlaying) SongState.playing
+                else SongState.paused
+            }) }
+        }
     }
 
     /**
      * releases the media session and wakelock and gets ready to die.
      */
     private fun cleanUp() {
-        EventBus.getDefault().post(ExitEvent())
-        EventBus.getDefault().unregister(this)
+        launch(Dispatchers.IO) {
+            registeredClients.forEach(MusicClient::isExiting)
+        }
         mediaPlayer.stop()
         mediaSession.release()
         (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
@@ -699,49 +840,59 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * it is assumed that it contains a youtubeLink.
      * fetches the album art and streams the song.
      */
-    private fun streamAudio() {
-        try {
-            val song = playQueue[currentIndex]
-            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
-            val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+    private fun getStreamArt() {
+        launch(Dispatchers.IO) {
+            try {
+                val song = playQueue[currentIndex]
+                val tmp: StreamInfo?
+                try {
+                    tmp = StreamInfo.getInfo(song.youtubeLink)
+                } catch (e: java.lang.Exception) {
+                    Log.e("ERR>", e.toString())
+                    nextSong()
+                    return@launch
+                }
+                val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
+                val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-            if (song.ytmThumbnail.isNotBlank()) {
-                Glide.with(this@MusicService)
-                    .asBitmap()
-                    .load(song.ytmThumbnail)
-                    .signature(ObjectKey("save"))
-                    .listener(object : RequestListener<Bitmap> {
-                        override fun onLoadFailed(
-                            e: GlideException?,
-                            model: Any?,
-                            target: Target<Bitmap>?,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            return false
-                        }
+                if (song.ytmThumbnail.isNotBlank()) {
+                    Glide.with(this@MusicService)
+                        .asBitmap()
+                        .load(song.ytmThumbnail)
+                        .signature(ObjectKey("save"))
+                        .listener(object : RequestListener<Bitmap> {
+                            override fun onLoadFailed(
+                                e: GlideException?,
+                                model: Any?,
+                                target: Target<Bitmap>?,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                return false
+                            }
 
-                        override fun onResourceReady(
-                            resource: Bitmap?,
-                            model: Any?,
-                            target: Target<Bitmap>?,
-                            dataSource: DataSource?,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            if (resource != null)
-                                Shared.saveStreamingAlbumArt(
-                                    resource,
-                                    Shared.getIdFromLink(song.youtubeLink)
-                                )
-                            return false
-                        }
-                    }).submit()
-
-                val url = stream.url
-                playQueue[currentIndex].filePath = url
-                songChanged()
+                            override fun onResourceReady(
+                                resource: Bitmap?,
+                                model: Any?,
+                                target: Target<Bitmap>?,
+                                dataSource: DataSource?,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                if (resource != null) {
+                                    Shared.saveStreamingAlbumArt(
+                                        resource,
+                                        Shared.getIdFromLink(song.youtubeLink)
+                                    )
+                                }
+                                val url = stream.url
+                                playQueue[currentIndex].filePath = url
+                                return false
+                            }
+                        }).submit()
+                }
+            } catch (e: java.lang.Exception) {
+                Log.e("ERR>", e.toString())
+                nextSong()
             }
-        } catch (e: java.lang.Exception) {
-            nextSong()
         }
     }
 }

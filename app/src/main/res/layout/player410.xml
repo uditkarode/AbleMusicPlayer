@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#212121"
     android:orientation="vertical">
@@ -20,6 +19,7 @@
             android:orientation="horizontal">
 
             <RelativeLayout
+                android:id="@+id/top_controls"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
@@ -233,6 +233,7 @@
     </RelativeLayout>
 
     <LinearLayout
+        android:id="@+id/bottom_cast"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"

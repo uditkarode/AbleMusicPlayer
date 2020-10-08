@@ -29,15 +29,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
-import android.os.Build
-import android.os.Bundle
-import android.os.Handler
-import android.os.IBinder
+import android.os.*
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
 import androidx.preference.PreferenceManager
@@ -51,7 +47,6 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ViewPagerAdapter
-import io.github.uditkarode.able.events.*
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.MusicMode
@@ -63,13 +58,12 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.ServiceResultReceiver
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.CustomDownloader
+import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 import org.schabi.newpipe.extractor.NewPipe
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -78,8 +72,7 @@ import kotlin.collections.ArrayList
 /**
  * First activity that shows up when the user opens the application
  */
-class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultReceiver.Receiver,
-    CoroutineScope {
+class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultReceiver.Receiver {
     private lateinit var mServiceResultReceiver: ServiceResultReceiver
     private lateinit var bottomNavigation: BottomNavigationView
     private lateinit var okClient: OkHttpClient
@@ -92,27 +85,18 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     private var scheduled = false
     private var playing = false
 
-    override val coroutineContext = Dispatchers.Main + SupervisorJob()
-
-    override fun onDestroy() {
-        super.onDestroy()
-        coroutineContext.cancelChildren()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
+        NewPipe.init(CustomDownloader.getInstance())
+
         launch {
-            if (!Shared.serviceRunning(MusicService::class.java, this@MainActivity)
-                && Shared.isFirstOpen
+            if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED
             ) {
-                if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    startActivity(Intent(this@MainActivity, Welcome::class.java))
-                } else startActivity(Intent(this@MainActivity, Splash::class.java))
+                startActivity(Intent(this@MainActivity, Welcome::class.java))
             }
         }
 
-        launch(Dispatchers.Main){
+        launch(Dispatchers.Main) {
             Shared.defBitmap = (ResourcesCompat.getDrawable(
                 resources,
                 R.drawable.def_albart, null
@@ -124,11 +108,10 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 byte,
                 0, byte.size
             )
-            NewPipe.init(CustomDownloader.instance)
             Shared.setupFetch(this@MainActivity)
 
             okClient = OkHttpClient()
-            mServiceResultReceiver = ServiceResultReceiver(Handler())
+            mServiceResultReceiver = ServiceResultReceiver(Handler(Looper.getMainLooper()))
             mServiceResultReceiver.setReceiver(this@MainActivity)
 
             FlurryAgent.Builder()
@@ -156,11 +139,8 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
         mainContent = main_content
         bb_icon.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
-
-                launch {
-                    if (playing) Shared.mService.setPlayPause(SongState.paused)
-                    else Shared.mService.setPlayPause(SongState.playing)
-                }
+                if (playing) mService?.setPlayPause(SongState.paused)
+                else mService?.setPlayPause(SongState.playing)
             }
         }
         // extend the touchable area for the play button, since it's so small.
@@ -210,25 +190,25 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
-        // bind to the service.
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
                 mService = (service as MusicService.MusicBinder).getService()
-                songChange(GetSongChangedEvent())
-                playPauseEvent(GetPlayPauseEvent(service.getService().getMediaPlayer().run {
+                songChange()
+                playPauseEvent(service.getService().getMediaPlayer().run {
                     if (this.isPlaying) SongState.playing
                     else SongState.paused
-                }))
+                })
             }
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun loadingEvent(homeLoadingEvent: HomeLoadingEvent) {
-        bb_ProgressBar?.visibility = if (homeLoadingEvent.loading) View.VISIBLE else View.GONE
-        if (!homeLoadingEvent.loading) {
+    private fun loadingEvent(loading: Boolean) {
+        bb_ProgressBar?.visibility = if (loading) View.VISIBLE else View.GONE
+        if (!
+            loading
+        ) {
             activity_seekbar.visibility = View.VISIBLE
             bn_parent.invalidate()
         } else {
@@ -238,34 +218,33 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
     }
 
     private fun bindService() {
-        if (!Shared.serviceLinked()) {
-            if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
-                bindService(
-                    Intent(this@MainActivity, MusicService::class.java),
-                    serviceConn, Context.BIND_IMPORTANT
-                )
-        } else {
-            mService = Shared.mService
-            songChange(GetSongChangedEvent())
-            playPauseEvent(GetPlayPauseEvent(mService!!.getMediaPlayer().run {
-                if (this.isPlaying) SongState.playing
-                else SongState.paused
-            }))
-        }
+        if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
+            bindService(
+                Intent(this@MainActivity, MusicService::class.java),
+                serviceConn,
+                Context.BIND_IMPORTANT
+            )
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun playPauseEvent(playPauseEvent: GetPlayPauseEvent) {
-        playing = playPauseEvent.state == SongState.playing
-        if (playing) Glide.with(this).load(R.drawable.pause).into(bb_icon)
-        else Glide.with(this).load(R.drawable.play).into(bb_icon)
+    fun playPauseEvent(state: SongState) {
+        launch(Dispatchers.Main) {
+            if (state == SongState.playing) {
+                Glide.with(this@MainActivity).load(R.drawable.pause)
+                    .into(bb_icon)
 
-        if (playing) startSeekbarUpdates()
-        else {
-            if (scheduled) {
-                scheduled = false
-                timer.cancel()
-                timer.purge()
+                playing = true
+            } else {
+                playing = false
+                Glide.with(this@MainActivity).load(R.drawable.play).into(bb_icon)
+            }
+
+            if (state == SongState.playing) startSeekbarUpdates()
+            else {
+                if (scheduled) {
+                    scheduled = false
+                    timer.cancel()
+                    timer.purge()
+                }
             }
         }
     }
@@ -276,34 +255,33 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    activity_seekbar.progress = Shared.mService.getMediaPlayer().currentPosition
+                    activity_seekbar.progress =
+                        mService?.getMediaPlayer()?.currentPosition ?: 0 //todo fix
                 }
             }, 0, 1000)
         }
     }
 
     @SuppressLint("SetTextI18n")
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun songChange(@Suppress("UNUSED_PARAMETER") event: GetSongChangedEvent) {
-        activity_seekbar.progress = 0
-        activity_seekbar.max = Shared.mService.getMediaPlayer().duration
+    fun songChange() {
+        if(mService != null) {
+            launch(Dispatchers.Main) {
+                activity_seekbar.progress = 0
+                activity_seekbar.max = mService!!.getMediaPlayer().duration
 
-        startSeekbarUpdates()
-        val song = Shared.mService.getPlayQueue()[Shared.mService.getCurrentIndex()]
+                startSeekbarUpdates()
+                val song = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            bb_song.text = Html.fromHtml(
-                "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
-                HtmlCompat.FROM_HTML_MODE_LEGACY
-            )
-        } else {
-            bb_song.text = "${song.name} • ${song.artist}"
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    bb_song.text = Html.fromHtml(
+                        "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
+                        HtmlCompat.FROM_HTML_MODE_LEGACY
+                    )
+                } else {
+                    bb_song.text = "${song.name} • ${song.artist}"
+                }
+            }
         }
-    }
-
-    @Subscribe
-    fun durationUpdate(durationEvent: GetDurationEvent) {
-        activity_seekbar.max = durationEvent.duration
     }
 
     override fun attachBaseContext(newBase: Context?) {
@@ -317,25 +295,11 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
             timer.cancel()
             timer.purge()
         }
-        EventBus.getDefault().unregister(this)
     }
 
     override fun onResume() {
         super.onResume()
         bindService()
-        if (!EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().register(this)
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN, sticky = true)
-    fun exitEvent(@Suppress("UNUSED_PARAMETER") exitEvent: ExitEvent) {
-        finish()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        if (EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().unregister(this)
     }
 
     override fun sendItem(song: Song, mode: String) {
@@ -368,17 +332,55 @@ class MainActivity : AppCompatActivity(), Search.SongCallback, ServiceResultRece
 
             MusicMode.stream -> {
                 home.streamAudio(song, false)
-                loadingEvent(HomeLoadingEvent(true))
+                runOnUiThread {
+                    loadingEvent(true)
+                }
             }
 
             MusicMode.both -> {
                 home.streamAudio(song, true)
-                loadingEvent(HomeLoadingEvent(true))
+                runOnUiThread {
+                    loadingEvent(true)
+                }
             }
         }
     }
 
     override fun onReceiveResult(resultCode: Int) {
         home.updateSongList()
+    }
+
+    override fun playStateChanged(state: SongState) {
+        playPauseEvent(state)
+    }
+
+    override fun songChanged() {
+        songChange()
+    }
+
+    override fun durationChanged(duration: Int) {
+        launch(Dispatchers.Main) {
+            activity_seekbar.max = duration
+        }
+    }
+
+    override fun isExiting() {
+        finish()
+    }
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {}
+
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {}
+
+    override fun indexChanged(index: Int) {}
+
+    override fun isLoading(doLoad: Boolean) = runOnUiThread {
+        loadingEvent(doLoad)
+    }
+
+    override fun spotifyImportChange(starting: Boolean) {}
+
+    override fun serviceStarted() {
+        bindService()
     }
 }

@@ -41,38 +41,32 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.signature.ObjectKey
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.events.GetIndexEvent
-import io.github.uditkarode.able.events.GetQueueEvent
-import io.github.uditkarode.able.events.GetShuffleRepeatEvent
-import io.github.uditkarode.able.events.GetSongChangedEvent
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
-import org.greenrobot.eventbus.ThreadMode
 import java.io.File
 import java.lang.ref.WeakReference
 
 /**
  * Shows songs on the Home fragment.
  */
-class SongAdapter(
+class SongAdapter (
     private var songList: ArrayList<Song>,
     private val wr: WeakReference<Home>? = null,
     private val showArt: Boolean = false
-) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope {
+) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope, MusicService.MusicClient {
     private var registered = false
-    
+
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH {
         if (!registered) {
             registered = true
-            EventBus.getDefault().register(this)
+            MusicService.registerClient(this)
         }
 
         val layoutId = if (showArt) R.layout.song_img else R.layout.rv_item
@@ -129,8 +123,9 @@ class SongAdapter(
         if (currentIndex >= 0 && currentIndex < songList.size && songList.size != 0) {
             if (current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
-                if (Shared.serviceLinked()) {
-                    if (current.filePath == Shared.mService.getPlayQueue()[Shared.mService.getCurrentIndex()].filePath) {
+                val service = wr?.get()?.mService
+                if(service != null) {
+                    if (current.filePath == service.getPlayQueue()[service.getCurrentIndex()].filePath) {
                         holder.songName.setTextColor(Color.parseColor("#5e92f3"))
                     } else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
                 }
@@ -138,6 +133,7 @@ class SongAdapter(
         }
 
         holder.itemView.setOnClickListener {
+            var freshStart = false
             if (!current.placeholder) {
                 if (!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -155,18 +151,20 @@ class SongAdapter(
                             )
                         )
                     }
-
                     wr?.get()!!.bindEvent()
+                    freshStart = true
                 }
 
-                launch(Dispatchers.Default) {
-                    val mService: MusicService = if (Shared.serviceLinked()) {
-                        Shared.mService
-                    } else {
-                        @Suppress("ControlFlowWithEmptyBody")
-                        while (!wr?.get()!!.isBound) {}
-                        wr.get()!!.mService!!
+                launch {
+                    /**
+                     * on average, a bind takes anywhere between 10 and 15ms
+                     * waiting for 30 should be enough for almost all supported
+                     * devices to bind by the first iteration.
+                     */
+                    while (!wr?.get()!!.isBound) {
+                        delay(30)
                     }
+                    val mService = wr.get()!!.mService!!
 
                     if (currentIndex != position) {
                         currentIndex = position
@@ -178,9 +176,10 @@ class SongAdapter(
                                 currentIndex = position
                                 mService.setQueue(songList)
                                 mService.setIndex(position)
-                                //    mService.setPlayPause(SongState.playing) //Reason:setIndex call setSong which then calls setPlayPause, so no need of this,
                             }
-                            //  notifyDataSetChanged()// Reason:No need. Called by GetSongChangedEvent() from songChanged(),
+
+                            if(freshStart)
+                                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                         }
                     }
                 }
@@ -288,28 +287,42 @@ class SongAdapter(
         notifyDataSetChanged()
     }
 
-    @Subscribe
-    fun setupShuffleRepeat(songEvent: GetShuffleRepeatEvent) {
-        onShuffle = songEvent.onShuffle
+    override fun playStateChanged(state: SongState) {
+
     }
 
-    @Subscribe
-    fun indexUpdate(indexEvent: GetIndexEvent) {
-        currentIndex = indexEvent.index
-    }
-
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    fun indexUpdate(@Suppress("UNUSED_PARAMETER") sce: GetSongChangedEvent) {
-        playingSong = wr?.get()?.mService.run {
-            this!!.getPlayQueue()[this.getCurrentIndex()]
+    override fun songChanged() {
+        val service = wr?.get()?.mService
+        if (service != null) {
+            playingSong = service.run {
+                this.getPlayQueue()[this.getCurrentIndex()]
+            }
+            launch(Dispatchers.Main) {
+                notifyItemChanged(service.getPreviousIndex())
+                notifyItemChanged(service.getCurrentIndex())
+            }
         }
-        notifyItemChanged(Shared.mService.getPreviousIndex())
-        notifyItemChanged(Shared.mService.getCurrentIndex())
     }
 
+    override fun durationChanged(duration: Int) {}
 
-    @Subscribe
-    fun getQueueUpdate(songEvent: GetQueueEvent) {
-        if (!showArt) songList = songEvent.queue
+    override fun isExiting() {}
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {
+        if (!showArt) songList = arrayList
     }
+
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
+        this.onShuffle = onShuffle
+    }
+
+    override fun indexChanged(index: Int) {
+        currentIndex = index
+    }
+
+    override fun isLoading(doLoad: Boolean) {}
+
+    override fun spotifyImportChange(starting: Boolean) {}
+
+    override fun serviceStarted() {}
 }

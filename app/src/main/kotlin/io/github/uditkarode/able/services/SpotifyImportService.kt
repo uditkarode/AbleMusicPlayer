@@ -27,17 +27,15 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.events.ImportDoneEvent
-import io.github.uditkarode.able.events.ImportStartedEvent
+import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.SpotifyImport
-import org.greenrobot.eventbus.EventBus
-import org.greenrobot.eventbus.Subscribe
 
 /**
  * The service that handles import of Spotify songs.
  */
-class SpotifyImportService(val context: Context, workerParams: WorkerParameters) : Worker (
+class SpotifyImportService(val context: Context, workerParams: WorkerParameters) : MusicService.MusicClient, Worker (
     context,
     workerParams
 ) {
@@ -53,7 +51,7 @@ class SpotifyImportService(val context: Context, workerParams: WorkerParameters)
         }
         return try {
             val playId = inputData.getString("inputId")
-            EventBus.getDefault().postSticky(ImportStartedEvent())
+            MusicService.registeredClients.forEach { it.spotifyImportChange(true) }
             NotificationManagerCompat.from(context).apply {
                 builder.setContentText("")
                 builder.setContentTitle(context.getString(R.string.init_import))
@@ -71,22 +69,15 @@ class SpotifyImportService(val context: Context, workerParams: WorkerParameters)
     override fun onStopped() {
         SpotifyImport.isImporting = false
         super.onStopped()
-        EventBus.getDefault().unregister(this)
+        MusicService.unregisterClient(this)
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
             it.cancel(3)
         }
 
     }
 
-    @Subscribe
-    fun importDone(@Suppress("UNUSED_PARAMETER") importDoneEvent: ImportDoneEvent){
-        this.stop()
-        SpotifyImport.isImporting = false
-    }
-
     private fun createNotificationChannel() {
-        if(!EventBus.getDefault().isRegistered(this))
-            EventBus.getDefault().register(this)
+        MusicService.registerClient(this)
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(context, Constants.CHANNEL_ID)
         } else {
@@ -119,4 +110,45 @@ class SpotifyImportService(val context: Context, workerParams: WorkerParameters)
             notificationManager.notify(3, notification)
         }
     }
+
+    override fun playStateChanged(state: SongState) {
+        
+    }
+
+    override fun songChanged() {
+        
+    }
+
+    override fun durationChanged(duration: Int) {
+        
+    }
+
+    override fun isExiting() {
+        this.stop()
+    }
+
+    override fun queueChanged(arrayList: ArrayList<Song>) {
+        
+    }
+
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
+        
+    }
+
+    override fun indexChanged(index: Int) {
+        
+    }
+
+    override fun isLoading(doLoad: Boolean) {
+        
+    }
+
+    override fun spotifyImportChange(starting: Boolean) {
+        if(!starting) {
+            this.stop()
+            SpotifyImport.isImporting = false
+        }
+    }
+
+    override fun serviceStarted() {}
 }

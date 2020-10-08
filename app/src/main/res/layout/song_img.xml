@@ -7,7 +7,7 @@
     android:animateLayoutChanges="true"
     android:layout_marginBottom="13dp"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="60dp"
     android:background="?android:attr/selectableItemBackground">
 
     <RelativeLayout

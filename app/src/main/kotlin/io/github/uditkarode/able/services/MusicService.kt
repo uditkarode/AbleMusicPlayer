@@ -606,6 +606,17 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                     Log.e("ERR>", "-$e-")
                 }
             }
+
+            mediaSession.setPlaybackState(
+                ps
+                    .setActions(actions)
+                    .setState(
+                        PlaybackState.STATE_PLAYING,
+                        mediaPlayer.currentPosition.toLong(), 1f
+                    )
+                    .build()
+            )
+
         } else {
             Log.e("ERR>", "Unable to get focus - $result")
         }

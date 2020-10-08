@@ -175,7 +175,7 @@ class Player : MusicClientActivity() {
         }
 
         player_center_icon.setOnClickListener {
-            launch {
+            launch(Dispatchers.Default) {
                 if (playing == SongState.playing) mService?.setPlayPause(SongState.paused)
                 else mService?.setPlayPause(SongState.playing)
             }

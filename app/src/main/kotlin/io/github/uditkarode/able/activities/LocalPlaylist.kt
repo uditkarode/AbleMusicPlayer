@@ -100,7 +100,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch {
+            launch(Dispatchers.Default) {
                 /**
                  * on average, a bind takes anywhere between 10 and 15ms
                  * waiting for 30 should be enough for almost all supported
@@ -165,7 +165,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             bindEvent()
         }
 
-        launch {
+        launch(Dispatchers.Default) {
             /**
              * on average, a bind takes anywhere between 10 and 15ms
              * waiting for 30 should be enough for almost all supported

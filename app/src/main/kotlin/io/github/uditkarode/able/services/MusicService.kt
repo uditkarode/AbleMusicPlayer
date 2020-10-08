@@ -431,7 +431,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             mediaPlayer.reset()
         }
         if (playQueue[currentIndex].filePath == "") {
-            launch {
+            launch(Dispatchers.Default) {
                 getStreamArt()
             }
         }

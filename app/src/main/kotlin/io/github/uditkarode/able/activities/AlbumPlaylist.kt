@@ -111,7 +111,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch {
+            launch(Dispatchers.Default) {
                 /**
                  * on average, a bind takes anywhere between 10 and 15ms
                  * waiting for 30 should be enough for almost all supported
@@ -195,7 +195,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             freshStart = true
         }
 
-        launch {
+        launch(Dispatchers.Default) {
             /**
              * on average, a bind takes anywhere between 10 and 15ms
              * waiting for 30 should be enough for almost all supported

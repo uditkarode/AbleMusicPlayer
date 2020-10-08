@@ -155,7 +155,7 @@ class SongAdapter (
                     freshStart = true
                 }
 
-                launch {
+                launch(Dispatchers.Default) {
                     /**
                      * on average, a bind takes anywhere between 10 and 15ms
                      * waiting for 30 should be enough for almost all supported
@@ -168,7 +168,7 @@ class SongAdapter (
 
                     if (currentIndex != position) {
                         currentIndex = position
-                        launch {
+                        launch(Dispatchers.Default) {
                             if (onShuffle) {
                                 mService.addToQueue(current)
                                 mService.setNextPrevious(next = true)

@@ -10,14 +10,14 @@ abstract class MusicClientActivity: AppCompatActivity(), CoroutineScope, MusicSe
 
     override fun onResume() {
         super.onResume()
-        launch {
+        launch(Dispatchers.Default) {
             MusicService.registerClient(this@MusicClientActivity)
         }
     }
 
     override fun onPause() {
         super.onPause()
-        launch {
+        launch(Dispatchers.Default) {
             MusicService.unregisterClient(this@MusicClientActivity)
         }
     }

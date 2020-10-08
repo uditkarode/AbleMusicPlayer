@@ -88,7 +88,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
 
-        launch {
+        launch(Dispatchers.Default) {
             if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED
             ) {

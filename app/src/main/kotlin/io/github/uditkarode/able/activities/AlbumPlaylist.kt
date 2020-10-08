@@ -111,9 +111,14 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 bindEvent()
             }
 
-            launch(Dispatchers.IO) {
+            launch {
+                /**
+                 * on average, a bind takes anywhere between 10 and 15ms
+                 * waiting for 30 should be enough for almost all supported
+                 * devices to bind by the first iteration.
+                 */
                 while (!isBound) {
-                    Thread.sleep(30)
+                    delay(30)
                 }
 
                 val mService = mService!!
@@ -190,9 +195,14 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             freshStart = true
         }
 
-        launch(Dispatchers.IO) {
+        launch {
+            /**
+             * on average, a bind takes anywhere between 10 and 15ms
+             * waiting for 30 should be enough for almost all supported
+             * devices to bind by the first iteration.
+             */
             while (!isBound) {
-                Thread.sleep(30)
+                delay(30)
             }
             val mService = mService!!
             mService.setQueue(array)

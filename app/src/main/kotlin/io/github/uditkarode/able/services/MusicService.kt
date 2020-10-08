@@ -470,7 +470,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                                 playQueue[currentIndex].streamMutexes[1].isLocked) or
                         mediaPlayer.isPlaying
                     ) {
-                        Thread.sleep(50)
+                        delay(50)
                     }
                     val prog = playQueue[currentIndex].streamProg
                     prevProg = prog
@@ -519,7 +519,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
                     while (mediaPlayer.currentPosition < sleepT) {
                         prevDur = if (mediaPlayer.currentPosition < prevOff) mediaPlayer.currentPosition else prevOff
-                        Thread.sleep(100)
+                        delay(100)
                     }
 
                     mediaPlayer.stop()

@@ -225,8 +225,13 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             Log.e("ERR> ", "Context Lost")
 
         launch(Dispatchers.IO) {
+            /**
+             * on average, a bind takes anywhere between 10 and 15ms
+             * waiting for 30 should be enough for almost all supported
+             * devices to bind by the first iteration.
+             */
             while (!isBound) {
-                Thread.sleep(30)
+                delay(30)
             }
             mService?.setQueue(
                 arrayListOf(
@@ -347,7 +352,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 off += read
 
                 while (song.streamMutexes[0].isLocked and song.streamMutexes[1].isLocked) {
-                    Thread.sleep(50)
+                    delay(50)
                 }
 
                 val streamNum = if (song.streamMutexes[0].isLocked) 1 else 0

@@ -155,9 +155,14 @@ class SongAdapter (
                     freshStart = true
                 }
 
-                launch(Dispatchers.IO) {
+                launch {
+                    /**
+                     * on average, a bind takes anywhere between 10 and 15ms
+                     * waiting for 30 should be enough for almost all supported
+                     * devices to bind by the first iteration.
+                     */
                     while (!wr?.get()!!.isBound) {
-                        Thread.sleep(30)
+                        delay(30)
                     }
                     val mService = wr.get()!!.mService!!
 

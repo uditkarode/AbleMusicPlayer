@@ -215,19 +215,24 @@ class Player : MusicClientActivity() {
         })
 
         album_art.setOnClickListener {
-            MaterialDialog(this@Player).show {
-                cornerRadius(20f)
-                title(text = this@Player.getString(R.string.enter_song))
-                input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
-                    updateAlbumArt(charSequence.toString(), true)
-                }
-                getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+            if(mService != null) {
+                val ms = mService as MusicService
+                if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
+                    MaterialDialog(this@Player).show {
+                        cornerRadius(20f)
+                        title(text = this@Player.getString(R.string.enter_song))
+                        input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
+                            updateAlbumArt(charSequence.toString(), true)
+                        }
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+                    }
             }
         }
 
         album_art.setOnLongClickListener {
             if(mService != null) {
                 val ms = mService as MusicService
+                if(ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
                 MaterialDialog(this@Player).show {
                     cornerRadius(20f)
                     title(text = this@Player.getString(R.string.enter_song))
@@ -244,57 +249,63 @@ class Player : MusicClientActivity() {
             if(mService != null) {
                 val mService = this.mService as MusicService
                 val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-                MaterialDialog(this@Player).show {
-                    title(text = this@Player.getString(R.string.enter_new_song))
-                    input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
-                        val ext = current.filePath.run {
-                            this.substring(this.lastIndexOf(".") + 1)
-                        }
-                        when (val rc = FFmpeg.execute(
-                            "-i " +
-                                    "\"${current.filePath}\" -y -c copy " +
-                                    "-metadata title=\"$charSequence\" " +
-                                    "-metadata artist=\"${current.artist}\"" +
-                                    " \"${current.filePath}.new.$ext\""
-                        )) {
-                            Config.RETURN_CODE_SUCCESS -> {
-                                File(current.filePath).delete()
-                                File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                                if (current.isLocal) {
-                                    /* update media store for the song in question */
-                                    MediaScannerConnection.scanFile(this@Player,
-                                        arrayOf(current.filePath), null,
-                                        object : MediaScannerConnection.MediaScannerConnectionClient {
-                                            override fun onMediaScannerConnected() {}
+                if (current.filePath.contains("emulated/0/")) {
+                    MaterialDialog(this@Player).show {
+                        title(text = this@Player.getString(R.string.enter_new_song))
+                        input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
+                            val ext = current.filePath.run {
+                                this.substring(this.lastIndexOf(".") + 1)
+                            }
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${current.filePath}\" -y -c copy " +
+                                        "-metadata title=\"$charSequence\" " +
+                                        "-metadata artist=\"${current.artist}\"" +
+                                        " \"${current.filePath}.new.$ext\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(current.filePath).delete()
+                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                    if (current.isLocal) {
+                                        /* update media store for the song in question */
+                                        MediaScannerConnection.scanFile(this@Player,
+                                            arrayOf(current.filePath), null,
+                                            object :
+                                                MediaScannerConnection.MediaScannerConnectionClient {
+                                                override fun onMediaScannerConnected() {}
 
-                                            override fun onScanCompleted(path: String?, uri: Uri?) {
-                                                changeMetadata(
-                                                    name = charSequence.toString(),
-                                                    artist = current.artist
-                                                )
-                                            }
-                                        })
+                                                override fun onScanCompleted(
+                                                    path: String?,
+                                                    uri: Uri?
+                                                ) {
+                                                    changeMetadata(
+                                                        name = charSequence.toString(),
+                                                        artist = current.artist
+                                                    )
+                                                }
+                                            })
+                                    }
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
                                 }
                             }
-                            Config.RETURN_CODE_CANCEL -> {
-                                Log.e(
-                                    "ERR>",
-                                    "Command execution cancelled by user."
-                                )
-                            }
-                            else -> {
-                                Log.e(
-                                    "ERR>",
-                                    String.format(
-                                        "Command execution failed with rc=%d and the output below.",
-                                        rc
-                                    )
-                                )
-                            }
                         }
+                        getInputField().setText(current.name)
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
-                    getInputField().setText(current.name)
-                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
             }
         }
@@ -303,57 +314,63 @@ class Player : MusicClientActivity() {
             if(mService != null) {
                 val mService = this.mService as MusicService
                 val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-                MaterialDialog(this@Player).show {
-                    title(text = this@Player.getString(R.string.enter_new_art))
-                    input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
-                        val ext = current.filePath.run {
-                            this.substring(this.lastIndexOf(".") + 1)
-                        }
-                        when (val rc = FFmpeg.execute(
-                            "-i " +
-                                    "\"${current.filePath}\" -c copy " +
-                                    "-metadata title=\"${current.name}\" " +
-                                    "-metadata artist=\"$charSequence\"" +
-                                    " \"${current.filePath}.new.$ext\""
-                        )) {
-                            Config.RETURN_CODE_SUCCESS -> {
-                                File(current.filePath).delete()
-                                File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                                if (current.isLocal) {
-                                    /* update media store for the song in question */
-                                    MediaScannerConnection.scanFile(this@Player,
-                                        arrayOf(current.filePath), null,
-                                        object : MediaScannerConnection.MediaScannerConnectionClient {
-                                            override fun onMediaScannerConnected() {}
+                if (current.filePath.contains("emulated/0/")) {
+                    MaterialDialog(this@Player).show {
+                        title(text = this@Player.getString(R.string.enter_new_art))
+                        input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
+                            val ext = current.filePath.run {
+                                this.substring(this.lastIndexOf(".") + 1)
+                            }
+                            when (val rc = FFmpeg.execute(
+                                "-i " +
+                                        "\"${current.filePath}\" -c copy " +
+                                        "-metadata title=\"${current.name}\" " +
+                                        "-metadata artist=\"$charSequence\"" +
+                                        " \"${current.filePath}.new.$ext\""
+                            )) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(current.filePath).delete()
+                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
+                                    if (current.isLocal) {
+                                        /* update media store for the song in question */
+                                        MediaScannerConnection.scanFile(this@Player,
+                                            arrayOf(current.filePath), null,
+                                            object :
+                                                MediaScannerConnection.MediaScannerConnectionClient {
+                                                override fun onMediaScannerConnected() {}
 
-                                            override fun onScanCompleted(path: String?, uri: Uri?) {
-                                                changeMetadata(
-                                                    name = current.name,
-                                                    artist = charSequence.toString()
-                                                )
-                                            }
-                                        })
+                                                override fun onScanCompleted(
+                                                    path: String?,
+                                                    uri: Uri?
+                                                ) {
+                                                    changeMetadata(
+                                                        name = current.name,
+                                                        artist = charSequence.toString()
+                                                    )
+                                                }
+                                            })
+                                    }
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
+                                        )
+                                    )
                                 }
                             }
-                            Config.RETURN_CODE_CANCEL -> {
-                                Log.e(
-                                    "ERR>",
-                                    "Command execution cancelled by user."
-                                )
-                            }
-                            else -> {
-                                Log.e(
-                                    "ERR>",
-                                    String.format(
-                                        "Command execution failed with rc=%d and the output below.",
-                                        rc
-                                    )
-                                )
-                            }
                         }
+                        getInputField().setText(current.artist)
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
-                    getInputField().setText(current.artist)
-                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                 }
             }
         }

@@ -116,10 +116,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun getPlayQueue() = playQueue
     fun getCurrentIndex() = currentIndex
     fun getPreviousIndex() = previousIndex
-    fun setPlayQueue(arrayList: ArrayList<Song>) {
-        playQueue = arrayList
-    }
-
     fun setCurrentIndex(ind: Int) {
         currentIndex = ind
     }

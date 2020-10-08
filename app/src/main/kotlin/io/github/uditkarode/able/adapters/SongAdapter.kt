@@ -133,7 +133,7 @@ class SongAdapter (
         }
 
         holder.itemView.setOnClickListener {
-            var freshStart = false;
+            var freshStart = false
             if (!current.placeholder) {
                 if (!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

@@ -76,7 +76,6 @@ import kotlin.collections.ArrayList
 /**
  * The first fragment. Shows a list of songs present on the user's device.
  */
-@Suppress("NAME_SHADOWING")
 class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     private lateinit var okClient: OkHttpClient
     private lateinit var serviceConn: ServiceConnection
@@ -200,6 +199,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
      * @param toCache whether we want to save this to the disk.
      */
     fun streamAudio(song: Song, toCache: Boolean) {
+        var freshStart = false
         if (isAdded) {
             if (!Shared.serviceRunning(MusicService::class.java, requireContext())) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -219,15 +219,16 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 }
 
                 bindEvent()
+                freshStart = true
             }
         } else
-            Log.d("ERR", "Context Lost")
+            Log.e("ERR> ", "Context Lost")
 
         launch(Dispatchers.IO) {
             while (!isBound) {
                 Thread.sleep(30)
             }
-            mService?.setPlayQueue(
+            mService?.setQueue(
                 arrayListOf(
                     Song(
                         name = getString(R.string.loading),
@@ -304,10 +305,11 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                                     )
                                 }
 
-                                mService?.setPlayQueue(arrayListOf(song))
+                                mService?.setQueue(arrayListOf(song))
                                 mService?.setIndex(0)
                                 MusicService.registeredClients.forEach { it.isLoading(false) }
-                                mService?.setPlayPause(SongState.playing)
+                                if(freshStart)
+                                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                             }
                             return false
                         }

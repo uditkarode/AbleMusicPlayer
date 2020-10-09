@@ -300,6 +300,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     override fun onResume() {
         super.onResume()
         bindService()
+        if(playing && !scheduled)
+            startSeekbarUpdates()
     }
 
     override fun sendItem(song: Song, mode: String) {

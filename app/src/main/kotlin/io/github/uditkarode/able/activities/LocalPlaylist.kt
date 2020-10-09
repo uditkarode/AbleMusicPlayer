@@ -108,6 +108,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                  */
                 while (!isBound) {
                     delay(30)
+                    bindEvent()
                 }
 
                 val mService = mService!!
@@ -171,8 +172,9 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
              * waiting for 30 should be enough for almost all supported
              * devices to bind by the first iteration.
              */
-            while (!isBound) {
+             while (!isBound) {
                 delay(30)
+                 bindEvent()
             }
             val mService = mService!!
             mService.setQueue(array)

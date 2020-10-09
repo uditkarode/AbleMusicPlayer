@@ -66,30 +66,28 @@ class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
                         .into(this)
                 else
                 {
-                    try{
                         val sArtworkUri =
                             Uri.parse("content://media/external/audio/albumart")
                         val albumArtURi =
                             ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                        if(current.albumId.toString() != "-1")
                         Glide
                             .with(holder.getContext())
                             .load(albumArtURi)
                             .diskCacheStrategy(DiskCacheStrategy.NONE)
                             .skipMemoryCache(true)
                             .into(this)
-                        }
-                    catch(e: Exception) {
-                        Glide.with(holder.getContext())
-                            .load(
-                                GlideBitmapFactory.decodeResource(
-                                    holder.getContext().resources,
-                                    R.drawable.def_albart
+                        else
+                            Glide.with(holder.getContext())
+                                .load(
+                                    GlideBitmapFactory.decodeResource(
+                                        holder.getContext().resources,
+                                        R.drawable.def_albart
+                                    )
                                 )
-                            )
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true)
-                            .into(this)
-                    }
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
+                                .into(this)
                 }
             }
         }

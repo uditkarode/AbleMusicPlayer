@@ -42,6 +42,8 @@ import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.albumplaylist.*
 import kotlinx.android.synthetic.main.search.loading_view
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.lang.ref.WeakReference
@@ -50,10 +52,11 @@ import java.lang.ref.WeakReference
  * The activity that shows up when a user taps on an album or playlist
  * from the search results.
  */
+@ExperimentalCoroutinesApi
 class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
     private lateinit var serviceConn: ServiceConnection
     private val resultArray = ArrayList<Song>()
-    var mService: MusicService? = null
+    var mService: MutableStateFlow<MusicService?> = MutableStateFlow(null)
     var isBound = false
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
@@ -82,7 +85,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                mService = (service as MusicService.MusicBinder).getService()
+                mService.value = (service as MusicService.MusicBinder).getService()
                 isBound = true
             }
 
@@ -101,6 +104,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             .into(playbum_art)
 
         playbum_play.setOnClickListener {
+            var freshStart = false
             if (!Shared.serviceRunning(MusicService::class.java, this)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(Intent(this, MusicService::class.java))
@@ -109,22 +113,26 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 }
 
                 bindEvent()
+                freshStart = true
             }
 
             launch(Dispatchers.Default) {
-                /**
-                 * on average, a bind takes anywhere between 10 and 15ms
-                 * waiting for 30 should be enough for almost all supported
-                 * devices to bind by the first iteration.
-                 */
-                while (!isBound) {
-                    delay(30)
+                val playSong = fun(){
+                    val mService = mService.value!!
+                    mService.setQueue(resultArray)
+                    mService.setIndex(0)
+                    if(freshStart)
+                        MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                 }
 
-                val mService = mService!!
-                mService.setQueue(resultArray)
-                mService.setIndex(0)
-                mService.setPlayPause(SongState.playing)
+                if(mService.value != null) playSong()
+                else {
+                    mService.collect {
+                        if(it != null) {
+                            playSong()
+                        }
+                    }
+                }
             }
         }
 
@@ -196,19 +204,22 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
         }
 
         launch(Dispatchers.Default) {
-            /**
-             * on average, a bind takes anywhere between 10 and 15ms
-             * waiting for 30 should be enough for almost all supported
-             * devices to bind by the first iteration.
-             */
-            while (!isBound) {
-                delay(30)
+            val playSong = fun() {
+                val mService = mService.value!!
+                mService.setQueue(array)
+                mService.setIndex(index)
+                if(freshStart)
+                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
             }
-            val mService = mService!!
-            mService.setQueue(array)
-            mService.setIndex(index)
-            if(freshStart)
-                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
+
+            if(mService.value != null) playSong()
+            else {
+                mService.collect {
+                    if(it != null){
+                        playSong()
+                    }
+                }
+            }
         }
     }
 
@@ -226,5 +237,11 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
         super.onDestroy()
         if (!this.isDestroyed)
             Glide.with(this).clear(playbum_art)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if(mService.value == null)
+            bindEvent()
     }
 }

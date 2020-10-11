@@ -37,20 +37,22 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.LocalPlaylistAdapter
 import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.albumplaylist.*
 import kotlinx.android.synthetic.main.search.loading_view
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import java.lang.ref.WeakReference
 
 /**
  * The activity that shows up when a user taps on a local playlist from the
  * playlist fragment.
  */
+@ExperimentalCoroutinesApi
 class LocalPlaylist : AppCompatActivity(), CoroutineScope {
-    var mService: MusicService? = null
+    var mService: MutableStateFlow<MusicService?> = MutableStateFlow(null)
     var isBound = false
     private lateinit var serviceConn: ServiceConnection
     private var resultArray = ArrayList<Song>()
@@ -78,7 +80,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                mService = (service as MusicService.MusicBinder).getService()
+                mService.value = (service as MusicService.MusicBinder).getService()
                 isBound = true
             }
 
@@ -90,6 +92,8 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
         playbum_name.text = name.replace(".json", "")
 
         playbum_play.setOnClickListener {
+            var freshStart = false
+
             if (!Shared.serviceRunning(MusicService::class.java, this)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     startForegroundService(Intent(this, MusicService::class.java))
@@ -98,23 +102,27 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 }
 
                 bindEvent()
+                freshStart = true
             }
 
             launch(Dispatchers.Default) {
-                /**
-                 * on average, a bind takes anywhere between 10 and 15ms
-                 * waiting for 30 should be enough for almost all supported
-                 * devices to bind by the first iteration.
-                 */
-                while (!isBound) {
-                    delay(30)
-                    bindEvent()
+                val playSong = fun(){
+                    val mService = mService.value!!
+                    mService.setQueue(resultArray)
+                    mService.setIndex(0)
+
+                    if(freshStart)
+                        MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                 }
 
-                val mService = mService!!
-                mService.setQueue(resultArray)
-                mService.setIndex(0)
-                mService.setPlayPause(SongState.playing)
+                if(mService.value != null) playSong()
+                else {
+                    mService.collect {
+                        if(it != null) {
+                            playSong()
+                        }
+                    }
+                }
             }
         }
 
@@ -134,6 +142,12 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 sr_pr.animate().alpha(1f).duration = 200
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if(mService.value == null)
+            bindEvent()
     }
 
     override fun attachBaseContext(newBase: Context?) {
@@ -156,6 +170,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
      * invoked when an item is pressed in the recyclerview.
      */
     fun itemPressed(array: ArrayList<Song>, index: Int) {
+        var freshStart = false
         if (!Shared.serviceRunning(MusicService::class.java, this)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(Intent(this, MusicService::class.java))
@@ -164,21 +179,26 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             }
 
             bindEvent()
+            freshStart = true
         }
 
         launch(Dispatchers.Default) {
-            /**
-             * on average, a bind takes anywhere between 10 and 15ms
-             * waiting for 30 should be enough for almost all supported
-             * devices to bind by the first iteration.
-             */
-             while (!isBound) {
-                delay(30)
-                 bindEvent()
+            val playSong = fun(){
+                val mService = mService.value!!
+                mService.setQueue(array)
+                mService.setIndex(index)
+                if(freshStart)
+                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
             }
-            val mService = mService!!
-            mService.setQueue(array)
-            mService.setIndex(index)
+
+            if(mService.value != null) playSong()
+            else {
+                mService.collect {
+                    if(it != null) {
+                        playSong()
+                    }
+                }
+            }
         }
     }
 

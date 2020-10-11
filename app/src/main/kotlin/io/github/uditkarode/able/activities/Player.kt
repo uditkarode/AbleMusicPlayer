@@ -90,6 +90,7 @@ import kotlin.collections.ArrayList
  * The Player UI activity.
  */
 
+@ExperimentalCoroutinesApi
 class Player : MusicClientActivity() {
     private lateinit var serviceConn: ServiceConnection
     private var mService: MusicService? = null
@@ -118,6 +119,7 @@ class Player : MusicClientActivity() {
         )
 
         val ydpi = DisplayMetrics().run {
+            @Suppress("DEPRECATION")
             windowManager.defaultDisplay.getMetrics(this)
             this.ydpi
         }
@@ -149,6 +151,7 @@ class Player : MusicClientActivity() {
         if (bottom_cast != null) {
             bottom_cast.setOnApplyWindowInsetsListener { _, insets ->
                 val kek = bottom_cast.layoutParams as ViewGroup.MarginLayoutParams
+                @Suppress("DEPRECATION")
                 kek.setMargins(0, 0, 0, insets.systemWindowInsetBottom)
                 insets
             }
@@ -157,6 +160,7 @@ class Player : MusicClientActivity() {
         if (top_controls != null) {
             top_controls.setOnApplyWindowInsetsListener { _, insets ->
                 val kek = top_controls.layoutParams as ViewGroup.MarginLayoutParams
+                @Suppress("DEPRECATION")
                 kek.setMargins(0, insets.systemWindowInsetTop, 0, 0)
                 insets
             }
@@ -922,8 +926,9 @@ class Player : MusicClientActivity() {
     override fun onResume() {
         if (!Shared.serviceRunning(MusicService::class.java, this@Player))
             finish()
-        bindEvent()
         super.onResume()
+        if(mService == null)
+            bindEvent()
     }
 
     override fun onBackPressed() {

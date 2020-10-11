@@ -224,7 +224,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
             bindService(
                 Intent(this@MainActivity, MusicService::class.java),
                 serviceConn,
-                Context.BIND_IMPORTANT
+                0
             )
     }
 
@@ -301,7 +301,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun onResume() {
         super.onResume()
-        bindService()
+        if(mService == null)
+            bindService()
     }
 
     override fun sendItem(song: Song, mode: String) {

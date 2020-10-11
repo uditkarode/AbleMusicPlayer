@@ -484,8 +484,11 @@ class Player : MusicClientActivity() {
                 R.drawable.nobg_play
             )
         )
-        songChangeEvent()
 
+        playing = if(mService!!.getMediaPlayer().isPlaying) SongState.playing else SongState.paused
+        playPauseEvent(playing)
+
+        songChangeEvent()
     }
 
     private fun bindEvent() {
@@ -493,7 +496,7 @@ class Player : MusicClientActivity() {
             bindService(
                 Intent(this@Player, MusicService::class.java),
                 serviceConn,
-                Context.BIND_IMPORTANT
+                0
             )
     }
 
@@ -679,7 +682,7 @@ class Player : MusicClientActivity() {
 
                 /* (1) Check albumart in song metadata (if the song is a local song) */
                 if (current.isLocal && !forceDeezer) {
-                    Log.e("INFO>", "Fetching from metadata")
+                    Log.i("INFO>", "Fetching from metadata")
                     try {
                         note_ph.visibility = View.GONE
                         val sArtworkUri =
@@ -713,7 +716,7 @@ class Player : MusicClientActivity() {
                 /* (2) Album art from disk (if the song is not a local song) */
                 if (!didGetArt && !forceDeezer) {
                     if (!current.isLocal) {
-                        Log.e("INFO>", "Fetching from Able folder")
+                        Log.i("INFO>", "Fetching from Able folder")
                         val imgToLoad = if (img.exists()) img else cacheImg
                         if (imgToLoad.exists()) {
                             launch(Dispatchers.Main) {
@@ -747,7 +750,7 @@ class Player : MusicClientActivity() {
 
                 /* (3) Album art from Deezer (regardless of song being local or not) */
                 if (!didGetArt && Shared.isInternetConnected(this@Player)) {
-                    Log.e("INFO>", "Fetching from Deezer")
+                    Log.i("INFO>", "Fetching from Deezer")
                     val albumArtRequest = if (customSongName == null) {
                         Request.Builder()
                             .url(Constants.DEEZER_API + current.name)
@@ -903,7 +906,6 @@ class Player : MusicClientActivity() {
             song_name.text = song.name
             artist_name.text = song.artist
             player_seekbar.progress = mService.getMediaPlayer().currentPosition
-            playPauseEvent(SongState.playing)
         }
     }
 

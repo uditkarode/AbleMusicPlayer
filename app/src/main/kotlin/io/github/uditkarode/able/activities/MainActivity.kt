@@ -62,6 +62,7 @@ import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.NewPipe
@@ -72,6 +73,7 @@ import kotlin.collections.ArrayList
 /**
  * First activity that shows up when the user opens the application
  */
+@ExperimentalCoroutinesApi
 class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultReceiver.Receiver {
     private lateinit var mServiceResultReceiver: ServiceResultReceiver
     private lateinit var bottomNavigation: BottomNavigationView

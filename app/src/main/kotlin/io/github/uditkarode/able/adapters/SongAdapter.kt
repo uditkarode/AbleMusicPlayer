@@ -48,12 +48,14 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import java.io.File
 import java.lang.ref.WeakReference
 
 /**
  * Shows songs on the Home fragment.
  */
+@ExperimentalCoroutinesApi
 class SongAdapter (
     private var songList: ArrayList<Song>,
     private val wr: WeakReference<Home>? = null,
@@ -123,7 +125,7 @@ class SongAdapter (
         if (currentIndex >= 0 && currentIndex < songList.size && songList.size != 0) {
             if (current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
-                val service = wr?.get()?.mService
+                val service = wr?.get()?.mService?.value
                 if(service != null) {
                     if (current.filePath == service.getPlayQueue()[service.getCurrentIndex()].filePath) {
                         holder.songName.setTextColor(Color.parseColor("#5e92f3"))
@@ -156,30 +158,33 @@ class SongAdapter (
                 }
 
                 launch(Dispatchers.Default) {
-                    /**
-                     * on average, a bind takes anywhere between 10 and 15ms
-                     * waiting for 30 should be enough for almost all supported
-                     * devices to bind by the first iteration.
-                     */
-                    while (!wr?.get()!!.isBound) {
-                        delay(30)
-                    }
-                    val mService = wr.get()!!.mService!!
+                    val mService = wr!!.get()!!.mService
 
-                    if (currentIndex != position) {
-                        currentIndex = position
-                        launch(Dispatchers.Default) {
-                            if (onShuffle) {
-                                mService.addToQueue(current)
-                                mService.setNextPrevious(next = true)
-                            } else {
-                                currentIndex = position
-                                mService.setQueue(songList)
-                                mService.setIndex(position)
+                    val playSong = fun(){
+                        if (currentIndex != position) {
+                            currentIndex = position
+                            launch(Dispatchers.Default) {
+                                if (onShuffle) {
+                                    mService.value?.addToQueue(current)
+                                    mService.value?.setNextPrevious(next = true)
+                                } else {
+                                    currentIndex = position
+                                    mService.value?.setQueue(songList)
+                                    mService.value?.setIndex(position)
+                                }
+
+                                if(freshStart)
+                                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                             }
+                        }
+                    }
 
-                            if(freshStart)
-                                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
+                    if(mService.value != null) playSong()
+                    else {
+                        mService.collect {
+                            if(it != null) {
+                                playSong()
+                            }
                         }
                     }
                 }
@@ -205,7 +210,7 @@ class SongAdapter (
             MaterialDialog(holder.itemView.context).show {
                 listItems(items = names) { _, index, _ ->
                     when (index) {
-                        0 -> wr?.get()?.mService!!.addToQueue(current)
+                        0 -> wr?.get()?.mService!!.value!!.addToQueue(current)
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
                                 title(text = holder.itemView.context.getString(R.string.playlist_namei))
@@ -287,12 +292,10 @@ class SongAdapter (
         notifyDataSetChanged()
     }
 
-    override fun playStateChanged(state: SongState) {
-
-    }
+    override fun playStateChanged(state: SongState) {}
 
     override fun songChanged() {
-        val service = wr?.get()?.mService
+        val service = wr?.get()?.mService?.value
         if (service != null) {
             playingSong = service.run {
                 this.getPlayQueue()[this.getCurrentIndex()]

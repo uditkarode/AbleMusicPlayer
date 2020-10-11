@@ -61,6 +61,8 @@ import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.android.synthetic.main.home.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
@@ -76,6 +78,7 @@ import kotlin.collections.ArrayList
 /**
  * The first fragment. Shows a list of songs present on the user's device.
  */
+@ExperimentalCoroutinesApi
 class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     private lateinit var okClient: OkHttpClient
     private lateinit var serviceConn: ServiceConnection
@@ -84,7 +87,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     private var songId = "temp"
 
     var isBound = false
-    var mService: MusicService? = null
+    var mService: MutableStateFlow<MusicService?> = MutableStateFlow(null)
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
@@ -131,7 +134,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
         serviceConn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                mService = (service as MusicService.MusicBinder).getService()
+                mService.value = (service as MusicService.MusicBinder).getService()
                 isBound = true
             }
 
@@ -225,100 +228,103 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             Log.e("ERR> ", "Context Lost")
 
         launch(Dispatchers.IO) {
-            /**
-             * on average, a bind takes anywhere between 10 and 15ms
-             * waiting for 30 should be enough for almost all supported
-             * devices to bind by the first iteration.
-             */
-            while (!isBound) {
-                delay(30)
-            }
-            mService?.setQueue(
-                arrayListOf(
-                    Song(
-                        name = getString(R.string.loading),
-                        artist = ""
+            val playSong = fun(){
+                mService.value?.setQueue(
+                    arrayListOf(
+                        Song(
+                            name = getString(R.string.loading),
+                            artist = ""
+                        )
                     )
                 )
-            )
-            mService?.setCurrentIndex(0)
-            mService?.showNotif()
+                mService.value?.setCurrentIndex(0)
+                mService.value?.showNotif()
 
-            val tmp: StreamInfo?
+                val tmp: StreamInfo?
 
-            try {
-                tmp = StreamInfo.getInfo(song.youtubeLink)
-            } catch (e: Exception) {
-                launch(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT)
-                        .show()
-                    MusicService.registeredClients.forEach { it.isLoading(false) }
+                try {
+                    tmp = StreamInfo.getInfo(song.youtubeLink)
+                } catch (e: Exception) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT)
+                            .show()
+                        MusicService.registeredClients.forEach { it.isLoading(false) }
+                    }
+                    Log.e("ERR>", e.toString())
+                    return
                 }
-                Log.e("ERR>", e.toString())
-                return@launch
-            }
 
-            val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
-            val stream = streamInfo.audioStreams.run { this[size - 1] }
+                val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
+                val stream = streamInfo.audioStreams.run { this[size - 1] }
 
-            val url = stream.url
-            val bitrate = stream.averageBitrate
-            val ext = stream.getFormat().suffix
-            songId = Shared.getIdFromLink(song.youtubeLink)
+                val url = stream.url
+                val bitrate = stream.averageBitrate
+                val ext = stream.getFormat().suffix
+                songId = Shared.getIdFromLink(song.youtubeLink)
 
-            File(Constants.ableSongDir, "$songId.tmp.webm").run {
-                if (exists()) delete()
-            }
+                File(Constants.ableSongDir, "$songId.tmp.webm").run {
+                    if (exists()) delete()
+                }
 
-            if (song.ytmThumbnail.isNotBlank()) {
-                Glide.with(requireContext())
-                    .asBitmap()
-                    .load(song.ytmThumbnail)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .signature(ObjectKey("save"))
-                    .skipMemoryCache(true)
-                    .listener(object : RequestListener<Bitmap> {
-                        override fun onLoadFailed(
-                            e: GlideException?,
-                            model: Any?,
-                            target: Target<Bitmap>?,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            return false
-                        }
-
-                        override fun onResourceReady(
-                            resource: Bitmap?,
-                            model: Any?,
-                            target: Target<Bitmap>?,
-                            dataSource: DataSource?,
-                            isFirstResource: Boolean
-                        ): Boolean {
-                            if (resource != null) {
-                                if (toCache) {
-                                    if (cacheMusic(song, url, ext, bitrate))
-                                        Shared.saveAlbumArtToDisk(
-                                            resource,
-                                            File(Constants.albumArtDir, songId)
-                                        )
-                                } else {
-                                    song.filePath = url
-
-                                    Shared.saveStreamingAlbumArt(
-                                        resource,
-                                        Shared.getIdFromLink(song.youtubeLink)
-                                    )
-                                }
-
-                                mService?.setQueue(arrayListOf(song))
-                                mService?.setIndex(0)
-                                MusicService.registeredClients.forEach { it.isLoading(false) }
-                                if(freshStart)
-                                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
+                if (song.ytmThumbnail.isNotBlank()) {
+                    Glide.with(requireContext())
+                        .asBitmap()
+                        .load(song.ytmThumbnail)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .signature(ObjectKey("save"))
+                        .skipMemoryCache(true)
+                        .listener(object : RequestListener<Bitmap> {
+                            override fun onLoadFailed(
+                                e: GlideException?,
+                                model: Any?,
+                                target: Target<Bitmap>?,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                return false
                             }
-                            return false
-                        }
-                    }).submit()
+
+                            override fun onResourceReady(
+                                resource: Bitmap?,
+                                model: Any?,
+                                target: Target<Bitmap>?,
+                                dataSource: DataSource?,
+                                isFirstResource: Boolean
+                            ): Boolean {
+                                if (resource != null) {
+                                    if (toCache) {
+                                        if (cacheMusic(song, url, ext, bitrate))
+                                            Shared.saveAlbumArtToDisk(
+                                                resource,
+                                                File(Constants.albumArtDir, songId)
+                                            )
+                                    } else {
+                                        song.filePath = url
+
+                                        Shared.saveStreamingAlbumArt(
+                                            resource,
+                                            Shared.getIdFromLink(song.youtubeLink)
+                                        )
+                                    }
+
+                                    mService.value?.setQueue(arrayListOf(song))
+                                    mService.value?.setIndex(0)
+                                    MusicService.registeredClients.forEach { it.isLoading(false) }
+                                    if(freshStart)
+                                        MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
+                                }
+                                return false
+                            }
+                        }).submit()
+                }
+            }
+
+            if(mService.value != null) playSong()
+            else {
+                mService.collect {
+                    if(it != null){
+                        playSong()
+                    }
+                }
             }
         }
     }

@@ -1,15 +1,7 @@
 -keepattributes *Annotation*
--keepclassmembers class * {
-    @org.greenrobot.eventbus.Subscribe <methods>;
-}
--keep enum org.greenrobot.eventbus.ThreadMode { *; }
-
 -dontwarn org.codehaus.mojo.animal_sniffer.*
 -dontwarn javax.annotation.**
 
--keep public class org.jsoup.** {
-public *;
-}
 -keep class org.schabi.newpipe.extractor.timeago.patterns.** { *; }
 -keep class org.mozilla.javascript.** { *; }
 
@@ -30,6 +22,8 @@ public *;
 
 -keep class androidx.core.app.NotificationCompat { *; }
 -keep class androidx.core.app.NotificationCompat$* { *; }
+
+-keepclassmembers enum * { *; }
 
 # JAudioTagger
 -dontwarn org.jaudiotagger.**

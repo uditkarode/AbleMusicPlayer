@@ -18,17 +18,15 @@
 
 package io.github.uditkarode.able.activities
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Handler
 import androidx.appcompat.app.AppCompatActivity
-import io.github.uditkarode.able.R
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * The splash screen.
  */
+@ExperimentalCoroutinesApi
 class Splash: AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -35,11 +35,13 @@ import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.io.File
 
 /**
  * Lists the playlists in the playlist fragment.
  */
+@ExperimentalCoroutinesApi
 class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
     : RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {

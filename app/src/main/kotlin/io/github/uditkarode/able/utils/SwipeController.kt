@@ -20,6 +20,7 @@ import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.io.File
 import java.lang.Exception
 import java.util.*
@@ -29,6 +30,7 @@ internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
 
+@ExperimentalCoroutinesApi
 class SwipeControllerActions(private var mode: String) {
     private var songList = ArrayList<Song>()
     private lateinit var itemPressed: Search.SongCallback
@@ -145,6 +147,7 @@ class SwipeControllerActions(private var mode: String) {
     }
 }
 
+@ExperimentalCoroutinesApi
 @Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
 class SwipeController(private val context: Context?, private val list: String?) :

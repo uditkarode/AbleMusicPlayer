@@ -24,10 +24,12 @@ import androidx.fragment.app.FragmentPagerAdapter
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.fragments.Playlists
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * Adapter for ViewPager on MainActivity.
  */
+@ExperimentalCoroutinesApi
 class ViewPagerAdapter(fm: FragmentManager, private val home: Home):
     FragmentPagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
     override fun getItem(position: Int): Fragment {

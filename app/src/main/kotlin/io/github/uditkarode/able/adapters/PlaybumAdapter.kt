@@ -31,11 +31,13 @@ import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.AlbumPlaylist
 import io.github.uditkarode.able.models.Song
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.lang.ref.WeakReference
 
 /**
  * The adapter used to lists songs in a searched playlist or album.
  */
+@ExperimentalCoroutinesApi
 class PlaybumAdapter(private val songList: ArrayList<Song>,
                      private val wr: WeakReference<AlbumPlaylist>,
                      private val mode: String): RecyclerView.Adapter<PlaybumAdapter.RVVH>() {

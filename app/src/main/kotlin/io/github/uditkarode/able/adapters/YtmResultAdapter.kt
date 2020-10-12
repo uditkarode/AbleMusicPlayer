@@ -33,11 +33,13 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.AlbumPlaylist
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.Song
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.lang.ref.WeakReference
 
 /**
  * Shows results in the search fragment when the search mode is set to YouTube Music.
  */
+@ExperimentalCoroutinesApi
 class YtmResultAdapter(private val songList: ArrayList<Song>,
                        private val wr: WeakReference<Search>,
                        private val mode: String): RecyclerView.Adapter<YtmResultAdapter.RVVH>() {

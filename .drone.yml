@@ -1,6 +1,9 @@
 kind: pipeline
 name: default
 
+concurrency:
+  limit: 1
+
 steps:
   - name: Construction
     pull: if-not-exists
@@ -16,6 +19,10 @@ steps:
       - "export TG_BOT_KEY"
       - "cd /drone/src"
       - "bash build.sh"
+    when:
+      branch:
+        include:
+          - master
     environment:
       FLURRY_KEY:
         from_secret: FLURRY_KEY
@@ -31,7 +38,3 @@ steps:
         from_secret: STORE_PASS
       TG_BOT_KEY:
         from_secret: TG_BOT_KEY
-
-trigger:
-      branch:
-        - master

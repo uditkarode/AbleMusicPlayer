@@ -28,11 +28,13 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.Song
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.lang.ref.WeakReference
 
 /**
  * Shows results in the search fragment when the search mode is set to regular YouTube.
  */
+@ExperimentalCoroutinesApi
 class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakReference<Search>): RecyclerView.Adapter<YtResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
         RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_result, parent, false))

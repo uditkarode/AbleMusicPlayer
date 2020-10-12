@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity
 import io.github.uditkarode.able.services.MusicService
 import kotlinx.coroutines.*
 
+@ExperimentalCoroutinesApi
 abstract class MusicClientActivity: AppCompatActivity(), CoroutineScope, MusicService.MusicClient {
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()

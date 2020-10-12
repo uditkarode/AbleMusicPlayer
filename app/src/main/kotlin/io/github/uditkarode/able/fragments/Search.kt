@@ -17,9 +17,6 @@ package io.github.uditkarode.able.fragments
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -51,6 +48,7 @@ import java.util.Collections.singletonList
 /**
  * The second fragment. Used to search for songs.
  */
+@ExperimentalCoroutinesApi
 class Search : Fragment(), CoroutineScope {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences

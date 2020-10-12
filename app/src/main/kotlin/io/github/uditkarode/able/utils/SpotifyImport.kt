@@ -41,10 +41,7 @@ import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.spotifyplaylist.SpotifyPlaylist
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.services.MusicService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.schabi.newpipe.extractor.ServiceList
@@ -58,6 +55,7 @@ import kotlin.collections.ArrayList
 /**
  * object that takes care of inner workings of Spotify songs import.
  */
+@ExperimentalCoroutinesApi
 object SpotifyImport: CoroutineScope {
     private const val auth =
         "https://open.spotify.com/get_access_token?reason=transport&productType=web_player"

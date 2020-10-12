@@ -59,6 +59,7 @@ import kotlin.collections.ArrayList
  * The service that plays music.
  */
 
+@ExperimentalCoroutinesApi
 class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, CoroutineScope {
 
     interface MusicClient {

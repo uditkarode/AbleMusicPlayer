@@ -31,10 +31,12 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Constants
 import kotlinx.android.synthetic.main.about.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * The about page.
  */
+@ExperimentalCoroutinesApi
 class About: AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?){

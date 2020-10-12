@@ -89,6 +89,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
+        System.loadLibrary("song-actions")
 
         launch(Dispatchers.Default) {
             if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)

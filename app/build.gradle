@@ -3,6 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
+    ndkVersion '21.0.6113669'
     lintOptions { disable 'RestrictedApi' }
     compileSdkVersion 30
     buildToolsVersion "29.0.3"
@@ -12,6 +13,12 @@ android {
         targetSdkVersion 30
         versionCode 1
         versionName "InterdimensionalBoop"
+
+        externalNativeBuild {
+            cmake {
+                cppFlags ""
+            }
+        }
     }
 
     compileOptions {
@@ -41,6 +48,12 @@ android {
                 proguardFile 'proguard-rules.pro'
             }
             signingConfig signingConfigs.release
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
         }
     }
 

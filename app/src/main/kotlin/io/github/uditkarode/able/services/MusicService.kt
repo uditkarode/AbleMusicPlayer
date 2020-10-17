@@ -81,6 +81,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         val mediaPlayer = MediaPlayer()
         var previousIndex = -1
         var currentIndex = -1
+        lateinit var bitmap: Bitmap
 
         val registeredClients = mutableSetOf<MusicClient>()
 
@@ -274,10 +275,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun addToQueue(song: Song) {
         addToPlayQueue(song)
-        launch(Dispatchers.IO) {
-            launch(Dispatchers.IO) {
-                registeredClients.forEach { it.queueChanged(playQueue) }
-            }
+        launch(Dispatchers.Default) {
+            registeredClients.forEach { it.queueChanged(playQueue) }
         }
     }
 
@@ -286,10 +285,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun setQueue(queue: ArrayList<Song>) {
         playQueue = queue
-        launch(Dispatchers.IO) {
-            launch(Dispatchers.IO) {
-                registeredClients.forEach { it.queueChanged(playQueue) }
-            }
+        launch(Dispatchers.Default) {
+            registeredClients.forEach { it.queueChanged(playQueue) }
         }
     }
 
@@ -300,7 +297,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
         setShuffle(shuffle)
         onRepeat = repeat
-        launch(Dispatchers.IO)  {
+        launch(Dispatchers.Default)  {
             registeredClients.forEach { it.shuffleRepeatChanged(onShuffle, onRepeat) }
         }
     }
@@ -312,8 +309,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         previousIndex = currentIndex
         currentIndex = index
         songChanged()
-        launch(Dispatchers.IO) {
-            registeredClients.forEach { it.indexChanged(currentIndex) }
+        launch(Dispatchers.Default) {
+                registeredClients.forEach { it.indexChanged(currentIndex) }
         }
     }
 
@@ -324,8 +321,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         if (state == SongState.playing) playAudio()
         else pauseAudio()
 
-        launch(Dispatchers.IO) {
-            registeredClients.forEach { it.playStateChanged(state) }
+        launch(Dispatchers.Default) {
+                registeredClients.forEach { it.playStateChanged(state) }
         }
     }
 
@@ -358,11 +355,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             currentIndex = playQueue.indexOf(currSong)
         }
 
-        launch(Dispatchers.IO) {
+        launch(Dispatchers.Default) {
             registeredClients.forEach { it.queueChanged(playQueue) }
         }
 
-        launch(Dispatchers.IO)  {
+        launch(Dispatchers.Default)  {
             registeredClients.forEach { it.indexChanged(currentIndex) }
         }
     }
@@ -455,10 +452,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             var songDur = 0
             val tmpf = File("${Constants.ableSongDir.absolutePath}/tmp_stream-$currentIndex.tmp")
 
-            launch(Dispatchers.IO) {
+            launch(Dispatchers.Default) {
                 registeredClients.forEach(MusicClient::songChanged)
             }
-            launch(Dispatchers.IO) {
+            launch(Dispatchers.Default) {
                 registeredClients.forEach { it.indexChanged(currentIndex) }
             }
 
@@ -542,11 +539,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             try {
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
                 mediaPlayer.prepareAsync()
-                launch(Dispatchers.IO) {
-                    registeredClients.forEach(MusicClient::songChanged)
+                launch(Dispatchers.Default) {
+                registeredClients.forEach(MusicClient::songChanged)
                 }
-                launch(Dispatchers.IO) {
-                    registeredClients.forEach { it.indexChanged(currentIndex) }
+                launch(Dispatchers.Default) {
+                registeredClients.forEach { it.indexChanged(currentIndex) }
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")
@@ -669,8 +666,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         )
 
         mediaPlayer.pause()
-        launch(Dispatchers.IO) {
-            registeredClients.forEach { it.playStateChanged(run {
+        launch(Dispatchers.Default) {
+                registeredClients.forEach { it.playStateChanged(run {
                 if (mediaPlayer.isPlaying) SongState.playing
                 else SongState.paused
             }) }
@@ -681,8 +678,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * releases the media session and wakelock and gets ready to die.
      */
     private fun cleanUp() {
-        launch(Dispatchers.IO) {
-            registeredClients.forEach(MusicClient::isExiting)
+        launch(Dispatchers.Default) {
+                registeredClients.forEach(MusicClient::isExiting)
         }
         mediaPlayer.stop()
         mediaSession.release()
@@ -698,7 +695,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      *
      */
     private fun getAlbumArt(file: File) {
-        val bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
+        bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
         songCoverArt = WeakReference(
             if (bitmap.height > coverArtHeight!! * 2) {
                 val ratio = bitmap.width / bitmap.height.toFloat()

@@ -22,6 +22,7 @@ import android.annotation.SuppressLint
 import android.app.*
 import android.content.*
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.media.*
 import android.media.session.MediaSession
@@ -38,8 +39,6 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
-import com.glidebitmappool.GlideBitmapFactory
-import com.glidebitmappool.GlideBitmapPool
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
 import io.github.uditkarode.able.models.CacheStatus
@@ -81,7 +80,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         val mediaPlayer = MediaPlayer()
         var previousIndex = -1
         var currentIndex = -1
-        lateinit var bitmap: Bitmap
 
         val registeredClients = mutableSetOf<MusicClient>()
 
@@ -153,8 +151,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 build()
             }
         }
-
-        GlideBitmapPool.initialize(1 * 1024 * 1024)
 
         if (coverArtHeight == null)
             coverArtHeight = resources.getDimension(R.dimen.top_art_height).toInt()
@@ -695,20 +691,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      *
      */
     private fun getAlbumArt(file: File) {
-        bitmap = GlideBitmapFactory.decodeFile(file.absolutePath)
-        songCoverArt = WeakReference(
-            if (bitmap.height > coverArtHeight!! * 2) {
-                val ratio = bitmap.width / bitmap.height.toFloat()
-                Bitmap.createScaledBitmap(
-                    bitmap,
-                    (coverArtHeight!! * ratio).toInt(),
-                    coverArtHeight!!,
-                    false
-                )
-            } else {
-                bitmap
-            }
-        )
+        BitmapFactory.decodeFile(file.absolutePath).also {
+            songCoverArt = WeakReference(
+                if (it.height > coverArtHeight!! * 2) {
+                    val ratio = it.width / it.height.toFloat()
+                    Bitmap.createScaledBitmap(
+                        it,
+                        (coverArtHeight!! * ratio).toInt(),
+                        coverArtHeight!!,
+                        false
+                    )
+                } else {
+                    it
+                }
+            )
+        }
     }
 
     fun generateAction(
@@ -836,7 +833,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             notificationManager.notify(1, builder?.build())
         }
 
-        songCoverArt = null
+        songCoverArt?.get()?.recycle()
+        songCoverArt?.clear()
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

@@ -21,6 +21,7 @@ package io.github.uditkarode.able.adapters
 import android.annotation.SuppressLint
 import android.content.ContentUris
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.net.Uri
 import android.view.LayoutInflater
@@ -31,7 +32,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.glidebitmappool.GlideBitmapFactory
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.models.Song
@@ -82,7 +82,7 @@ class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
                         else
                             Glide.with(holder.getContext())
                                 .load(
-                                    GlideBitmapFactory.decodeResource(
+                                    BitmapFactory.decodeResource(
                                         holder.getContext().resources,
                                         R.drawable.def_albart
                                     )

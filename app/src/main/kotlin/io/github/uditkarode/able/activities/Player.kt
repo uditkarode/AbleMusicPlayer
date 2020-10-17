@@ -15,6 +15,8 @@
 package io.github.uditkarode.able.activities
 
 import android.content.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
 import android.media.MediaScannerConnection
@@ -48,7 +50,6 @@ import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
-import com.glidebitmappool.GlideBitmapFactory
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -729,7 +730,8 @@ class Player : MusicClientActivity() {
                                     .skipMemoryCache(true)
                                     .into(img_albart)
                                 try {
-                                    Shared.bmp = GlideBitmapFactory.decodeFile(imgToLoad.absolutePath)
+                                    Shared.bmp?.recycle()
+                                    Shared.bmp = BitmapFactory.decodeFile(imgToLoad.absolutePath)
                                     Palette.from(Shared.getSharedBitmap()).generate {
                                         setBgColor(
                                             it?.getDominantColor(0x002171) ?: 0x002171,

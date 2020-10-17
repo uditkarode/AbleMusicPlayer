@@ -926,11 +926,12 @@ class Player : MusicClientActivity() {
     }
 
     override fun onResume() {
-        if (!Shared.serviceRunning(MusicService::class.java, this@Player))
-            finish()
         super.onResume()
         if(mService == null)
             bindEvent()
+        else
+            playPauseEvent(if((mService as MusicService)
+                    .getMediaPlayer().isPlaying) SongState.playing else SongState.paused)
     }
 
     override fun onBackPressed() {

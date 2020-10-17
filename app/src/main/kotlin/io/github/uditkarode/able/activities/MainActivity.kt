@@ -31,6 +31,7 @@ import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.os.*
 import android.text.Html
+import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
@@ -304,6 +305,9 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
         super.onResume()
         if(mService == null)
             bindService()
+        else
+            playPauseEvent(if((mService as MusicService)
+                    .getMediaPlayer().isPlaying) SongState.playing else SongState.paused)
     }
 
     override fun sendItem(song: Song, mode: String) {

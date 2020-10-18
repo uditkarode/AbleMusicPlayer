@@ -20,7 +20,9 @@ import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.MusicMode
 import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.services.MusicService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import java.lang.Exception
 import java.util.*
@@ -31,7 +33,7 @@ internal enum class ButtonsState {
 }
 
 @ExperimentalCoroutinesApi
-class SwipeControllerActions(private var mode: String) {
+class SwipeControllerActions(private var mode: String, private var mService: MutableStateFlow<MusicService?>?) {
     private var songList = ArrayList<Song>()
     private lateinit var itemPressed: Search.SongCallback
 
@@ -75,7 +77,7 @@ class SwipeControllerActions(private var mode: String) {
                 MaterialDialog(context).show {
                     listItems(items = names) { _, index, _ ->
                         when (index) {
-                            0 -> 5//mService.addToQueue(current)
+                            0 ->mService!!.value?.addToQueue(current)
                             1 -> {
                                 MaterialDialog(context).show {
                                     title(text = context.getString(R.string.playlist_namei))
@@ -150,12 +152,16 @@ class SwipeControllerActions(private var mode: String) {
 @ExperimentalCoroutinesApi
 @Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
-class SwipeController(private val context: Context?, private val list: String?) :
+class SwipeController(
+    private val context: Context?,
+    private val list: String?,
+    private val mService: MutableStateFlow<MusicService?>?
+) :
     ItemTouchHelper.Callback() {
     private var swipeBack = false
     private var buttonShowedState = ButtonsState.GONE
     private var buttonInstance: RectF? = null
-    private var buttonsActions = SwipeControllerActions("")
+    private var buttonsActions = SwipeControllerActions("", mService)
     private val buttonWidth = 200f
 
     override fun getMovementFlags(
@@ -254,8 +260,8 @@ class SwipeController(private val context: Context?, private val list: String?) 
                 drawText(MusicMode.both, c, leftButton, p)
             buttonsActions = when (list) {
                 "Search" ->
-                    SwipeControllerActions(MusicMode.both)
-                else -> SwipeControllerActions("")
+                    SwipeControllerActions(MusicMode.both, mService)
+                else -> SwipeControllerActions("", mService)
             }
             buttonInstance = leftButton
         } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
@@ -281,8 +287,8 @@ class SwipeController(private val context: Context?, private val list: String?) 
                 }
                 buttonsActions = when (list) {
                     "Search" ->
-                        SwipeControllerActions(currentMode)
-                    else -> SwipeControllerActions("")
+                        SwipeControllerActions(currentMode, mService)
+                    else -> SwipeControllerActions("",mService)
                 }
             }
             buttonInstance = rightButton

@@ -48,6 +48,7 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import java.io.File
 import java.lang.ref.WeakReference
@@ -59,7 +60,8 @@ import java.lang.ref.WeakReference
 class SongAdapter (
     private var songList: ArrayList<Song>,
     private val wr: WeakReference<Home>? = null,
-    private val showArt: Boolean = false
+    private val showArt: Boolean = false,
+    private val mServiceFromPlayer :MusicService? = null
 ) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope, MusicService.MusicClient {
     private var registered = false
 
@@ -158,7 +160,9 @@ class SongAdapter (
                 }
 
                 launch(Dispatchers.Default) {
-                    val mService = wr!!.get()!!.mService
+                    var mService: MutableStateFlow<MusicService?> = MutableStateFlow(mServiceFromPlayer)
+                    if(wr?.get()!=null)
+                        mService = wr.get()!!.mService
 
                     val playSong = fun(){
                         if (currentIndex != position) {
@@ -210,7 +214,12 @@ class SongAdapter (
             MaterialDialog(holder.itemView.context).show {
                 listItems(items = names) { _, index, _ ->
                     when (index) {
-                        0 -> wr?.get()?.mService!!.value!!.addToQueue(current)
+                        0 -> {
+                            if(mServiceFromPlayer==null)
+                                wr?.get()?.mService!!.value!!.addToQueue(current)
+                            else
+                                mServiceFromPlayer.addToQueue(current)
+                        }
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
                                 title(text = holder.itemView.context.getString(R.string.playlist_namei))

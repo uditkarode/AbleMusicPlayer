@@ -158,7 +158,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         val lam = LinearLayoutManager(requireContext())
         lam.initialPrefetchItemCount = 12
         lam.isItemPrefetchEnabled = true
-        val itemTouchHelper = ItemTouchHelper(SwipeController(context, "Home"))
+        val itemTouchHelper = ItemTouchHelper(SwipeController(context, "Home", mService))
         songs.adapter = songAdapter
         songs.layoutManager = lam
         itemTouchHelper.attachToRecyclerView(songs)

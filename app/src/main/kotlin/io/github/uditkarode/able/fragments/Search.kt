@@ -301,7 +301,11 @@ class Search : Fragment(), CoroutineScope {
                                 searchRv.alpha = 0f
                                 searchRv.visibility = View.VISIBLE
                                 searchRv.animate().alpha(1f).duration = 200
-                                val itemTouchHelper= ItemTouchHelper(SwipeController(context,"Search"))
+                                val itemTouchHelper= ItemTouchHelper(SwipeController(
+                                    context,
+                                    "Search",
+                                    null
+                                ))
                                 itemTouchHelper.attachToRecyclerView(searchRv)
                             }
                         }

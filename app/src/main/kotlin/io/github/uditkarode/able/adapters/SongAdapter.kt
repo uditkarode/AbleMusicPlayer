@@ -25,6 +25,7 @@ import android.graphics.Color
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -215,10 +216,15 @@ class SongAdapter (
                 listItems(items = names) { _, index, _ ->
                     when (index) {
                         0 -> {
-                            if(mServiceFromPlayer==null)
+                            if (mServiceFromPlayer == null) { //When add to playlist from Home fragment
                                 wr?.get()?.mService!!.value!!.addToQueue(current)
-                            else
-                                mServiceFromPlayer.addToQueue(current)
+                            }
+                            else { //When playlist is opened from Player activity
+                                mServiceFromPlayer.addToPlayQueue(current)
+                                songList.add(1,songList[position])
+                                songList.removeAt(position)
+                                notifyItemMoved(position, 1)
+                            }
                         }
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {

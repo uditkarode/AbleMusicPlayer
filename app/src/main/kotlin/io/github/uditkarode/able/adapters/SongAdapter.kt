@@ -217,8 +217,12 @@ class SongAdapter (
                         0 -> {
                             if(mServiceFromPlayer==null)
                                 wr?.get()?.mService!!.value!!.addToQueue(current)
-                            else
-                                mServiceFromPlayer.addToQueue(current)
+                            else {
+                                mServiceFromPlayer.addToPlayQueue(current)
+                                songList.add(1,songList[position])
+                                songList.removeAt(position)
+                                notifyItemMoved(position, 1)
+                            }
                         }
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
@@ -338,3 +342,4 @@ class SongAdapter (
 
     override fun serviceStarted() {}
 }
+

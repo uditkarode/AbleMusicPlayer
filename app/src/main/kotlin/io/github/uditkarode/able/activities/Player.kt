@@ -83,6 +83,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
+import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
@@ -453,7 +454,8 @@ class Player : MusicClientActivity() {
                                     mService.getCurrentIndex(),
                                     mService.getPlayQueue().size
                                 )
-                            )
+                            ),
+                            mServiceFromPlayer = mService
                         )
                     )
                 }

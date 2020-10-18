@@ -111,7 +111,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
     private val binder = MusicBinder(this@MusicService)
-
     fun getMediaPlayer() = mediaPlayer
     fun getPlayQueue() = playQueue
     fun getCurrentIndex() = currentIndex
@@ -200,7 +199,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             val intent = Intent(this, MusicService::class.java)
             intent.action = "ACTION_STOP"
             val style = Notification.MediaStyle().setMediaSession(mediaSession.sessionToken)
-            style.setShowActionsInCompactView(0, 1, 2, 3)
+            style.setShowActionsInCompactView(1, 2, 3)
 
             (builder as Notification.Builder)
                 .setSmallIcon(R.drawable.ic_notification)
@@ -256,6 +255,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
             action.equals("ACTION_NEXT", ignoreCase = true) -> {
                 setNextPrevious(next = true)
+            }
+            action.equals("ACTION_REPEAT", ignoreCase = true) -> {
+                if(onRepeat)
+                    setShuffleRepeat(shuffle = false, repeat = false)
+                else
+                    setShuffleRepeat(shuffle = false, repeat = true)
             }
             action.equals("ACTION_KILL", ignoreCase = true) -> {
                 cleanUp()
@@ -789,6 +794,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
+        builder?.addAction(
+            generateAction(
+                R.drawable.repeat,
+                getString(R.string.repeat),
+                "ACTION_REPEAT"
+            )
+        )
 
         builder?.addAction(
             generateAction(

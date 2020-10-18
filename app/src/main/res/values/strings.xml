@@ -43,6 +43,7 @@
     <string name="prev">Previous</string>
     <string name="next">Next</string>
     <string name="kill">Kill</string>
+    <string name="repeat">Repeat</string>
     <string name="imp">Import</string>
     <string name="authors">Authors</string>
     <string name="stream">Stream</string>

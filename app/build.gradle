@@ -78,7 +78,6 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.0'
     implementation 'com.github.TeamNewPipe.NewPipeExtractor:NewPipeExtractor:v0.20.2'
     //noinspection GradleDependency
-    implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1.LTS'
     implementation 'io.github.dreierf:material-intro-screen:0.0.6'
     implementation 'com.airbnb.android:lottie:3.4.4'
     implementation 'co.revely:gradient:1.0.1'
@@ -98,6 +97,7 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.0"
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+    implementation(name:'mobile-ffmpeg', ext:'aar')
 }
 
 android.sourceSets {

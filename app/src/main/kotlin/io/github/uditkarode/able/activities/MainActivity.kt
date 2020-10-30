@@ -31,7 +31,6 @@ import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.os.*
 import android.text.Html
-import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
@@ -99,6 +98,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
                 startActivity(Intent(this@MainActivity, Welcome::class.java))
             }
         }
+        Shared.setPaths(applicationContext.filesDir)
 
         launch(Dispatchers.Main) {
             Shared.defBitmap = (ResourcesCompat.getDrawable(

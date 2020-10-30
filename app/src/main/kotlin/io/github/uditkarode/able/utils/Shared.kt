@@ -79,6 +79,19 @@ object Shared {
         bmp = null
     }
 
+    fun setPaths(filesPath: File)
+    {
+        Constants.ableSongDir = filesPath
+
+        Constants.playlistFolder = File(
+            Constants.ableSongDir.absolutePath + "/playlists")
+
+        Constants.playlistSongDir = File(Constants.ableSongDir.absolutePath + "/playlist_songs")
+
+        Constants.albumArtDir = File(Constants.ableSongDir.absolutePath + "/album_art")
+
+        Constants.cacheDir = File(Constants.ableSongDir.absolutePath + "/cache")
+    }
     /**
      * @param color a color in form of Integer.
      * @return if the color is 'dark' (light colors to be used on it to make them visible),
@@ -384,13 +397,13 @@ object Shared {
                 }
                 val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
                 if (mediaInfo != null) {
-                    val metadata=mediaInfo.tags
-                    if(metadata.optString("title").isNotEmpty())
-                        name=metadata.optString("title")
-                    if(metadata.optString("ARTIST").isEmpty())
-                        artist=metadata.optString("artist")
-                    else if(metadata.optString("artist").isEmpty())
-                        artist=metadata.optString("ARTIST")
+                    val metadata = mediaInfo.metadataEntries
+                    for (map in metadata) {
+                        if (map.key == "title")
+                            name = map.value
+                        else if (map.key == "ARTIST" || map.key == "artist")
+                            artist = map.value
+                    }
                     if (name != "???") {
                         songs.add(
                             Song(
@@ -401,6 +414,12 @@ object Shared {
                         )
                     }
                 }
+                songs.add(
+                    Song(
+                    name,
+                    artist,
+                    f.path)
+                )
             }
         }
 

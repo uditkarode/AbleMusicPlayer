@@ -56,12 +56,6 @@ android {
             path "CMakeLists.txt"
         }
     }
-
-    packagingOptions {
-        exclude 'lib/x86_64/**'
-        exclude 'lib/armeabi-v7a/**'
-        exclude 'lib/x86/**'
-    }
 }
 
 dependencies {
@@ -97,7 +91,8 @@ dependencies {
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.0"
     annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
-    implementation(name:'mobile-ffmpeg', ext:'aar')
+    //implementation(name:'mobile-ffmpeg', ext:'aar')
+    implementation 'com.arthenica:mobile-ffmpeg-audio:4.3.1.LTS'
 }
 
 android.sourceSets {

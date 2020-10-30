@@ -21,12 +21,15 @@ package io.github.uditkarode.able.services
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.ResultReceiver
+import android.provider.MediaStore
 import android.util.Log
+import android.webkit.MimeTypeMap
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -46,7 +49,10 @@ import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
+import java.io.OutputStream
+import java.nio.file.Files
 
 /**
  * The JobIntentService that downloads songs when the play mode is set to download mode
@@ -140,6 +146,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
             val ext = stream.getFormat().suffix
             val mediaFile = File(Constants.ableSongDir, id)
 
+
             if (!Constants.ableSongDir.exists()) {
                 val mkdirs = Constants.ableSongDir.mkdirs()
                 if (!mkdirs) throw IOException("Could not create output directory: ${Constants.ableSongDir}")
@@ -158,7 +165,6 @@ class DownloadService : JobIntentService(), CoroutineScope {
                     it.priority = Priority.HIGH
                     it.networkType = NetworkType.ALL
                 }
-
                 fetch?.addListener(object : FetchListener {
                     override fun onAdded(download: Download) {}
 
@@ -210,47 +216,73 @@ class DownloadService : JobIntentService(), CoroutineScope {
                             command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
-                        command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+                        command += if(format == Format.MODE_MP3) "mp3\"" else "$ext\""
                         Log.e("asd", "DOING")
-                        when (val rc = FFmpeg.execute(command)) {
-                            Config.RETURN_CODE_SUCCESS -> {
-                                File(target).delete()
-                                if (currentIndex == songQueue.size) {
-                                    (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-                                        it.cancel(2)
+                            when (val rc = FFmpeg.execute(command)) {
+                                Config.RETURN_CODE_SUCCESS -> {
+                                    File(target).delete()
+                                    if (currentIndex == songQueue.size) {
+                                        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
+                                            it.cancel(2)
+                                        }
+                                        song.resultReceiver.send(123, bundle)
+                                        if (format == Format.MODE_MP3)
+                                            Shared.addThumbnails(
+                                                "$target.mp3",
+                                                context = this@DownloadService
+                                            )
+                                        songQueue.clear()
+                                        stopSelf()
+                                    } else {
+                                        (++currentIndex).also {
+                                            builder.setSubText("$it of ${songQueue.size}")
+                                        }
+                                        song.resultReceiver.send(123, bundle)
+                                        download(songQueue[currentIndex - 1])
                                     }
-                                    song.resultReceiver.send(123, bundle)
-                                    if (format == Format.MODE_MP3)
-                                        Shared.addThumbnails(
-                                            "$target.mp3",
-                                            context = this@DownloadService
+                                    val values = ContentValues().apply {
+                                        put(MediaStore.Audio.Media.DISPLAY_NAME,song.name)
+                                        put(MediaStore.Audio.Media.ARTIST,song.artist)
+                                        put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
+                                        put(MediaStore.Audio.Media.RELATIVE_PATH,"Music/Able")
+                                        put(MediaStore.Audio.Media.IS_PENDING,1)
+                                    }
+
+                                    val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                    val songUri = applicationContext.contentResolver.insert(collection, values)
+
+                                    applicationContext.contentResolver.openOutputStream(songUri!!).use {
+                                      /*  val mainFile = FileInputStream(File("$target.mp3"))
+                                        var aBytearray = ByteArray(mediaFile.length().toInt())
+                                        mainFile.read(aBytearray)
+                                        it?.write(aBytearray)
+                                        it?.flush()
+                                        it?.close()
+                                        mainFile.close()*/
+                                        Files.copy(File("$target.mp3").toPath(),it)
+                                    }
+                                    values.clear()
+                                    values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                                    applicationContext.contentResolver.update(songUri, values, null, null)
+                                    File("$target.mp3").delete()
+                                }
+                                Config.RETURN_CODE_CANCEL -> {
+                                    Log.e(
+                                        "ERR>",
+                                        "Command execution cancelled by user."
+                                    )
+                                }
+                                else -> {
+                                    Log.e(
+                                        "ERR>",
+                                        String.format(
+                                            "Command execution failed with rc=%d and the output below.",
+                                            rc
                                         )
-                                    songQueue.clear()
-                                    stopSelf()
-                                } else {
-                                    (++currentIndex).also {
-                                        builder.setSubText("$it of ${songQueue.size}")
-                                    }
-                                    song.resultReceiver.send(123, bundle)
-                                    download(songQueue[currentIndex - 1])
+                                    )
                                 }
                             }
-                            Config.RETURN_CODE_CANCEL -> {
-                                Log.e(
-                                    "ERR>",
-                                    "Command execution cancelled by user."
-                                )
-                            }
-                            else -> {
-                                Log.e(
-                                    "ERR>",
-                                    String.format(
-                                        "Command execution failed with rc=%d and the output below.",
-                                        rc
-                                    )
-                                )
-                            }
-                        }
+                       // File(target).delete()
                     }
 
                     override fun onDeleted(download: Download) {}
@@ -326,6 +358,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
                 })
 
                 fetch?.enqueue(request)
+
             } catch (e: Exception) {
                 Log.e("ERR>", e.toString())
             }

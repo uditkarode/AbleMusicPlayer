@@ -432,7 +432,7 @@ object Shared {
         if (songCursor != null && songCursor.moveToFirst()) {
             do {
                 val path: String = songCursor.getString(2)
-                if (!path.contains("webm") && !path.contains("WhatsApp") && path.contains("sdcard")) {
+                if (!path.contains("webm") && !path.contains("WhatsApp")) {
                     if (path.contains("mp3") || path.contains("m4a")) {
                         songs.add(
                             Song(

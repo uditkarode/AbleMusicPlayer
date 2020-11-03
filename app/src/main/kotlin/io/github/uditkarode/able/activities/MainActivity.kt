@@ -98,7 +98,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
                 startActivity(Intent(this@MainActivity, Welcome::class.java))
             }
         }
-        Shared.setPaths(applicationContext.filesDir)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            Shared.setPaths(applicationContext.getExternalFilesDir("")!!)
 
         launch(Dispatchers.Main) {
             Shared.defBitmap = (ResourcesCompat.getDrawable(

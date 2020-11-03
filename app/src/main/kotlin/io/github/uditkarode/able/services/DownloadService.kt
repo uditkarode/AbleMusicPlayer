@@ -131,6 +131,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
             val id = song.youtubeLink.run {
                 this.substring(this.lastIndexOf("=") + 1)
             }
+
             NotificationManagerCompat.from(this@DownloadService).apply {
                 builder.setSubText("$currentIndex of ${songQueue.size} ")
                 builder.setContentText("${song.name} ${this@DownloadService.getString(R.string.starting)}")
@@ -217,7 +218,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
 
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
                         command += if(format == Format.MODE_MP3) "mp3\"" else "$ext\""
-                        Log.e("asd", "DOING")
+
                             when (val rc = FFmpeg.execute(command)) {
                                 Config.RETURN_CODE_SUCCESS -> {
                                     File(target).delete()
@@ -240,31 +241,36 @@ class DownloadService : JobIntentService(), CoroutineScope {
                                         song.resultReceiver.send(123, bundle)
                                         download(songQueue[currentIndex - 1])
                                     }
-                                    val values = ContentValues().apply {
-                                        put(MediaStore.Audio.Media.DISPLAY_NAME,song.name)
-                                        put(MediaStore.Audio.Media.ARTIST,song.artist)
-                                        put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
-                                        put(MediaStore.Audio.Media.RELATIVE_PATH,"Music/Able")
-                                        put(MediaStore.Audio.Media.IS_PENDING,1)
-                                    }
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                                        val values = ContentValues().apply {
+                                            put(MediaStore.Audio.Media.DISPLAY_NAME, song.name)
+                                            put(MediaStore.Audio.Media.ARTIST, song.artist)
+                                            put(MediaStore.Audio.Media.MIME_TYPE, "audio/mpeg")
+                                            put(MediaStore.Audio.Media.RELATIVE_PATH, "Music/Able")
+                                            put(MediaStore.Audio.Media.IS_PENDING, 1)
+                                        }
 
-                                    val collection = MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                                    val songUri = applicationContext.contentResolver.insert(collection, values)
+                                        val collection =
+                                            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                                        val songUri = applicationContext.contentResolver.insert(
+                                            collection,
+                                            values
+                                        )
 
-                                    applicationContext.contentResolver.openOutputStream(songUri!!).use {
-                                      /*  val mainFile = FileInputStream(File("$target.mp3"))
-                                        var aBytearray = ByteArray(mediaFile.length().toInt())
-                                        mainFile.read(aBytearray)
-                                        it?.write(aBytearray)
-                                        it?.flush()
-                                        it?.close()
-                                        mainFile.close()*/
-                                        Files.copy(File("$target.mp3").toPath(),it)
+                                        applicationContext.contentResolver.openOutputStream(songUri!!)
+                                            .use {
+                                                Files.copy(File("$target.mp3").toPath(), it)
+                                            }
+                                        values.clear()
+                                        values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                                        applicationContext.contentResolver.update(
+                                            songUri,
+                                            values,
+                                            null,
+                                            null
+                                        )
+                                        File("$target.mp3").delete()
                                     }
-                                    values.clear()
-                                    values.put(MediaStore.Video.Media.IS_PENDING, 0)
-                                    applicationContext.contentResolver.update(songUri, values, null, null)
-                                    File("$target.mp3").delete()
                                 }
                                 Config.RETURN_CODE_CANCEL -> {
                                     Log.e(

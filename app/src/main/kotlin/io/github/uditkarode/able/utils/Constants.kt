@@ -18,10 +18,10 @@
 
 package io.github.uditkarode.able.utils
 
-import android.annotation.SuppressLint
 import android.os.Environment
 import java.io.File
 
+@Suppress("DEPRECATION")
 class Constants {
     companion object {
 
@@ -29,8 +29,9 @@ class Constants {
          * a File object pointing to the folder where all AbleMusic related files
          * will be stored.
          */
-        @SuppressLint("SdCardPath")
-        var ableSongDir = File("")
+        var ableSongDir = File(
+                Environment.getExternalStorageDirectory(),
+            "AbleMusic")
 
         /** a File object pointing to the folder where playlist JSONs will be stored */
         @Suppress("DEPRECATION")

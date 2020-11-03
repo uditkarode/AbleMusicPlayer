@@ -439,7 +439,8 @@ object Shared {
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.DATA,
-            MediaStore.Audio.Media.ALBUM_ID
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.IS_MUSIC
         )
         val songCursor: Cursor? = contentResolver.query(
             songUri,

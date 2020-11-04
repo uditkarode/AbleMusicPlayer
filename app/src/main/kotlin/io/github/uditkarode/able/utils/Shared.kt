@@ -391,7 +391,7 @@ object Shared {
                  */
                 if (f.extension == "tmp" ||
                     (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
-                    || (f.extension != "webm")
+                    || (f.extension != "webm" && f.extension!= "mp3")
                 ) {
                     continue
                 }
@@ -446,7 +446,7 @@ object Shared {
         if (songCursor != null && songCursor.moveToFirst()) {
             do {
                 val path: String = songCursor.getString(2)
-                if (!path.contains("webm") && !path.contains("WhatsApp")) {
+                if (!path.contains("webm") && !path.contains("WhatsApp") && (!path.contains("Able"))) {
                     if (path.contains("mp3") || path.contains("m4a")) {
                         songs.add(
                             Song(

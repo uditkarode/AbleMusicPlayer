@@ -199,6 +199,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
                             ""
                         )
                         name = name.replace(Regex("\\[HD\\s&\\sHQ]"), "")
+                        name = name.replace("\"", "\\\"")
                         val target = mediaFile.absolutePath.toString()
 
                         var command = "-i " +
@@ -217,6 +218,8 @@ class DownloadService : JobIntentService(), CoroutineScope {
 
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
                         command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+
+
                          ffmpegId = FFmpeg.executeAsync(command) { _: Long, returnCode: Int ->
                             when (returnCode) {
                                 Config.RETURN_CODE_SUCCESS -> {

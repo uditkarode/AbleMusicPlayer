@@ -756,7 +756,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             e.printStackTrace()
         }
 
-        if (songCoverArt == null || songCoverArt?.get()?.isRecycled == true) {
+        if (songCoverArt?.get() == null || songCoverArt?.get()?.isRecycled == true) {
             val sArtworkUri =
                 Uri.parse("content://media/external/audio/albumart")
             val albumArtUri =
@@ -781,7 +781,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 songCoverArt = WeakReference(Shared.defBitmap)
             }
         }
-
         builder?.setLargeIcon(songCoverArt?.get())
         builder?.setContentTitle(nameOverride ?: playQueue[currentIndex].name)
         builder?.setContentText(artistOverride ?: playQueue[currentIndex].artist)

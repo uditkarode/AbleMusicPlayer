@@ -217,9 +217,9 @@ class DownloadService : JobIntentService(), CoroutineScope {
                             command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
 
                         command += "\"${Constants.ableSongDir.absolutePath}/$id."
-                        command += if(format == Format.MODE_MP3) "mp3\"" else "$ext\""
-
-                            when (val rc = FFmpeg.execute(command)) {
+                        command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+                        FFmpeg.executeAsync(command) { _: Long, returnCode: Int ->
+                            when (returnCode) {
                                 Config.RETURN_CODE_SUCCESS -> {
                                     File(target).delete()
                                     if (currentIndex == songQueue.size) {
@@ -283,12 +283,12 @@ class DownloadService : JobIntentService(), CoroutineScope {
                                         "ERR>",
                                         String.format(
                                             "Command execution failed with rc=%d and the output below.",
-                                            rc
+                                            returnCode
                                         )
                                     )
                                 }
                             }
-                       // File(target).delete()
+                        }
                     }
 
                     override fun onDeleted(download: Download) {}

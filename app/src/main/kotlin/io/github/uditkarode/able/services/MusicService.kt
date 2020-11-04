@@ -584,11 +584,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
 
 
-            mediaSession.setMetadata(
-                MediaMetadata.Builder()
-                    .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
-                    .build()
-            )
+
 
             showNotification(
                 generateAction(
@@ -785,6 +781,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         builder?.setContentTitle(nameOverride ?: playQueue[currentIndex].name)
         builder?.setContentText(artistOverride ?: playQueue[currentIndex].artist)
 
+        mediaSession.setMetadata(
+            MediaMetadata.Builder()
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
+                .putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, songCoverArt?.get())
+                .build()
+        )
         /* clear actions */
         try {
             val f: Field = builder!!.javaClass.getDeclaredField("mActions")

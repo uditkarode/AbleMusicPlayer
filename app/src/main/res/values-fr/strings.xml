@@ -23,7 +23,7 @@
     <string name="spot_suc">Importation depuis Spotify réussie!</string>
     <string name="spot_invalid">URL de playlist invalide!</string>
     <string name="spot_fail">Échec, :( désolé!</string>
-    <string name="spot_importing">Détendez-vous! On s\\'occupe d\'importer les chansons dès maintenant.</string>
+    <string name="spot_importing">Détendez-vous! On s\'occupe d\'importer les chansons dès maintenant.</string>
     <string name="spot_ytfail">Aucune chanson trouvée sur YouTube :( désolé!</string>
     <string name="init_import">Initialisation de l\'importation…</string>
     <string name="unexpected_err">Un problème est survenu. Veuillez nous le signaler!</string>

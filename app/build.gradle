@@ -96,7 +96,7 @@ dependencies {
     implementation 'com.github.maxbruecken:jaudiotagger-android:995dd88554'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3-native-mt"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.3-native-mt"
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
     implementation(name:'mobile-ffmpeg', ext:'aar')
 }
 

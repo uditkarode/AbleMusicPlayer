@@ -824,7 +824,7 @@ class Player : MusicClientActivity() {
             var didGetArt = false
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             val img = File(
-                Constants.ableSongDir.absolutePath + "/albumArt",
+                Constants.ableSongDir.absolutePath + "/album_art",
                 File(current.filePath).nameWithoutExtension
             )
             val cacheImg = File(

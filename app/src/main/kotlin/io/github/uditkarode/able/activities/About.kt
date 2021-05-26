@@ -29,8 +29,8 @@ import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.databinding.AboutBinding
 import io.github.uditkarode.able.utils.Constants
-import kotlinx.android.synthetic.main.about.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
@@ -38,6 +38,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
  */
 @ExperimentalCoroutinesApi
 class About: AppCompatActivity() {
+    private lateinit var binding: AboutBinding
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
@@ -53,15 +54,17 @@ class About: AppCompatActivity() {
                 )
                 .build()
         )
-        setContentView(R.layout.about)
+        binding = AboutBinding.inflate(layoutInflater)
 
-        version_string.text = Constants.VERSION
+        setContentView(binding.root)
 
-        support.setOnClickListener {
+        binding.versionString.text = Constants.VERSION
+
+        binding.support.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/AbleApp")))
         }
 
-        donate.setOnClickListener {
+        binding.donate.setOnClickListener {
             MaterialDialog(this@About).show {
                 title(text = this@About.getString(R.string.donate))
                 message(text = this@About.getString(R.string.donate_subtext).format("<a href=\"https://paypal.me/uditkarode\">PayPal</a>", "uditkarode@paytm")) {

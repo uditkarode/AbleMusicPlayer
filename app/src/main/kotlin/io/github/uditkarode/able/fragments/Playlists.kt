@@ -39,12 +39,12 @@ import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaylistAdapter
+import io.github.uditkarode.able.databinding.PlaylistsBinding
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.SpotifyImportService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.playlists.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
@@ -54,21 +54,25 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 @ExperimentalCoroutinesApi
 class Playlists : Fragment(), MusicService.MusicClient {
     private var isImporting = false
+    private var _binding: PlaylistsBinding? = null
+
+    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         MusicService.registerClient(this)
-        return inflater.inflate(R.layout.playlists, container, false)
+        _binding = PlaylistsBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        playlists_rv.adapter = PlaylistAdapter(Shared.getPlaylists())
-        playlists_rv.layoutManager = LinearLayoutManager(requireContext())
+        _binding!!.playlistsRv.adapter = PlaylistAdapter(Shared.getPlaylists())
+        _binding!!.playlistsRv.layoutManager = LinearLayoutManager(requireContext())
         var inputId = ""
-        spotbut.setOnClickListener {
+        _binding!!.spotbut.setOnClickListener {
             if (!isImporting) {
                 MaterialDialog(requireContext()).show {
                     title(R.string.spot_title)
@@ -116,6 +120,7 @@ class Playlists : Fragment(), MusicService.MusicClient {
     override fun onDestroy() {
         super.onDestroy()
         MusicService.unregisterClient(this)
+        _binding = null
     }
 
     override fun playStateChanged(state: SongState) {}
@@ -137,13 +142,13 @@ class Playlists : Fragment(), MusicService.MusicClient {
     override fun spotifyImportChange(starting: Boolean) {
         if(starting){
             isImporting = true
-            spotbut.setImageResource(R.drawable.ic_cancle_action)
+            _binding!!.spotbut.setImageResource(R.drawable.ic_cancle_action)
         } else {
             isImporting = false
             WorkManager.getInstance(requireContext()).cancelUniqueWork("SpotifyImport")
             (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
                 playlistAdapter.update(Shared.getPlaylists())
-                spotbut.setImageResource(R.drawable.ic_spot)
+                _binding!!.spotbut.setImageResource(R.drawable.ic_spot)
             }
         }
     }

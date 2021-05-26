@@ -18,6 +18,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,10 +34,10 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
+import io.github.uditkarode.able.databinding.SearchBinding
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
-import kotlinx.android.synthetic.main.search.*
 import kotlinx.coroutines.*
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
@@ -60,17 +61,23 @@ class Search : Fragment(), CoroutineScope {
     }
     
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
+    private var _binding: SearchBinding? = null
+
+    private val binding get() = _binding!!
 
     override fun onDestroy() {
         super.onDestroy()
         coroutineContext.cancelChildren()
+        _binding = null
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? =
-        inflater.inflate(R.layout.search, container, false)
+    ): View {
+        _binding = SearchBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -91,11 +98,11 @@ class Search : Fragment(), CoroutineScope {
 
         when(sp.getString("mode", "Music")){
             "Album" -> {
-                search_mode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_album))
+                _binding!!.searchMode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_album))
             }
 
             "Playlists" -> {
-                search_mode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_playlist))
+                _binding!!.searchMode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_playlist))
             }
         }
 
@@ -103,7 +110,7 @@ class Search : Fragment(), CoroutineScope {
             when (sp.getString("mode", "Music")) {
                 "Music" -> {
                     sp.edit().putString("mode", "Album").apply()
-                    search_mode.setImageDrawable(
+                    _binding!!.searchMode.setImageDrawable(
                         ContextCompat.getDrawable(
                             requireContext(),
                             R.drawable.mode_album
@@ -113,7 +120,7 @@ class Search : Fragment(), CoroutineScope {
 
                 "Album" -> {
                     sp.edit().putString("mode", "Playlists").apply()
-                    search_mode.setImageDrawable(
+                    _binding!!.searchMode.setImageDrawable(
                         ContextCompat.getDrawable(
                             requireContext(),
                             R.drawable.mode_playlist
@@ -123,7 +130,7 @@ class Search : Fragment(), CoroutineScope {
 
                 "Playlists" -> {
                     sp.edit().putString("mode", "Music").apply()
-                    search_mode.setImageDrawable(
+                    _binding!!.searchMode.setImageDrawable(
                         ContextCompat.getDrawable(
                             requireContext(),
                             R.drawable.mode_music
@@ -132,10 +139,10 @@ class Search : Fragment(), CoroutineScope {
                 }
             }
         }.also {
-            search_mode.setOnClickListener(it)
-            search_mode_pr.setOnClickListener(it)
+            _binding!!.searchMode.setOnClickListener(it)
+            _binding!!.searchModePr.setOnClickListener(it)
         }
-        loading_view.enableMergePathsForKitKatAndAbove(true)
+        _binding!!.loadingView.enableMergePathsForKitKatAndAbove(true)
         getItems(view.findViewById(R.id.search_bar),view.findViewById(R.id.search_rv))
     }
 
@@ -143,18 +150,18 @@ class Search : Fragment(), CoroutineScope {
         searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == 6) {
                 if(Shared.isInternetConnected(requireContext())){
-                    loading_view.progress = 0.3080229f
-                    loading_view.playAnimation()
+                    _binding!!.loadingView.progress = 0.3080229f
+                    _binding!!.loadingView.playAnimation()
 
                     if (searchRv.visibility == View.VISIBLE) {
                         searchRv.animate().alpha(0f).duration = 200
                         searchRv.visibility = View.GONE
                     }
                     val text = searchBar.text
-                    if (loading_view.visibility == View.GONE) {
-                        loading_view.alpha = 0f
-                        loading_view.visibility = View.VISIBLE
-                        loading_view.animate().alpha(1f).duration = 200
+                    if (_binding!!.loadingView.visibility == View.GONE) {
+                        _binding!!.loadingView.alpha = 0f
+                        _binding!!.loadingView.visibility = View.VISIBLE
+                        _binding!!.loadingView.animate().alpha(1f).duration = 200
                     }
 
                     hideKeyboard(activity as Activity)
@@ -296,8 +303,8 @@ class Search : Fragment(), CoroutineScope {
                                     searchRv.adapter =
                                         YtResultAdapter(resultArray, WeakReference(this@Search))
                                 searchRv.layoutManager = LinearLayoutManager(requireContext())
-                                loading_view.visibility = View.GONE
-                                loading_view.pauseAnimation()
+                                _binding!!.loadingView.visibility = View.GONE
+                                _binding!!.loadingView.pauseAnimation()
                                 searchRv.alpha = 0f
                                 searchRv.visibility = View.VISIBLE
                                 searchRv.animate().alpha(1f).duration = 200

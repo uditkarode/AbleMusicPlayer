@@ -51,6 +51,7 @@ import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
+import io.github.uditkarode.able.databinding.HomeBinding
 import io.github.uditkarode.able.models.CacheStatus
 import io.github.uditkarode.able.models.Format
 import io.github.uditkarode.able.models.Song
@@ -59,7 +60,6 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
-import kotlinx.android.synthetic.main.home.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -90,6 +90,8 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     var mService: MutableStateFlow<MusicService?> = MutableStateFlow(null)
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
+    private var _binding: HomeBinding? = null
+    private val binding get() = _binding!!
 
     companion object {
         var songAdapter: SongAdapter? = null
@@ -99,16 +101,16 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         super.onDestroy()
         coroutineContext.cancelChildren()
         MusicService.unregisterClient(this)
+        _binding = null
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? =
-        inflater.inflate(
-            R.layout.home,
-            container, false
-        )
+    ): View {
+        _binding = HomeBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -128,7 +130,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             )
             .on(view.findViewById<TextView>(R.id.able_header))
 
-        settings.setOnClickListener {
+        _binding!!.settings.setOnClickListener {
             startActivity(Intent(requireContext(), Settings::class.java))
         }
 

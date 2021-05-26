@@ -48,6 +48,7 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ViewPagerAdapter
+import io.github.uditkarode.able.databinding.ActivityMainBinding
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.models.MusicMode
@@ -61,7 +62,6 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.CustomDownloader
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -87,6 +87,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     private var mService: MusicService? = null
     private var scheduled = false
     private var playing = false
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
@@ -137,27 +138,27 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
                 )
                 .build()
         )
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        setContentView(R.layout.activity_main)
-
-        mainContent = main_content
-        bb_icon.setOnClickListener {
+        mainContent = binding.mainContent
+        binding.bbIcon.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity)) {
                 if (playing) mService?.setPlayPause(SongState.paused)
                 else mService?.setPlayPause(SongState.playing)
             }
         }
         // extend the touchable area for the play button, since it's so small.
-        (bb_icon.parent as View).post {
+        (binding.bbIcon.parent as View).post {
             val rect = Rect().also {
-                bb_icon.getHitRect(it)
+                binding.bbIcon.getHitRect(it)
                 it.top -= 200
                 it.left -= 200
                 it.bottom += 200
                 it.right += 200
             }
 
-            (bb_icon.parent as View).touchDelegate = TouchDelegate(rect, bb_icon)
+            (binding.bbIcon.parent as View).touchDelegate = TouchDelegate(rect, binding.bbIcon)
         }
 
         home = Home()
@@ -170,26 +171,26 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
                 .alpha(1f).duration = 200
         }
 
-        bottomNavigation = bottom_navigation
+        bottomNavigation = binding.bottomNavigation
         bottomNavigation.setOnNavigationItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.home_menu -> main_content.currentItem = 0
-                R.id.search_menu -> main_content.currentItem = 1
-                R.id.settings_menu -> main_content.currentItem = 2
+                R.id.home_menu -> binding.mainContent.currentItem = 0
+                R.id.search_menu -> binding.mainContent.currentItem = 1
+                R.id.settings_menu -> binding.mainContent.currentItem = 2
             }
             true
         }
 
-        activity_seekbar.thumb.alpha = 0
+        binding.activitySeekbar.thumb.alpha = 0
 
-        bb_song.isSelected = true
+        binding.bbSong.isSelected = true
 
-        bb_song.setOnClickListener {
+        binding.bbSong.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
 
-        bb_expand.setOnClickListener {
+        binding.bbExpand.setOnClickListener {
             if (Shared.serviceRunning(MusicService::class.java, this@MainActivity))
                 startActivity(Intent(this@MainActivity, Player::class.java))
         }
@@ -209,15 +210,15 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     }
 
     private fun loadingEvent(loading: Boolean) {
-        bb_ProgressBar?.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.bbProgressBar.visibility = if (loading) View.VISIBLE else View.GONE
         if (!
             loading
         ) {
-            activity_seekbar.visibility = View.VISIBLE
-            bn_parent.invalidate()
+            binding.activitySeekbar.visibility = View.VISIBLE
+            binding.bnParent.invalidate()
         } else {
-            activity_seekbar.visibility = View.GONE
-            bn_parent.invalidate()
+            binding.activitySeekbar.visibility = View.GONE
+            binding.bnParent.invalidate()
         }
     }
 
@@ -234,12 +235,12 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
         launch(Dispatchers.Main) {
             if (state == SongState.playing) {
                 Glide.with(this@MainActivity).load(R.drawable.pause)
-                    .into(bb_icon)
+                    .into(binding.bbIcon)
 
                 playing = true
             } else {
                 playing = false
-                Glide.with(this@MainActivity).load(R.drawable.play).into(bb_icon)
+                Glide.with(this@MainActivity).load(R.drawable.play).into(binding.bbIcon)
             }
 
             if (state == SongState.playing) startSeekbarUpdates()
@@ -259,7 +260,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    activity_seekbar.progress =
+                    binding.activitySeekbar.progress =
                         mService?.getMediaPlayer()?.currentPosition ?: 0 //todo fix
                 }
             }, 0, 1000)
@@ -270,19 +271,19 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
     fun songChange() {
         if(mService != null) {
             launch(Dispatchers.Main) {
-                activity_seekbar.progress = 0
-                activity_seekbar.max = mService!!.getMediaPlayer().duration
+                binding.activitySeekbar.progress = 0
+                binding.activitySeekbar.max = mService!!.getMediaPlayer().duration
 
                 startSeekbarUpdates()
                 val song = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    bb_song.text = Html.fromHtml(
+                    binding.bbSong.text = Html.fromHtml(
                         "${song.name} <font color=\"#5e92f3\">•</font> ${song.artist}",
                         HtmlCompat.FROM_HTML_MODE_LEGACY
                     )
                 } else {
-                    bb_song.text = "${song.name} • ${song.artist}"
+                    binding.bbSong.text = "${song.name} • ${song.artist}"
                 }
             }
         }
@@ -368,7 +369,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun durationChanged(duration: Int) {
         launch(Dispatchers.Main) {
-            activity_seekbar.max = duration
+            binding.activitySeekbar.max = duration
         }
     }
 

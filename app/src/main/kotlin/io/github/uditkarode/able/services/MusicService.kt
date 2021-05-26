@@ -844,9 +844,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             notificationManager.notify(1, builder?.build())
         }
-
-        songCoverArt?.get()?.recycle()
-        songCoverArt?.clear()
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

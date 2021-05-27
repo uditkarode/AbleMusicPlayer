@@ -732,6 +732,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         nameOverride: String? = null,
         artistOverride: String? = null
     ) {
+        songCoverArt = null
         try {
             if (image == null) {
                 File(
@@ -781,7 +782,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 songCoverArt = WeakReference(Shared.defBitmap)
             }
         }
-
         builder?.setLargeIcon(songCoverArt?.get())
         builder?.setContentTitle(nameOverride ?: playQueue[currentIndex].name)
         builder?.setContentText(artistOverride ?: playQueue[currentIndex].artist)
@@ -844,9 +844,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             notificationManager.notify(1, builder?.build())
         }
-
-        songCoverArt?.get()?.recycle()
-        songCoverArt?.clear()
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

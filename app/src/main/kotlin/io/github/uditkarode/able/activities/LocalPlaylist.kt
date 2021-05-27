@@ -36,11 +36,10 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.LocalPlaylistAdapter
+import io.github.uditkarode.able.databinding.LocalplaylistBinding
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.albumplaylist.*
-import kotlinx.android.synthetic.main.search.loading_view
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -58,6 +57,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
     private var resultArray = ArrayList<Song>()
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
+    private lateinit var binding: LocalplaylistBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,9 +73,10 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 )
                 .build()
         )
-        setContentView(R.layout.localplaylist)
-        loading_view.progress = 0.3080229f
-        loading_view.playAnimation()
+        binding = LocalplaylistBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.loadingView.progress = 0.3080229f
+        binding.loadingView.playAnimation()
         val name = intent.getStringExtra("name") ?: ""
 
         serviceConn = object : ServiceConnection {
@@ -89,9 +90,9 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             }
         }
 
-        playbum_name.text = name.replace(".json", "")
+        binding.playbumName.text = name.replace(".json", "")
 
-        playbum_play.setOnClickListener {
+        binding.playbumPlay.setOnClickListener {
             var freshStart = false
 
             if (!Shared.serviceRunning(MusicService::class.java, this)) {
@@ -130,16 +131,16 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             resultArray = Shared.getSongsFromPlaylistFile(name)
 
             launch(Dispatchers.Main) {
-                ap_rv.adapter = LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
-                ap_rv.layoutManager = LinearLayoutManager(this@LocalPlaylist)
-                loading_view.visibility = View.GONE
-                loading_view.pauseAnimation()
-                ap_rv.alpha = 0f
-                ap_rv.visibility = View.VISIBLE
-                ap_rv.animate().alpha(1f).duration = 200
-                sr_pr.alpha = 0f
-                sr_pr.visibility = View.VISIBLE
-                sr_pr.animate().alpha(1f).duration = 200
+                binding.apRv.adapter = LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
+                binding.apRv.layoutManager = LinearLayoutManager(this@LocalPlaylist)
+                binding.loadingView.visibility = View.GONE
+                binding.loadingView.pauseAnimation()
+                binding.apRv.alpha = 0f
+                binding.apRv.visibility = View.VISIBLE
+                binding.apRv.animate().alpha(1f).duration = 200
+                binding.srPr.alpha = 0f
+                binding.srPr.visibility = View.VISIBLE
+                binding.srPr.animate().alpha(1f).duration = 200
             }
         }
     }
@@ -204,7 +205,8 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (!this.isDestroyed)
-            Glide.with(this).clear(playbum_art)
+        //Need to fix this, there is no playbum_art in local_playlist.xml
+//        if (!this.isDestroyed)
+//            Glide.with(this).clear(binding.playbumArt)
     }
 }

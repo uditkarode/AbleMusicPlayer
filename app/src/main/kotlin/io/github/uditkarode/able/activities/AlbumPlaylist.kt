@@ -35,11 +35,10 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaybumAdapter
+import io.github.uditkarode.able.databinding.AlbumplaylistBinding
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.android.synthetic.main.albumplaylist.*
-import kotlinx.android.synthetic.main.search.loading_view
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -59,6 +58,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
     var isBound = false
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
+    private lateinit var binding: AlbumplaylistBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,9 +74,10 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 )
                 .build()
         )
-        setContentView(R.layout.albumplaylist)
-        loading_view.progress = 0.3080229f
-        loading_view.playAnimation()
+        binding = AlbumplaylistBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.loadingView.progress = 0.3080229f
+        binding.loadingView.playAnimation()
         val name = intent.getStringExtra("name") ?: ""
         val artist = intent.getStringExtra("artist") ?: ""
         val art = intent.getStringExtra("art") ?: ""
@@ -93,16 +94,16 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             }
         }
 
-        playbum_name.text = name
-        playbum_artist.text = artist
+        binding.playbumName.text = name
+        binding.playbumArtist.text = artist
         Glide
             .with(this@AlbumPlaylist)
             .load(art)
             .diskCacheStrategy(DiskCacheStrategy.NONE)
             .skipMemoryCache(true)
-            .into(playbum_art)
+            .into(binding.playbumArt)
 
-        playbum_play.setOnClickListener {
+        binding.playbumPlay.setOnClickListener {
             var freshStart = false
             if (!Shared.serviceRunning(MusicService::class.java, this)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -155,17 +156,17 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             }
 
             launch(Dispatchers.Main) {
-                ap_rv.adapter =
+                binding.apRv.adapter =
                     PlaybumAdapter(resultArray, WeakReference(this@AlbumPlaylist), "Song")
-                ap_rv.layoutManager = LinearLayoutManager(this@AlbumPlaylist)
-                loading_view.visibility = View.GONE
-                loading_view.pauseAnimation()
-                ap_rv.alpha = 0f
-                ap_rv.visibility = View.VISIBLE
-                ap_rv.animate().alpha(1f).duration = 200
-                sr_pr.alpha = 0f
-                sr_pr.visibility = View.VISIBLE
-                sr_pr.animate().alpha(1f).duration = 200
+                binding.apRv.layoutManager = LinearLayoutManager(this@AlbumPlaylist)
+                binding.loadingView.visibility = View.GONE
+                binding.loadingView.pauseAnimation()
+                binding.apRv.alpha = 0f
+                binding.apRv.visibility = View.VISIBLE
+                binding.apRv.animate().alpha(1f).duration = 200
+                binding.srPr.alpha = 0f
+                binding.srPr.visibility = View.VISIBLE
+                binding.srPr.animate().alpha(1f).duration = 200
             }
         }
     }
@@ -226,16 +227,16 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
         super.onBackPressed()
         Handler(Looper.getMainLooper()).postDelayed({
             if (!this.isDestroyed)
-                Glide.with(this).clear(playbum_art)
+                Glide.with(this).clear(binding.playbumArt)
         }, 300)
-        Glide.with(this).clear(playbum_art)
+        Glide.with(this).clear(binding.playbumArt)
         finish()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         if (!this.isDestroyed)
-            Glide.with(this).clear(playbum_art)
+            Glide.with(this).clear(binding.playbumArt)
     }
 
     override fun onResume() {

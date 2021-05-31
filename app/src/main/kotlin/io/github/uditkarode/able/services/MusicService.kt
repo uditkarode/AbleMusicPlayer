@@ -583,13 +583,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                     }
             }
 
-
-            mediaSession.setMetadata(
-                MediaMetadata.Builder()
-                    .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
-                    .build()
-            )
-
             showNotification(
                 generateAction(
                     R.drawable.notif_pause,
@@ -844,6 +837,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             notificationManager.notify(1, builder?.build())
         }
+        mediaSession.setMetadata(
+            MediaMetadata.Builder()
+                .putBitmap(MediaMetadata.METADATA_KEY_ART, songCoverArt?.get())
+                .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
+                .putString(MediaMetadata.METADATA_KEY_ARTIST, artistOverride ?: playQueue[currentIndex].artist)
+                .putString(MediaMetadata.METADATA_KEY_TITLE, nameOverride ?: playQueue[currentIndex].name)
+                .build()
+        )
     }
 
     override fun onAudioFocusChange(focusChange: Int) {

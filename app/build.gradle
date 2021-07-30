@@ -91,7 +91,7 @@ dependencies {
     implementation 'androidx.preference:preference:1.1.1'
     implementation 'com.takisoft.preferencex:preferencex:1.1.0'
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
     implementation 'androidx.tonyodev.fetch2:xfetch2:3.1.6'
     implementation 'androidx.work:work-runtime:2.5.0'
     implementation 'androidx.palette:palette:1.0.0'

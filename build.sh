@@ -15,6 +15,7 @@ git reset --hard 1798529c23bb57742e544e75b030aa2ce16baebb
 git reflog expire --all --expire=now
 git gc --prune=now --aggressive
 cd ..
+export PATH="/usr/lib/jvm/java-11-openjdk/bin:$PATH"
 ./gradlew assembleRelease
 bash movebuild.sh "arm64-v8a"
 sed -i s/armeabi-v7a/arm64-v8a/ app/build.gradle

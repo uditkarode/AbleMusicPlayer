@@ -77,7 +77,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'com.afollestad.material-dialogs:core:3.3.0'
     implementation 'com.afollestad.material-dialogs:input:3.3.0'
-    implementation 'com.squareup.okhttp3:okhttp:4.9.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.9.2'
     implementation 'com.github.TeamNewPipe.NewPipeExtractor:NewPipeExtractor:0.21.11'
     //noinspection GradleDependency
     implementation 'io.github.dreierf:material-intro-screen:0.0.6'

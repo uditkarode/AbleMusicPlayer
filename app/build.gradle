@@ -93,7 +93,7 @@ dependencies {
     implementation 'androidx.coordinatorlayout:coordinatorlayout:1.1.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
     implementation 'androidx.tonyodev.fetch2:xfetch2:3.1.6'
-    implementation 'androidx.work:work-runtime:2.5.0'
+    implementation 'androidx.work:work-runtime:2.7.0'
     implementation 'androidx.palette:palette:1.0.0'
     implementation 'com.github.maxbruecken:jaudiotagger-android:995dd88554'
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.1-native-mt"

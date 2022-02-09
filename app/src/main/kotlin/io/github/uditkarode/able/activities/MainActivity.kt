@@ -93,12 +93,12 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
         NewPipe.init(CustomDownloader.getInstance())
         System.loadLibrary("song-actions")
 
-        launch(Dispatchers.Default) {
-            if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                startActivity(Intent(this@MainActivity, Welcome::class.java))
-            }
+        if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            super.onCreate(savedInstanceState)
+            startActivity(Intent(this@MainActivity, Welcome::class.java))
+            return;
         }
 
         launch(Dispatchers.Main) {

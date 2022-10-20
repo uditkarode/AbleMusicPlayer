@@ -92,7 +92,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.9.0'
     implementation 'com.afollestad.material-dialogs:bottomsheets:3.3.0'
     implementation 'com.github.bumptech.glide:glide:4.12.0'
-    implementation 'com.flurry.android:analytics:13.0.0@aar'
+    implementation 'com.flurry.android:analytics:14.0.0@aar'
     implementation 'com.makeramen:roundedimageview:2.3.0'
     implementation 'androidx.preference:preference-ktx:1.2.0'
     implementation 'com.takisoft.preferencex:preferencex:1.1.0'

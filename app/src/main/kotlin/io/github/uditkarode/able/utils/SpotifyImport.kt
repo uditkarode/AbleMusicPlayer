@@ -141,7 +141,7 @@ object SpotifyImport: CoroutineScope {
 
                             val url = stream.url
                             val bitrate = stream.averageBitrate
-                            val ext = stream.getFormat().suffix
+                            val ext = stream.getFormat()!!.suffix
                             val mediaFile = File(Constants.playlistSongDir, fileName)
                             var finalExt = "."
 
@@ -150,7 +150,7 @@ object SpotifyImport: CoroutineScope {
 
                             try {
                                 val request =
-                                    Request(url, mediaFile.absolutePath + ".tmp.$ext").also {
+                                    Request(url!!, mediaFile.absolutePath + ".tmp.$ext").also {
                                         it.priority = Priority.HIGH
                                         it.networkType = NetworkType.ALL
                                     }

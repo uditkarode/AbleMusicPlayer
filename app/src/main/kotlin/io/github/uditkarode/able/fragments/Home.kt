@@ -261,7 +261,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
                 val url = stream.url
                 val bitrate = stream.averageBitrate
-                val ext = stream.getFormat().suffix
+                val ext = stream.getFormat()!!.suffix
                 songId = Shared.getIdFromLink(song.youtubeLink)
 
                 File(Constants.ableSongDir, "$songId.tmp.webm").run {
@@ -294,13 +294,13 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                             ): Boolean {
                                 if (resource != null) {
                                     if (toCache) {
-                                        if (cacheMusic(song, url, ext, bitrate))
+                                        if (cacheMusic(song, url!!, ext, bitrate))
                                             Shared.saveAlbumArtToDisk(
                                                 resource,
                                                 File(Constants.albumArtDir, songId)
                                             )
                                     } else {
-                                        song.filePath = url
+                                        song.filePath = url!!
 
                                         Shared.saveStreamingAlbumArt(
                                             resource,

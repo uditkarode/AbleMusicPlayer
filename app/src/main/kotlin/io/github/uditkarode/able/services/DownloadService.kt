@@ -137,7 +137,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
 
             val url = stream.url
             val bitrate = stream.averageBitrate
-            val ext = stream.getFormat().suffix
+            val ext = stream.getFormat()!!.suffix
             val mediaFile = File(Constants.ableSongDir, id)
 
             if (!Constants.ableSongDir.exists()) {
@@ -154,7 +154,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
                 notify(2, builder.build())
             }
             try {
-                val request = Request(url, mediaFile.absolutePath).also {
+                val request = Request(url!!, mediaFile.absolutePath).also {
                     it.priority = Priority.HIGH
                     it.networkType = NetworkType.ALL
                 }

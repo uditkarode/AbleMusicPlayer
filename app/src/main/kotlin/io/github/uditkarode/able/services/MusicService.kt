@@ -901,7 +901,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                                     )
                                 }
                                 val url = stream.url
-                                playQueue[currentIndex].filePath = url
+                                playQueue[currentIndex].filePath = url!!
                                 return false
                             }
                         }).submit()

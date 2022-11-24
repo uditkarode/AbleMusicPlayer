@@ -19,6 +19,7 @@
 package io.github.uditkarode.able.activities
 
 import android.Manifest
+import android.content.Intent
 import android.os.Bundle
 import io.github.dreierf.materialintroscreen.MaterialIntroActivity
 import io.github.dreierf.materialintroscreen.SlideFragmentBuilder
@@ -58,5 +59,11 @@ class Welcome: MaterialIntroActivity() {
                         " the telegram channel @ableci or @AbleMusicPlayer")
                 .build()
         )
+    }
+
+    override fun onFinish() {
+        super.onFinish()
+        val intent = Intent(this,MainActivity::class.java)
+        startActivity(intent)
     }
 }

@@ -10,7 +10,7 @@ android {
     }
     namespace 'io.github.uditkarode.able'
     ndkVersion '21.0.6113669'
-    compileSdkVersion 32
+    compileSdkVersion 33
     buildToolsVersion '30.0.3'
     defaultConfig {
         applicationId "io.github.uditkarode.able"

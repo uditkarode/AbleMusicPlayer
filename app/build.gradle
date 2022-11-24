@@ -5,6 +5,9 @@ android {
     lint {
         disable 'RestrictedApi'
     }
+    lintOptions {
+        disable 'ExpiredTargetSdkVersion'
+    }
     namespace 'io.github.uditkarode.able'
     ndkVersion '21.0.6113669'
     compileSdkVersion 31

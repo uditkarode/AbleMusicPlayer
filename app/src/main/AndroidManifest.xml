@@ -28,7 +28,9 @@
 
         <activity android:name=".activities.Player" android:theme="@style/PlayerTheme" android:noHistory="true"/>
 
-        <activity android:name=".activities.Splash" android:theme="@style/SplashTheme">
+        <activity android:name=".activities.Splash"
+            android:exported="true"
+            android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

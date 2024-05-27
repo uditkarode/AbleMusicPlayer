@@ -36,6 +36,8 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaybumAdapter
 import io.github.uditkarode.able.databinding.AlbumplaylistBinding
+import io.github.uditkarode.able.fragments.Search
+import io.github.uditkarode.able.fragments.Search.Companion
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
@@ -139,22 +141,30 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
         launch(Dispatchers.IO) {
             val plExtractor = YouTube.getPlaylistExtractor(link)
             plExtractor.fetchPage()
+            var thumbnailUrl: String = ""
             for (song in plExtractor.initialPage.items) {
                 val ex = song as StreamInfoItem
-                if (song.thumbnailUrl.contains("ytimg")) {
-                    val songId = Shared.getIdFromLink(ex.url)
-                    song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                for (thumbnail in song.thumbnails) {
+                    if (thumbnail.url.contains("ytimg")) {
+                        val songId = Shared.getIdFromLink(ex.url)
+                        thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                        break
+                    }
                 }
-                resultArray.add(
+
+                // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                    thumbnailUrl = song.thumbnails[0].url
+                }
+                Search.resultArray.add(
                     Song(
                         name = ex.name,
                         artist = ex.uploaderName,
                         youtubeLink = ex.url,
-                        ytmThumbnail = song.thumbnailUrl
+                        ytmThumbnail = thumbnailUrl
                     )
                 )
             }
-
             launch(Dispatchers.Main) {
                 binding.apRv.adapter =
                     PlaybumAdapter(resultArray, WeakReference(this@AlbumPlaylist), "Song")

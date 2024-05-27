@@ -197,18 +197,28 @@ class Search : Fragment(), CoroutineScope {
 
                                         extractor.fetchPage()
 
+                                        var thumbnailUrl: String = ""
+
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as StreamInfoItem
-                                            if(song.thumbnailUrl.contains("ytimg")) {
-                                                val songId = Shared.getIdFromLink(ex.url)
-                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            for (thumbnail in song.thumbnails) {
+                                                if (thumbnail.url.contains("ytimg")) {
+                                                    val songId = Shared.getIdFromLink(ex.url)
+                                                    thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                                    break
+                                                }
+                                            }
+
+                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                                thumbnailUrl = song.thumbnails[0].url
                                             }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
                                                     artist = ex.uploaderName,
                                                     youtubeLink = ex.url,
-                                                    ytmThumbnail = song.thumbnailUrl
+                                                    ytmThumbnail = thumbnailUrl
                                                 )
                                             )
                                         }
@@ -222,19 +232,27 @@ class Search : Fragment(), CoroutineScope {
                                         )
 
                                         extractor.fetchPage()
-
+                                        var thumbnailUrl: String = ""
                                         for (song in extractor.initialPage.items) {
-                                            val ex = song as PlaylistInfoItem
-                                            if(song.thumbnailUrl.contains("ytimg")) {
-                                                val songId = Shared.getIdFromLink(ex.url)
-                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            val ex = song as StreamInfoItem
+                                            for (thumbnail in song.thumbnails) {
+                                                if (thumbnail.url.contains("ytimg")) {
+                                                    val songId = Shared.getIdFromLink(ex.url)
+                                                    thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                                    break
+                                                }
+                                            }
+
+                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                                thumbnailUrl = song.thumbnails[0].url
                                             }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
                                                     artist = ex.uploaderName,
                                                     youtubeLink = ex.url,
-                                                    ytmThumbnail = song.thumbnailUrl
+                                                    ytmThumbnail = thumbnailUrl
                                                 )
                                             )
                                         }
@@ -252,18 +270,30 @@ class Search : Fragment(), CoroutineScope {
 
                                         extractor.fetchPage()
 
+                                        var thumbnailUrl: String = ""
                                         for (song in extractor.initialPage.items) {
-                                            val ex = song as PlaylistInfoItem
+                                            val ex = song as StreamInfoItem
+                                            for (thumbnail in song.thumbnails) {
+                                                if (thumbnail.url.contains("ytimg")) {
+                                                    val songId = Shared.getIdFromLink(ex.url)
+                                                    thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                                    break
+                                                }
+                                            }
+
+                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                                thumbnailUrl = song.thumbnails[0].url
+                                            }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
                                                     artist = ex.uploaderName,
                                                     youtubeLink = ex.url,
-                                                    ytmThumbnail = song.thumbnailUrl
+                                                    ytmThumbnail = thumbnailUrl
                                                 )
                                             )
-                                        }
-                                    }
+                                        }                                    }
                                 }
                             } else {
                                 val extractor = YouTube.getSearchExtractor(
@@ -274,22 +304,30 @@ class Search : Fragment(), CoroutineScope {
 
                                 extractor.fetchPage()
 
+                                var thumbnailUrl: String = ""
                                 for (song in extractor.initialPage.items) {
                                     val ex = song as StreamInfoItem
-                                    if(song.thumbnailUrl.contains("ytimg")) {
-                                        val songId = Shared.getIdFromLink(ex.url)
-                                        song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                    for (thumbnail in song.thumbnails) {
+                                        if (thumbnail.url.contains("ytimg")) {
+                                            val songId = Shared.getIdFromLink(ex.url)
+                                            thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            break
+                                        }
+                                    }
+
+                                    // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                    if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                        thumbnailUrl = song.thumbnails[0].url
                                     }
                                     resultArray.add(
                                         Song(
                                             name = ex.name,
                                             artist = ex.uploaderName,
                                             youtubeLink = ex.url,
-                                            ytmThumbnail = song.thumbnailUrl
+                                            ytmThumbnail = thumbnailUrl
                                         )
                                     )
-                                }
-                            }
+                                }                            }
 
                             launch(Dispatchers.Main) {
                                 if (useYtMusic)

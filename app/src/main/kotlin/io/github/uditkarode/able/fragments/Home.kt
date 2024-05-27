@@ -383,7 +383,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
             val format =
                 if (PreferenceManager.getDefaultSharedPreferences(
-                        context!!
+                        requireContext()
                     )
                         .getString(
                             "format_key",

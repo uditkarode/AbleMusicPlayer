@@ -119,18 +119,18 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             }
 
             launch(Dispatchers.Default) {
-                val playSong = fun(){
+                val playSong = fun() {
                     val mService = mService.value!!
                     mService.setQueue(resultArray)
                     mService.setIndex(0)
-                    if(freshStart)
+                    if (freshStart)
                         MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                 }
 
-                if(mService.value != null) playSong()
+                if (mService.value != null) playSong()
                 else {
                     mService.collect {
-                        if(it != null) {
+                        if (it != null) {
                             playSong()
                         }
                     }
@@ -218,14 +218,14 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 val mService = mService.value!!
                 mService.setQueue(array)
                 mService.setIndex(index)
-                if(freshStart)
+                if (freshStart)
                     MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
             }
 
-            if(mService.value != null) playSong()
+            if (mService.value != null) playSong()
             else {
                 mService.collect {
-                    if(it != null){
+                    if (it != null) {
                         playSong()
                     }
                 }
@@ -251,7 +251,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
 
     override fun onResume() {
         super.onResume()
-        if(mService.value == null)
+        if (mService.value == null)
             bindEvent()
     }
 }

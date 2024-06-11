@@ -33,6 +33,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
@@ -209,11 +210,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                         this,
                         0,
                         Intent(this, Player::class.java),
-                        0
+                        PendingIntent.FLAG_IMMUTABLE
                     )
                 )
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setDeleteIntent(PendingIntent.getService(this, 1, intent, 0))
+                .setDeleteIntent(PendingIntent.getService(this, 1, intent,
+                    PendingIntent.FLAG_IMMUTABLE))
                 .setOngoing(true)
                 .style = style
         }
@@ -714,7 +716,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         val intent = Intent(this, MusicService::class.java)
         intent.action = intentAction
         val pendingIntent =
-            PendingIntent.getService(this, 1, intent, 0)
+            PendingIntent.getService(this, 1, intent, PendingIntent.FLAG_IMMUTABLE)
         @Suppress("DEPRECATION")
         return Notification.Action.Builder(icon, title, pendingIntent).build()
     }

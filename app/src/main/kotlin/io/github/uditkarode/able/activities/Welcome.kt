@@ -39,8 +39,7 @@ class Welcome: MaterialIntroActivity() {
                 .buttonsColor(R.color.colorAccent)
                 .neededPermissions(
                     arrayOf(
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        Manifest.permission.READ_MEDIA_AUDIO
                     )
                 )
                 .image(io.github.dreierf.materialintroscreen.R.drawable.ic_next)

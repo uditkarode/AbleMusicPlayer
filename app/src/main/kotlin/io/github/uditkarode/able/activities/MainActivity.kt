@@ -91,9 +91,9 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
-        System.loadLibrary("song-actions")
+//        System.loadLibrary("song-actions")
 
-        if (checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        if (checkCallingOrSelfPermission(Manifest.permission.READ_MEDIA_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
             super.onCreate(savedInstanceState)
@@ -113,7 +113,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
                 byte,
                 0, byte.size
             )
-            Shared.setupFetch(this@MainActivity)
+//            Shared.setupFetch(this@MainActivity)
 
             okClient = OkHttpClient()
             mServiceResultReceiver = ServiceResultReceiver(Handler(Looper.getMainLooper()))

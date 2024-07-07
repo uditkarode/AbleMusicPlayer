@@ -1,0 +1,87 @@
+[versions]
+analytics = "14.0.0"
+appcompat = "1.5.1"
+bottomsheets = "3.3.0"
+calligraphy3 = "3.1.1"
+compiler = "4.14.2"
+constraintlayout = "2.1.4"
+coordinatorlayout = "1.2.0"
+core = "3.3.0"
+coreKtx = "1.9.0"
+glide = "4.14.2"
+gradient = "1.0.1"
+agp = "8.4.0"
+gson = "2.10"
+input = "3.3.0"
+jaudiotaggerAndroid = "995dd88554"
+#kotlinGradlePlugin = "1.7.10"
+#kotlinStdlibJdk7 = "1.7.0"
+#kotlinxCoroutinesAndroid = "1.6.4"
+#kotlinxCoroutinesCore = "1.6.4"
+coroutines = "1.7.3"
+lifecycleViewmodelKtx = "2.5.1"
+lottie = "5.2.0"
+material = "1.6.1"
+materialIntroScreen = "0.0.6"
+newpipeextractor = "v0.24.0"
+okhttp = "4.10.0"
+paletteKtx = "1.0.0"
+preferenceKtx = "1.2.0"
+preferencex = "1.1.0"
+recyclerview = "1.2.1"
+roundedimageview = "2.3.0"
+viewpump = "2.0.3"
+workRuntime = "2.7.1"
+xfetch2 = "3.1.6"
+kotlin = "1.9.21"
+
+[libraries]
+analytics = { module = "com.flurry.android:analytics", version.ref = "analytics" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+calligraphy3 = { module = "io.github.inflationx:calligraphy3", version.ref = "calligraphy3" }
+constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+coordinatorlayout = { module = "androidx.coordinatorlayout:coordinatorlayout", version.ref = "coordinatorlayout" }
+core = { module = "com.afollestad.material-dialogs:core", version.ref = "core" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+glide-compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "compiler" }
+gradient = { module = "co.revely:gradient", version.ref = "gradient" }
+#gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+jaudiotagger-android = { module = "com.github.maxbruecken:jaudiotagger-android", version.ref = "jaudiotaggerAndroid" }
+jetbrains-kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+#kotlin-gradle-plugin-v1710 = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
+kotlin-stdlib-jdk7 = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk7", version.ref = "kotlin" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
+lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+material-dialogs-bottomsheets = { module = "com.afollestad.material-dialogs:bottomsheets", version.ref = "bottomsheets" }
+material-dialogs-input = { module = "com.afollestad.material-dialogs:input", version.ref = "input" }
+material-intro-screen = { module = "io.github.dreierf:material-intro-screen", version.ref = "materialIntroScreen" }
+newpipeextractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipeextractor" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }
+preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = "preferenceKtx" }
+preferencex = { module = "com.takisoft.preferencex:preferencex", version.ref = "preferencex" }
+recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
+roundedimageview = { module = "com.makeramen:roundedimageview", version.ref = "roundedimageview" }
+viewpump = { module = "io.github.inflationx:viewpump", version.ref = "viewpump" }
+work-runtime = { module = "androidx.work:work-runtime", version.ref = "workRuntime" }
+xfetch2 = { module = "androidx.tonyodev.fetch2:xfetch2", version.ref = "xfetch2" }
+
+# Dependencies of the included build-logic
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+#spotless-gradlePlugin = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+#ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+#spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+

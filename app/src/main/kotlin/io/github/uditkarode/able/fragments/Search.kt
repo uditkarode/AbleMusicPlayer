@@ -18,7 +18,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -38,7 +37,12 @@ import io.github.uditkarode.able.databinding.SearchBinding
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
@@ -53,13 +57,15 @@ import java.util.Collections.singletonList
 class Search : Fragment(), CoroutineScope {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences
+
     companion object {
         val resultArray = ArrayList<Song>()
     }
+
     interface SongCallback {
-        fun sendItem(song: Song , mode:String = "")
+        fun sendItem(song: Song, mode: String = "")
     }
-    
+
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
     private var _binding: SearchBinding? = null
 
@@ -96,13 +102,23 @@ class Search : Fragment(), CoroutineScope {
 
         sp = requireContext().getSharedPreferences("search", 0)
 
-        when(sp.getString("mode", "Music")){
+        when (sp.getString("mode", "Music")) {
             "Album" -> {
-                _binding!!.searchMode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_album))
+                _binding!!.searchMode.setImageDrawable(
+                    ContextCompat.getDrawable(
+                        requireContext(),
+                        R.drawable.mode_album
+                    )
+                )
             }
 
             "Playlists" -> {
-                _binding!!.searchMode.setImageDrawable(ContextCompat.getDrawable(requireContext(), R.drawable.mode_playlist))
+                _binding!!.searchMode.setImageDrawable(
+                    ContextCompat.getDrawable(
+                        requireContext(),
+                        R.drawable.mode_playlist
+                    )
+                )
             }
         }
 
@@ -143,13 +159,13 @@ class Search : Fragment(), CoroutineScope {
             _binding!!.searchModePr.setOnClickListener(it)
         }
         _binding!!.loadingView.enableMergePathsForKitKatAndAbove(true)
-        getItems(view.findViewById(R.id.search_bar),view.findViewById(R.id.search_rv))
+        getItems(view.findViewById(R.id.search_bar), view.findViewById(R.id.search_rv))
     }
 
-    private fun getItems(searchBar:EditText, searchRv:RecyclerView){
+    private fun getItems(searchBar: EditText, searchRv: RecyclerView) {
         searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == 6) {
-                if(Shared.isInternetConnected(requireContext())){
+                if (Shared.isInternetConnected(requireContext())) {
                     _binding!!.loadingView.progress = 0.3080229f
                     _binding!!.loadingView.playAnimation()
 
@@ -197,18 +213,29 @@ class Search : Fragment(), CoroutineScope {
 
                                         extractor.fetchPage()
 
+                                        var thumbnailUrl: String = ""
+
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as StreamInfoItem
-                                            if(song.thumbnailUrl.contains("ytimg")) {
-                                                val songId = Shared.getIdFromLink(ex.url)
-                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            for (thumbnail in song.thumbnails) {
+                                                if (thumbnail.url.contains("ytimg")) {
+                                                    val songId = Shared.getIdFromLink(ex.url)
+                                                    thumbnailUrl =
+                                                        "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                                    break
+                                                }
+                                            }
+
+                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                                thumbnailUrl = song.thumbnails[0].url
                                             }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
                                                     artist = ex.uploaderName,
                                                     youtubeLink = ex.url,
-                                                    ytmThumbnail = song.thumbnailUrl
+                                                    ytmThumbnail = thumbnailUrl
                                                 )
                                             )
                                         }
@@ -222,19 +249,28 @@ class Search : Fragment(), CoroutineScope {
                                         )
 
                                         extractor.fetchPage()
-
+                                        var thumbnailUrl: String = ""
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
-                                            if(song.thumbnailUrl.contains("ytimg")) {
-                                                val songId = Shared.getIdFromLink(ex.url)
-                                                song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            for (thumbnail in song.thumbnails) {
+                                                if (thumbnail.url.contains("ytimg")) {
+                                                    val songId = Shared.getIdFromLink(ex.url)
+                                                    thumbnailUrl =
+                                                        "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                                    break
+                                                }
+                                            }
+
+                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                                thumbnailUrl = song.thumbnails[0].url
                                             }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
                                                     artist = ex.uploaderName,
                                                     youtubeLink = ex.url,
-                                                    ytmThumbnail = song.thumbnailUrl
+                                                    ytmThumbnail = thumbnailUrl
                                                 )
                                             )
                                         }
@@ -252,14 +288,28 @@ class Search : Fragment(), CoroutineScope {
 
                                         extractor.fetchPage()
 
+                                        var thumbnailUrl: String = ""
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
+                                            for (thumbnail in song.thumbnails) {
+                                                if (thumbnail.url.contains("ytimg")) {
+                                                    val songId = Shared.getIdFromLink(ex.url)
+                                                    thumbnailUrl =
+                                                        "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                                    break
+                                                }
+                                            }
+
+                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                                thumbnailUrl = song.thumbnails[0].url
+                                            }
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
                                                     artist = ex.uploaderName,
                                                     youtubeLink = ex.url,
-                                                    ytmThumbnail = song.thumbnailUrl
+                                                    ytmThumbnail = thumbnailUrl
                                                 )
                                             )
                                         }
@@ -274,18 +324,28 @@ class Search : Fragment(), CoroutineScope {
 
                                 extractor.fetchPage()
 
+                                var thumbnailUrl: String = ""
                                 for (song in extractor.initialPage.items) {
-                                    val ex = song as StreamInfoItem
-                                    if(song.thumbnailUrl.contains("ytimg")) {
-                                        val songId = Shared.getIdFromLink(ex.url)
-                                        song.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                    val ex = song as PlaylistInfoItem
+                                    for (thumbnail in song.thumbnails) {
+                                        if (thumbnail.url.contains("ytimg")) {
+                                            val songId = Shared.getIdFromLink(ex.url)
+                                            thumbnailUrl =
+                                                "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                            break
+                                        }
+                                    }
+
+                                    // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                                    if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
+                                        thumbnailUrl = song.thumbnails[0].url
                                     }
                                     resultArray.add(
                                         Song(
                                             name = ex.name,
                                             artist = ex.uploaderName,
                                             youtubeLink = ex.url,
-                                            ytmThumbnail = song.thumbnailUrl
+                                            ytmThumbnail = thumbnailUrl
                                         )
                                     )
                                 }
@@ -308,11 +368,13 @@ class Search : Fragment(), CoroutineScope {
                                 searchRv.alpha = 0f
                                 searchRv.visibility = View.VISIBLE
                                 searchRv.animate().alpha(1f).duration = 200
-                                val itemTouchHelper= ItemTouchHelper(SwipeController(
-                                    context,
-                                    "Search",
-                                    null
-                                ))
+                                val itemTouchHelper = ItemTouchHelper(
+                                    SwipeController(
+                                        context,
+                                        "Search",
+                                        null
+                                    )
+                                )
                                 itemTouchHelper.attachToRecyclerView(searchRv)
                             }
                         }
@@ -320,19 +382,19 @@ class Search : Fragment(), CoroutineScope {
                         Toast.makeText(requireContext(), "Something failed!", Toast.LENGTH_SHORT)
                             .show()
                     }
-                }
-                else
-                    Toast.makeText(requireContext(),"No Internet Connection", Toast.LENGTH_LONG).show()
+                } else
+                    Toast.makeText(requireContext(), "No Internet Connection", Toast.LENGTH_LONG)
+                        .show()
             }
             false
         }
     }
 
     fun itemPressed(song: Song) {
-        if(Shared.isInternetConnected(requireContext()))
+        if (Shared.isInternetConnected(requireContext()))
             itemPressed.sendItem(song)
         else
-            Toast.makeText(requireContext(),"No Internet Connection", Toast.LENGTH_LONG).show()
+            Toast.makeText(requireContext(), "No Internet Connection", Toast.LENGTH_LONG).show()
     }
 
     private fun hideKeyboard(activity: Activity) {

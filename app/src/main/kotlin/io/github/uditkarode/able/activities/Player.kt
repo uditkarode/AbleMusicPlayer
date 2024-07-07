@@ -72,7 +72,6 @@ import org.json.JSONObject
 import java.io.File
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 
 /**
  * The Player UI activity.
@@ -91,27 +90,27 @@ class Player : MusicClientActivity() {
 
     private var lastSelectedColor = 0x00fbfbfb
 
-    private var binding220: Player220Binding?= null
-    private var binding320: Player320Binding?= null
-    private var binding400: Player400Binding?= null
+    private var binding220: Player220Binding? = null
+    private var binding320: Player320Binding? = null
+    private var binding400: Player400Binding? = null
     private var binding410: Player410Binding? = null
     private var bindingMassive: PlayermassiveBinding? = null
 
-    private lateinit var playerCenterIcon : ImageView
-    private lateinit var topControls : RelativeLayout
+    private lateinit var playerCenterIcon: ImageView
+    private lateinit var topControls: RelativeLayout
     private lateinit var playerDownArrow: ImageView
-    private lateinit var shuffleButton : ImageView
-    private lateinit var repeatButton : ImageView
-    private lateinit var nextSong : ImageView
-    private lateinit var previousSong : ImageView
-    private lateinit var playerCurrentPosition : TextView
-    private lateinit var albumArt : RelativeLayout
-    private lateinit var playerSeekbar : SeekBar
-    private lateinit var songName : TextView
-    private lateinit var artistName : TextView
+    private lateinit var shuffleButton: ImageView
+    private lateinit var repeatButton: ImageView
+    private lateinit var nextSong: ImageView
+    private lateinit var previousSong: ImageView
+    private lateinit var playerCurrentPosition: TextView
+    private lateinit var albumArt: RelativeLayout
+    private lateinit var playerSeekbar: SeekBar
+    private lateinit var songName: TextView
+    private lateinit var artistName: TextView
     private lateinit var playerQueue: ImageView
-    private lateinit var youtubeProgressbar : ProgressBar
-    private lateinit var completePosition : TextView
+    private lateinit var youtubeProgressbar: ProgressBar
+    private lateinit var completePosition: TextView
     private lateinit var imgAlbart: RoundedImageView
 
 
@@ -167,16 +166,13 @@ class Player : MusicClientActivity() {
                 if (ydpi > 400) {
                     binding410 = Player410Binding.inflate(layoutInflater)
                     setContentView(binding410!!.root)
-                }
-                else if (ydpi >= 395) {
+                } else if (ydpi >= 395) {
                     binding400 = Player400Binding.inflate(layoutInflater)
                     setContentView(binding400!!.root)
-                }
-                else if (ydpi < 395 && ydpi > 230) {
+                } else if (ydpi < 395 && ydpi > 230) {
                     binding320 = Player320Binding.inflate(layoutInflater)
                     setContentView(binding320!!.root)
-                }
-                else {
+                } else {
                     binding220 = Player220Binding.inflate(layoutInflater)
                     setContentView(binding220!!.root)
                 }
@@ -197,17 +193,17 @@ class Player : MusicClientActivity() {
         }
         topControls =
             (binding220?.topControls
-                ?:binding320?.topControls
-                ?:binding400?.topControls
-                ?:binding410?.topControls
-                ?:bindingMassive?.topControls) as RelativeLayout
+                ?: binding320?.topControls
+                ?: binding400?.topControls
+                ?: binding410?.topControls
+                ?: bindingMassive?.topControls) as RelativeLayout
 
         completePosition =
             (binding220?.completePosition
-                ?:binding320?.completePosition
-                ?:binding400?.completePosition
-                ?:binding410?.completePosition
-                ?:bindingMassive?.completePosition) as TextView
+                ?: binding320?.completePosition
+                ?: binding400?.completePosition
+                ?: binding410?.completePosition
+                ?: bindingMassive?.completePosition) as TextView
 
         topControls.setOnApplyWindowInsetsListener { _, insets ->
             val kek = topControls.layoutParams as ViewGroup.MarginLayoutParams
@@ -218,18 +214,18 @@ class Player : MusicClientActivity() {
 
         playerDownArrow =
             (binding220?.playerDownArrow
-                ?:binding320?.playerDownArrow
-                ?:binding400?.playerDownArrow
-                ?:binding410?.playerDownArrow
-                ?:bindingMassive?.playerDownArrow) as ImageView
+                ?: binding320?.playerDownArrow
+                ?: binding400?.playerDownArrow
+                ?: binding410?.playerDownArrow
+                ?: bindingMassive?.playerDownArrow) as ImageView
 
 
         playerQueue =
             (binding220?.playerQueue
-                ?:binding320?.playerQueue
-                ?:binding400?.playerQueue
-                ?:binding410?.playerQueue
-                ?:bindingMassive?.playerQueue) as ImageView
+                ?: binding320?.playerQueue
+                ?: binding400?.playerQueue
+                ?: binding410?.playerQueue
+                ?: bindingMassive?.playerQueue) as ImageView
 
         playerDownArrow.setOnClickListener {
             finish()
@@ -237,10 +233,10 @@ class Player : MusicClientActivity() {
 
         shuffleButton =
             (binding220?.shuffleButton
-                ?:binding320?.shuffleButton
-                ?:binding400?.shuffleButton
-                ?:binding410?.shuffleButton
-                ?:bindingMassive?.shuffleButton) as ImageView
+                ?: binding320?.shuffleButton
+                ?: binding400?.shuffleButton
+                ?: binding410?.shuffleButton
+                ?: bindingMassive?.shuffleButton) as ImageView
 
         shuffleButton.setOnClickListener {
             if (onShuffle) {
@@ -252,10 +248,10 @@ class Player : MusicClientActivity() {
 
         playerCenterIcon =
             (binding220?.playerCenterIcon
-                ?:binding320?.playerCenterIcon
-                ?:binding400?.playerCenterIcon
-                ?:binding410?.playerCenterIcon
-                ?:bindingMassive?.playerCenterIcon) as ImageView
+                ?: binding320?.playerCenterIcon
+                ?: binding400?.playerCenterIcon
+                ?: binding410?.playerCenterIcon
+                ?: bindingMassive?.playerCenterIcon) as ImageView
 
         playerCenterIcon.setOnClickListener {
             launch(Dispatchers.Default) {
@@ -266,10 +262,10 @@ class Player : MusicClientActivity() {
 
         repeatButton =
             (binding220?.repeatButton
-                ?:binding320?.repeatButton
-                ?:binding400?.repeatButton
-                ?:binding410?.repeatButton
-                ?:bindingMassive?.repeatButton) as ImageView
+                ?: binding320?.repeatButton
+                ?: binding400?.repeatButton
+                ?: binding410?.repeatButton
+                ?: bindingMassive?.repeatButton) as ImageView
 
         repeatButton.setOnClickListener {
             if (onRepeat) {
@@ -283,10 +279,10 @@ class Player : MusicClientActivity() {
 
         nextSong =
             (binding220?.nextSong
-                ?:binding320?.nextSong
-                ?:binding400?.nextSong
-                ?:binding410?.nextSong
-                ?:bindingMassive?.nextSong) as ImageView
+                ?: binding320?.nextSong
+                ?: binding400?.nextSong
+                ?: binding410?.nextSong
+                ?: bindingMassive?.nextSong) as ImageView
 
         nextSong.setOnClickListener {
             mService?.setNextPrevious(next = true)
@@ -294,10 +290,10 @@ class Player : MusicClientActivity() {
 
         previousSong =
             (binding220?.previousSong
-                ?:binding320?.previousSong
-                ?:binding400?.previousSong
-                ?:binding410?.previousSong
-                ?:bindingMassive?.previousSong) as ImageView
+                ?: binding320?.previousSong
+                ?: binding400?.previousSong
+                ?: binding410?.previousSong
+                ?: bindingMassive?.previousSong) as ImageView
 
         previousSong.setOnClickListener {
             mService?.setNextPrevious(next = false)
@@ -306,21 +302,21 @@ class Player : MusicClientActivity() {
         setBgColor(0x002171)
         playerSeekbar =
             (binding220?.playerSeekbar
-                ?:binding320?.playerSeekbar
-                ?:binding400?.playerSeekbar
-                ?:binding410?.playerSeekbar
-                ?:bindingMassive?.playerSeekbar) as SeekBar
+                ?: binding320?.playerSeekbar
+                ?: binding400?.playerSeekbar
+                ?: binding410?.playerSeekbar
+                ?: bindingMassive?.playerSeekbar) as SeekBar
 
         playerCurrentPosition =
             (binding220?.playerCurrentPosition
-                ?:binding320?.playerCurrentPosition
-                ?:binding400?.playerCurrentPosition
-                ?:binding410?.playerCurrentPosition
-                ?:bindingMassive?.playerCurrentPosition) as TextView
+                ?: binding320?.playerCurrentPosition
+                ?: binding400?.playerCurrentPosition
+                ?: binding410?.playerCurrentPosition
+                ?: bindingMassive?.playerCurrentPosition) as TextView
 
         playerSeekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
-                if(mService != null) {
+                if (mService != null) {
                     val ms = mService as MusicService
                     ms.seekTo(seekBar.progress)
                     playerSeekbar.progress = ms.getMediaPlayer().currentPosition
@@ -334,13 +330,13 @@ class Player : MusicClientActivity() {
 
         albumArt =
             (binding220?.albumArt
-                ?:binding320?.albumArt
-                ?:binding400?.albumArt
-                ?:binding410?.albumArt
-                ?:bindingMassive?.albumArt) as RelativeLayout
+                ?: binding320?.albumArt
+                ?: binding400?.albumArt
+                ?: binding410?.albumArt
+                ?: bindingMassive?.albumArt) as RelativeLayout
 
         albumArt.setOnClickListener {
-            if(mService != null) {
+            if (mService != null) {
                 val ms = mService as MusicService
                 if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
                     MaterialDialog(this@Player).show {
@@ -355,30 +351,30 @@ class Player : MusicClientActivity() {
         }
 
         albumArt.setOnLongClickListener {
-            if(mService != null) {
+            if (mService != null) {
                 val ms = mService as MusicService
-                if(ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
-                MaterialDialog(this@Player).show {
-                    cornerRadius(20f)
-                    title(text = this@Player.getString(R.string.enter_song))
-                    input(prefill = ms.getPlayQueue()[ms.getCurrentIndex()].name) { _, charSequence ->
-                        updateAlbumArt(charSequence.toString(), true)
+                if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
+                    MaterialDialog(this@Player).show {
+                        cornerRadius(20f)
+                        title(text = this@Player.getString(R.string.enter_song))
+                        input(prefill = ms.getPlayQueue()[ms.getCurrentIndex()].name) { _, charSequence ->
+                            updateAlbumArt(charSequence.toString(), true)
+                        }
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                     }
-                    getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
-                }
             }
             true
         }
 
         songName =
             (binding220?.songName
-                ?:binding320?.songName
-                ?:binding400?.songName
-                ?:binding410?.songName
-                ?:bindingMassive?.songName) as TextView
+                ?: binding320?.songName
+                ?: binding400?.songName
+                ?: binding410?.songName
+                ?: bindingMassive?.songName) as TextView
 
         songName.setOnClickListener {
-            if(mService != null) {
+            if (mService != null) {
                 val mService = this.mService as MusicService
                 val current = mService.getPlayQueue()[mService.getCurrentIndex()]
                 if (current.filePath.contains("emulated/0/")) {
@@ -418,12 +414,14 @@ class Player : MusicClientActivity() {
                                             })
                                     }
                                 }
+
                                 Config.RETURN_CODE_CANCEL -> {
                                     Log.e(
                                         "ERR>",
                                         "Command execution cancelled by user."
                                     )
                                 }
+
                                 else -> {
                                     Log.e(
                                         "ERR>",
@@ -444,13 +442,13 @@ class Player : MusicClientActivity() {
 
         artistName =
             (binding220?.artistName
-                ?:binding320?.artistName
-                ?:binding400?.artistName
-                ?:binding410?.artistName
-                ?:bindingMassive?.artistName) as TextView
+                ?: binding320?.artistName
+                ?: binding400?.artistName
+                ?: binding410?.artistName
+                ?: bindingMassive?.artistName) as TextView
 
         artistName.setOnClickListener {
-            if(mService != null) {
+            if (mService != null) {
                 val mService = this.mService as MusicService
                 val current = mService.getPlayQueue()[mService.getCurrentIndex()]
                 if (current.filePath.contains("emulated/0/")) {
@@ -490,12 +488,14 @@ class Player : MusicClientActivity() {
                                             })
                                     }
                                 }
+
                                 Config.RETURN_CODE_CANCEL -> {
                                     Log.e(
                                         "ERR>",
                                         "Command execution cancelled by user."
                                     )
                                 }
+
                                 else -> {
                                     Log.e(
                                         "ERR>",
@@ -577,7 +577,7 @@ class Player : MusicClientActivity() {
 
 
         playerQueue.setOnClickListener {
-            if(mService != null) {
+            if (mService != null) {
                 val mService = this.mService as MusicService
                 MaterialDialog(this@Player, BottomSheet()).show {
                     customListAdapter(
@@ -606,10 +606,10 @@ class Player : MusicClientActivity() {
         }
         youtubeProgressbar =
             (binding220?.youtubeProgressbar
-                ?:binding320?.youtubeProgressbar
-                ?:binding400?.youtubeProgressbar
-                ?:binding410?.youtubeProgressbar
-                ?:bindingMassive?.youtubeProgressbar) as ProgressBar
+                ?: binding320?.youtubeProgressbar
+                ?: binding400?.youtubeProgressbar
+                ?: binding410?.youtubeProgressbar
+                ?: bindingMassive?.youtubeProgressbar) as ProgressBar
 
         youtubeProgressbar.visibility = View.GONE
     }
@@ -628,7 +628,7 @@ class Player : MusicClientActivity() {
             )
         )
 
-        playing = if(mService!!.getMediaPlayer().isPlaying) SongState.playing else SongState.paused
+        playing = if (mService!!.getMediaPlayer().isPlaying) SongState.playing else SongState.paused
         playPauseEvent(playing)
 
         songChangeEvent()
@@ -658,7 +658,7 @@ class Player : MusicClientActivity() {
             timer = Timer()
             timer.schedule(object : TimerTask() {
                 override fun run() {
-                    if(mService != null) {
+                    if (mService != null) {
                         val mService = mService as MusicService
                         launch(Dispatchers.Main) {
                             val songPosition = mService.getMediaPlayer().currentPosition
@@ -708,10 +708,10 @@ class Player : MusicClientActivity() {
     ) {
         val playerBg =
             binding220?.playerBg
-                ?:binding320?.playerBg
-                ?:binding400?.playerBg
-                ?:binding410?.playerBg
-                ?:bindingMassive?.playerBg
+                ?: binding320?.playerBg
+                ?: binding400?.playerBg
+                ?: binding410?.playerBg
+                ?: bindingMassive?.playerBg
 
         RevelyGradient
             .linear()
@@ -802,22 +802,22 @@ class Player : MusicClientActivity() {
     }
 
     private fun updateAlbumArt(customSongName: String? = null, forceDeezer: Boolean = false) {
-        if(mService != null) {
+        if (mService != null) {
             val mService = mService as MusicService
             /* set helper variables */
             imgAlbart =
                 (binding220?.imgAlbart
-                    ?:binding320?.imgAlbart
-                    ?:binding400?.imgAlbart
-                    ?:binding410?.imgAlbart
-                    ?:bindingMassive?.imgAlbart) as RoundedImageView
+                    ?: binding320?.imgAlbart
+                    ?: binding400?.imgAlbart
+                    ?: binding410?.imgAlbart
+                    ?: bindingMassive?.imgAlbart) as RoundedImageView
 
             val notePh =
                 (binding220?.notePh
-                    ?:binding320?.notePh
-                    ?:binding400?.notePh
-                    ?:binding410?.notePh
-                    ?:bindingMassive?.imgAlbart) as ImageView
+                    ?: binding320?.notePh
+                    ?: binding400?.notePh
+                    ?: binding410?.notePh
+                    ?: bindingMassive?.imgAlbart) as ImageView
 
             imgAlbart.visibility = View.GONE
             notePh.visibility = View.VISIBLE
@@ -1030,7 +1030,7 @@ class Player : MusicClientActivity() {
     }
 
     private fun changeMetadata(name: String, artist: String) {
-        if(mService != null) {
+        if (mService != null) {
             val mService = mService as MusicService
             launch(Dispatchers.Main) {
                 songName.text = name
@@ -1060,7 +1060,7 @@ class Player : MusicClientActivity() {
     }
 
     private fun songChangeEvent() {
-        if(mService != null) {
+        if (mService != null) {
             val mService = mService as MusicService
             updateAlbumArt()
 
@@ -1095,11 +1095,14 @@ class Player : MusicClientActivity() {
 
     override fun onResume() {
         super.onResume()
-        if(mService == null)
+        if (mService == null)
             bindEvent()
         else
-            playPauseEvent(if((mService as MusicService)
-                    .getMediaPlayer().isPlaying) SongState.playing else SongState.paused)
+            playPauseEvent(
+                if ((mService as MusicService)
+                        .getMediaPlayer().isPlaying
+                ) SongState.playing else SongState.paused
+            )
     }
 
     override fun onBackPressed() {

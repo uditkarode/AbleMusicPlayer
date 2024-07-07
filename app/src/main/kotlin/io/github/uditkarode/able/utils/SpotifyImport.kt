@@ -20,11 +20,14 @@
 
 package io.github.uditkarode.able.utils
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
@@ -45,6 +48,7 @@ import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -113,19 +117,32 @@ object SpotifyImport: CoroutineScope {
                         extractor.fetchPage()
 
                         if (extractor.initialPage.items.size > 0) {
-                            val toAdd = extractor.initialPage.items[0] as StreamInfoItem
+                            val toAdd = extractor.initialPage.items[0] as PlaylistInfoItem
                             val fileName = toAdd.url.run {
                                 this.substring(this.lastIndexOf("=") + 1)
                             }
 
                             val streamInfo = StreamInfo.getInfo(toAdd.url)
                             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
+                            var thumbnailUrl: String = ""
 
+                            for (thumbnail in toAdd.thumbnails) {
+                                if (thumbnail.url.contains("ytimg")) {
+                                    val songId = Shared.getIdFromLink(toAdd.url)
+                                    thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                    break
+                                }
+                            }
+
+                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
+                            if (thumbnailUrl.isBlank() && toAdd.thumbnails.isNotEmpty()) {
+                                thumbnailUrl = toAdd.thumbnails[0].url
+                            }
                             launch(Dispatchers.IO) {
-                                if (toAdd.thumbnailUrl.isNotBlank()) {
+                                if (thumbnailUrl.isNotBlank()) {
                                     val drw = Glide
                                         .with(context)
-                                        .load(toAdd.thumbnailUrl)
+                                        .load(thumbnailUrl)
                                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                                         .skipMemoryCache(true)
                                         .submit()
@@ -280,9 +297,9 @@ object SpotifyImport: CoroutineScope {
                             }
 
                             while (!downloadDone) Thread.sleep(1000)
-                            if(toAdd.thumbnailUrl.contains("ytimg")) {
+                            if(thumbnailUrl.contains("ytimg")) {
                                 val songId = Shared.getIdFromLink(toAdd.url)
-                                toAdd.thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+                                thumbnailUrl = "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
                             }
                             songArr.add(
                                 Song(
@@ -290,7 +307,7 @@ object SpotifyImport: CoroutineScope {
                                     artist = toAdd.uploaderName,
                                     filePath = mediaFile.absolutePath + finalExt,
                                     youtubeLink = toAdd.url,
-                                    ytmThumbnail = toAdd.thumbnailUrl
+                                    ytmThumbnail = thumbnailUrl
                                 )
                             )
                         }
@@ -330,6 +347,20 @@ object SpotifyImport: CoroutineScope {
             NotificationManagerCompat.from(context).apply {
                 builder.setContentText(context.getString(R.string.spot_fail))
                 builder.setOngoing(false)
+                if (ActivityCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissions
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return
+                }
                 notify(3, builder.build())
             }
             Toast.makeText(

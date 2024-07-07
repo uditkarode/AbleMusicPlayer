@@ -2,7 +2,7 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <ListPreference
-        android:defaultValue="webm"
+        android:defaultValue="mp3"
         android:entries="@array/categories"
         android:entryValues="@array/categories"
         android:summary="@string/pref_fmt"
@@ -32,7 +32,7 @@
         />
 
     <ListPreference
-        android:defaultValue="Download"
+        android:defaultValue="Stream"
         android:entries="@array/modes"
         android:entryValues="@array/modes"
         android:summary="@string/play_mode_sum"

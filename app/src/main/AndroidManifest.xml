@@ -4,8 +4,10 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -28,7 +30,9 @@
 
         <activity android:name=".activities.Player" android:theme="@style/PlayerTheme" android:noHistory="true"/>
 
-        <activity android:name=".activities.Splash" android:theme="@style/SplashTheme">
+        <activity android:name=".activities.Splash"
+            android:exported="true"
+            android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -45,6 +49,7 @@
         <service
             android:name="io.github.uditkarode.able.services.MusicService"
             android:description="@string/app_name"
+            android:foregroundServiceType="mediaPlayback"
             android:enabled="true" />
 
         <service android:name=".services.DownloadService"

@@ -1,9 +1,9 @@
 kind: pipeline
+type: docker
 name: default
 
 steps:
   - name: Construction
-    pull: if-not-exists
     image: uditkarode/android-sdk-arch:latest
     commands:
       - "export GH_TOKEN"

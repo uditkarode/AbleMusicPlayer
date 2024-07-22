@@ -1,9 +1,6 @@
 kind: pipeline
 name: default
 
-concurrency:
-  limit: 1
-
 steps:
   - name: Construction
     pull: if-not-exists

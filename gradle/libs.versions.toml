@@ -34,6 +34,8 @@ viewpump = "2.0.3"
 workRuntime = "2.7.1"
 xfetch2 = "3.1.6"
 kotlin = "1.9.21"
+compose-bom = "2024.09.03"
+constraintCompose = "1.0.1"
 
 [libraries]
 analytics = { module = "com.flurry.android:analytics", version.ref = "analytics" }
@@ -69,6 +71,22 @@ roundedimageview = { module = "com.makeramen:roundedimageview", version.ref = "r
 viewpump = { module = "io.github.inflationx:viewpump", version.ref = "viewpump" }
 work-runtime = { module = "androidx.work:work-runtime", version.ref = "workRuntime" }
 xfetch2 = { module = "androidx.tonyodev.fetch2:xfetch2", version.ref = "xfetch2" }
+
+# Compose Deps
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
+compose-material = { group = "androidx.compose.material", name = "material" }
+compose-icons = { group = "androidx.compose.material", name = "material-icons-core" }
+compose-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+compose-activity = { group = "androidx.activity", name = "activity-compose" }
+compose-animations = { group = "androidx.compose.animation", name = "animation" }
+compose-animtions-core = { group = "androidx.compose.animation", name = "animation-core" }
+compose-animtions-graphics = { group = "androidx.compose.animation", name = "animation-graphics" }
+compose-constraintLayout = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "constraintCompose" }
 
 # Dependencies of the included build-logic
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }

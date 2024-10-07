@@ -14,7 +14,11 @@
 
 package io.github.uditkarode.able.activities
 
-import android.content.*
+import android.content.ComponentName
+import android.content.ContentUris
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
@@ -29,15 +33,18 @@ import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.RelativeLayout
+import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
 import androidx.preference.PreferenceManager
-import co.revely.gradient.RevelyGradient
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.input.getInputField
@@ -56,7 +63,11 @@ import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.databinding.*
+import io.github.uditkarode.able.databinding.Player220Binding
+import io.github.uditkarode.able.databinding.Player320Binding
+import io.github.uditkarode.able.databinding.Player400Binding
+import io.github.uditkarode.able.databinding.Player410Binding
+import io.github.uditkarode.able.databinding.PlayermassiveBinding
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.models.Song
 import io.github.uditkarode.able.models.SongState
@@ -64,7 +75,9 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -713,17 +726,17 @@ class Player : MusicClientActivity() {
                 ?: binding410?.playerBg
                 ?: bindingMassive?.playerBg
 
-        RevelyGradient
-            .linear()
-            .colors(
-                intArrayOf(
-                    color,
-                    Color.parseColor("#212121")
-                )
-            )
-            .angle(90f)
-            .alpha(0.76f)
-            .onBackgroundOf(playerBg!!)
+//        RevelyGradient
+//            .linear()
+//            .colors(
+//                intArrayOf(
+//                    color,
+//                    Color.parseColor("#212121")
+//                )
+//            )
+//            .angle(90f)
+//            .alpha(0.76f)
+//            .onBackgroundOf(playerBg!!)
 
 
         if (Shared.isColorDark(color)) {

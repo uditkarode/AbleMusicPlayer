@@ -23,7 +23,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
@@ -31,14 +30,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import co.revely.gradient.RevelyGradient
 import com.arthenica.mobileffmpeg.Config
 import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
@@ -60,9 +57,15 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
@@ -73,7 +76,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.util.*
-import kotlin.collections.ArrayList
 
 /**
  * The first fragment. Shows a list of songs present on the user's device.
@@ -119,16 +121,16 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
         okClient = OkHttpClient()
 
-        RevelyGradient
-            .linear()
-            .colors(
-                intArrayOf(
-                    Color.parseColor("#7F7FD5"),
-                    Color.parseColor("#86A8E7"),
-                    Color.parseColor("#91EAE4")
-                )
-            )
-            .on(view.findViewById<TextView>(R.id.able_header))
+//        RevelyGradient
+//            .linear()
+//            .colors(
+//                intArrayOf(
+//                    Color.parseColor("#7F7FD5"),
+//                    Color.parseColor("#86A8E7"),
+//                    Color.parseColor("#91EAE4")
+//                )
+//            )
+//            .on(view.findViewById<TextView>(R.id.able_header))
 
         _binding!!.settings.setOnClickListener {
             startActivity(Intent(requireContext(), Settings::class.java))
@@ -230,7 +232,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             Log.e("ERR> ", "Context Lost")
 
         launch(Dispatchers.IO) {
-            val playSong = fun(){
+            val playSong = fun() {
                 mService.value?.setQueue(
                     arrayListOf(
                         Song(
@@ -248,7 +250,11 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                     tmp = StreamInfo.getInfo(song.youtubeLink)
                 } catch (e: Exception) {
                     launch(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT)
+                        Toast.makeText(
+                            requireContext(),
+                            "Something went wrong!",
+                            Toast.LENGTH_SHORT
+                        )
                             .show()
                         MusicService.registeredClients.forEach { it.isLoading(false) }
                     }
@@ -311,7 +317,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                                     mService.value?.setQueue(arrayListOf(song))
                                     mService.value?.setIndex(0)
                                     MusicService.registeredClients.forEach { it.isLoading(false) }
-                                    if(freshStart)
+                                    if (freshStart)
                                         MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                                 }
                                 return false
@@ -320,10 +326,10 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 }
             }
 
-            if(mService.value != null) playSong()
+            if (mService.value != null) playSong()
             else {
                 mService.collect {
-                    if(it != null){
+                    if (it != null) {
                         playSong()
                     }
                 }
@@ -347,7 +353,10 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             val iStream = BufferedInputStream(body.byteStream())
 
             song.internalStream = ByteArray(body.contentLength().toInt())
-            song.streams = arrayOf(ByteArray(body.contentLength().toInt()), ByteArray(body.contentLength().toInt()))
+            song.streams = arrayOf(
+                ByteArray(body.contentLength().toInt()),
+                ByteArray(body.contentLength().toInt())
+            )
 
             var read: Int
             val data = ByteArray(1024)
@@ -355,7 +364,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             var off = 0
             while (iStream.read(data).let { read = it; read != -1 }) {
                 for (i in 0.until(read)) {
-                    song.internalStream[i+off] = data[i]
+                    song.internalStream[i + off] = data[i]
                 }
                 off += read
 
@@ -368,7 +377,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                     song.streams[streamNum] = song.internalStream
                 }
 
-                song.streamProg = (off*100) / body.contentLength().toInt()
+                song.streamProg = (off * 100) / body.contentLength().toInt()
             }
 
             iStream.close()
@@ -433,12 +442,14 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                         songAdapter?.notifyDataSetChanged()
                     }
                 }
+
                 Config.RETURN_CODE_CANCEL -> {
                     Log.e(
                         "ERR>",
                         "Command execution cancelled by user."
                     )
                 }
+
                 else -> {
                     Log.e(
                         "ERR>",
@@ -462,7 +473,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             song.streams = arrayOf()
         }
 
-         return true
+        return true
     }
 
     fun updateSongList() {

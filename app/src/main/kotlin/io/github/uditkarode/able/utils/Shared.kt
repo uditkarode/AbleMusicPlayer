@@ -33,9 +33,6 @@ import com.arthenica.mobileffmpeg.FFprobe
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
-import com.tonyodev.fetch2.Fetch
-import com.tonyodev.fetch2.Fetch.Impl.getInstance
-import com.tonyodev.fetch2.FetchConfiguration
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.models.Playlist
 import io.github.uditkarode.able.models.Song
@@ -48,7 +45,6 @@ import org.jaudiotagger.tag.mp4.Mp4Tag
 import org.json.JSONArray
 import java.io.*
 import java.util.*
-import kotlin.collections.ArrayList
 
 object Shared {
     /** To only show the splash screen on the first launch of
@@ -56,7 +52,7 @@ object Shared {
      * */
     var isFirstOpen = true
 
-    lateinit var fetch: Fetch
+    //    lateinit var fetch: Fetch
     var bmp: Bitmap? = null
     lateinit var defBitmap: Bitmap
 
@@ -94,13 +90,13 @@ object Shared {
      * @param context a valid Context object
      * initialises the shared Fetch instance (fetch).
      */
-    fun setupFetch(context: Context) {
-        fetch = getInstance(
-            FetchConfiguration.Builder(context)
-                .setDownloadConcurrentLimit(1)
-                .build()
-        )
-    }
+//    fun setupFetch(context: Context) {
+//        fetch = getInstance(
+//            FetchConfiguration.Builder(context)
+//                .setDownloadConcurrentLimit(1)
+//                .build()
+//        )
+//    }
 
     /**
      * @param image the bitmap to save to disk.
@@ -140,6 +136,7 @@ object Shared {
                     )
                     audioFile.tag.setField(AndroidArtwork.createArtworkFromFile(albumArt))
                 }
+
                 imageFile.contains(".m4a") -> {
                     val mp4tag = audioFile.tag as Mp4Tag
                     mp4tag.deleteField(Mp4FieldKey.ARTWORK)
@@ -161,7 +158,7 @@ object Shared {
             }
             audioFile.commit()
             MediaScannerConnection.scanFile(context, arrayOf(imageFile), null, null)
-            
+
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
@@ -384,13 +381,13 @@ object Shared {
                 }
                 val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
                 if (mediaInfo != null) {
-                    val metadata=mediaInfo.tags
-                    if(metadata.optString("title").isNotEmpty())
-                        name=metadata.optString("title")
-                    if(metadata.optString("ARTIST").isEmpty())
-                        artist=metadata.optString("artist")
-                    else if(metadata.optString("artist").isEmpty())
-                        artist=metadata.optString("ARTIST")
+                    val metadata = mediaInfo.tags
+                    if (metadata.optString("title").isNotEmpty())
+                        name = metadata.optString("title")
+                    if (metadata.optString("ARTIST").isEmpty())
+                        artist = metadata.optString("artist")
+                    else if (metadata.optString("artist").isEmpty())
+                        artist = metadata.optString("ARTIST")
                     if (name != "???") {
                         songs.add(
                             Song(

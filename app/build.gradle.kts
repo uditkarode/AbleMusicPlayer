@@ -6,12 +6,12 @@ plugins {
 android {
     namespace = "io.github.uditkarode.able"
     ndkVersion = "21.0.6113669"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "io.github.uditkarode.able"
         minSdk = 21
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "InterdimensionalBoop"
 
@@ -84,7 +84,7 @@ dependencies {
     //noinspection GradleDependency
     implementation(libs.material.intro.screen)
     implementation(libs.lottie)
-    implementation(libs.gradient)
+//    implementation(libs.gradient)
     implementation(libs.gson)
     implementation(libs.material.dialogs.bottomsheets)
     implementation(libs.glide)
@@ -94,7 +94,7 @@ dependencies {
     implementation(libs.preferencex)
     implementation(libs.coordinatorlayout)
     implementation(libs.constraintlayout)
-    implementation(libs.xfetch2)
+//    implementation(libs.xfetch2)
     implementation(libs.work.runtime)
     implementation(libs.palette.ktx)
     implementation(libs.jaudiotagger.android)

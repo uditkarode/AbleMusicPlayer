@@ -34,7 +34,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Constants
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.io.File
@@ -44,8 +44,10 @@ import java.lang.ref.WeakReference
  * Lists songs in a local playlist.
  */
 @ExperimentalCoroutinesApi
-class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
-                           private val wr: WeakReference<LocalPlaylist>): RecyclerView.Adapter<LocalPlaylistAdapter.RVVH>() {
+class LocalPlaylistAdapter(
+    private val songList: ArrayList<Song>,
+    private val wr: WeakReference<LocalPlaylist>
+) : RecyclerView.Adapter<LocalPlaylistAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
         RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
 
@@ -58,38 +60,39 @@ class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
         holder.songUploader.text = "Song • " + current.artist
 
         holder.songAlbumArt.run {
-            File(Constants.ableSongDir.absolutePath + "/album_art",
-                File(current.filePath).nameWithoutExtension).also {
-                if(it.exists())
+            File(
+                Constants.ableSongDir.absolutePath + "/album_art",
+                File(current.filePath).nameWithoutExtension
+            ).also {
+                if (it.exists())
                     Glide.with(holder.getContext())
                         .load(it)
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                         .skipMemoryCache(true)
                         .into(this)
-                else
-                {
-                        val sArtworkUri =
-                            Uri.parse("content://media/external/audio/albumart")
-                        val albumArtURi =
-                            ContentUris.withAppendedId(sArtworkUri, current.albumId)
-                        if(current.albumId.toString() != "-1")
+                else {
+                    val sArtworkUri =
+                        Uri.parse("content://media/external/audio/albumart")
+                    val albumArtURi =
+                        ContentUris.withAppendedId(sArtworkUri, current.albumId)
+                    if (current.albumId.toString() != "-1")
                         Glide
                             .with(holder.getContext())
                             .load(albumArtURi)
                             .diskCacheStrategy(DiskCacheStrategy.NONE)
                             .skipMemoryCache(true)
                             .into(this)
-                        else
-                            Glide.with(holder.getContext())
-                                .load(
-                                    BitmapFactory.decodeResource(
-                                        holder.getContext().resources,
-                                        R.drawable.def_albart
-                                    )
+                    else
+                        Glide.with(holder.getContext())
+                            .load(
+                                BitmapFactory.decodeResource(
+                                    holder.getContext().resources,
+                                    R.drawable.def_albart
                                 )
-                                .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                .skipMemoryCache(true)
-                                .into(this)
+                            )
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .into(this)
                 }
             }
         }
@@ -105,7 +108,7 @@ class LocalPlaylistAdapter(private val songList: ArrayList<Song>,
         }
     }
 
-    class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
+    class RVVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val songName = itemView.findViewById<TextView>(R.id.vid_song)!!
         val songUploader = itemView.findViewById<TextView>(R.id.vid_uploader)!!
         val songAlbumArt = itemView.findViewById<ImageView>(R.id.vid_albart)!!

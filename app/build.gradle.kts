@@ -37,7 +37,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-
     }
 
 
@@ -69,6 +68,8 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.model)
+
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.kotlin.stdlib.jdk7)
     implementation(libs.appcompat)

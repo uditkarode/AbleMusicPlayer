@@ -49,10 +49,10 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.databinding.HomeBinding
-import io.github.uditkarode.able.models.CacheStatus
-import io.github.uditkarode.able.models.Format
-import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.model.CacheStatus
+import io.github.uditkarode.able.model.Format
+import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared

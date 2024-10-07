@@ -42,14 +42,13 @@ import com.bumptech.glide.signature.ObjectKey
 import com.google.android.material.button.MaterialButton
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Home
-import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -57,11 +56,11 @@ import java.lang.ref.WeakReference
  * Shows songs on the Home fragment.
  */
 @ExperimentalCoroutinesApi
-class SongAdapter (
+class SongAdapter(
     private var songList: ArrayList<Song>,
     private val wr: WeakReference<Home>? = null,
     private val showArt: Boolean = false,
-    private val mServiceFromPlayer :MusicService? = null
+    private val mServiceFromPlayer: MusicService? = null
 ) : RecyclerView.Adapter<SongAdapter.RVVH>(), CoroutineScope, MusicService.MusicClient {
     private var registered = false
 
@@ -128,7 +127,7 @@ class SongAdapter (
             if (current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
             else {
                 val service = wr?.get()?.mService?.value
-                if(service != null) {
+                if (service != null) {
                     if (current.filePath == service.getPlayQueue()[service.getCurrentIndex()].filePath) {
                         holder.songName.setTextColor(Color.parseColor("#5e92f3"))
                     } else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
@@ -160,11 +159,12 @@ class SongAdapter (
                 }
 
                 launch(Dispatchers.Default) {
-                    var mService: MutableStateFlow<MusicService?> = MutableStateFlow(mServiceFromPlayer)
-                    if(wr?.get()!=null)
+                    var mService: MutableStateFlow<MusicService?> =
+                        MutableStateFlow(mServiceFromPlayer)
+                    if (wr?.get() != null)
                         mService = wr.get()!!.mService
 
-                    val playSong = fun(){
+                    val playSong = fun() {
                         if (currentIndex != position) {
                             currentIndex = position
                             launch(Dispatchers.Default) {
@@ -177,16 +177,16 @@ class SongAdapter (
                                     mService.value?.setIndex(position)
                                 }
 
-                                if(freshStart)
+                                if (freshStart)
                                     MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                             }
                         }
                     }
 
-                    if(mService.value != null) playSong()
+                    if (mService.value != null) playSong()
                     else {
                         mService.collect {
-                            if(it != null) {
+                            if (it != null) {
                                 playSong()
                             }
                         }
@@ -215,15 +215,16 @@ class SongAdapter (
                 listItems(items = names) { _, index, _ ->
                     when (index) {
                         0 -> {
-                            if(mServiceFromPlayer==null)
+                            if (mServiceFromPlayer == null)
                                 wr?.get()?.mService!!.value!!.addToQueue(current)
                             else {
                                 mServiceFromPlayer.addToPlayQueue(current)
-                                songList.add(1,songList[position])
+                                songList.add(1, songList[position])
                                 songList.removeAt(position)
                                 notifyItemMoved(position, 1)
                             }
                         }
+
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
                                 title(text = holder.itemView.context.getString(R.string.playlist_namei))
@@ -239,6 +240,7 @@ class SongAdapter (
                                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                             }
                         }
+
                         else -> {
                             Shared.addToPlaylist(
                                 playlists[index - 2],

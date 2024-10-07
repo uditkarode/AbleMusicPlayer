@@ -3,13 +3,18 @@ package io.github.uditkarode.able.utils
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import android.media.MediaScannerConnection
 import android.view.MotionEvent
 import android.view.View
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.ItemTouchHelper.*
+import androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_SWIPE
+import androidx.recyclerview.widget.ItemTouchHelper.LEFT
+import androidx.recyclerview.widget.ItemTouchHelper.RIGHT
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.input.getInputLayout
@@ -18,22 +23,23 @@ import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
-import io.github.uditkarode.able.models.MusicMode
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.MusicMode
+import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
-import java.lang.Exception
 import java.util.*
-import kotlin.collections.ArrayList
 
 internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
 
 @ExperimentalCoroutinesApi
-class SwipeControllerActions(private var mode: String, private var mService: MutableStateFlow<MusicService?>?) {
+class SwipeControllerActions(
+    private var mode: String,
+    private var mService: MutableStateFlow<MusicService?>?
+) {
     private var songList = ArrayList<Song>()
     private lateinit var itemPressed: Search.SongCallback
 
@@ -77,7 +83,7 @@ class SwipeControllerActions(private var mode: String, private var mService: Mut
                 MaterialDialog(context).show {
                     listItems(items = names) { _, index, _ ->
                         when (index) {
-                            0 ->mService!!.value?.addToQueue(current)
+                            0 -> mService!!.value?.addToQueue(current)
                             1 -> {
                                 MaterialDialog(context).show {
                                     title(text = context.getString(R.string.playlist_namei))
@@ -91,6 +97,7 @@ class SwipeControllerActions(private var mode: String, private var mService: Mut
                                         Color.parseColor("#000000")
                                 }
                             }
+
                             else -> {
                                 Shared.addToPlaylist(playlists[index - 2], current, context)
                             }
@@ -98,6 +105,7 @@ class SwipeControllerActions(private var mode: String, private var mService: Mut
                     }
                 }
             }
+
             else -> {
                 initialiseSongCallback(context!!)
                 itemPressed.sendItem(Search.resultArray[position], MusicMode.both)
@@ -135,12 +143,15 @@ class SwipeControllerActions(private var mode: String, private var mService: Mut
                         }
                         songList.removeAt(position)
                         Home.songAdapter?.update(songList)
-                        MediaScannerConnection.scanFile(context,
-                            arrayOf(current.filePath) , null,null)
+                        MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(current.filePath), null, null
+                        )
                     }
                     negativeButton(text = context.getString(R.string.cancel))
                 }
             }
+
             else -> {
                 initialiseSongCallback(context!!)
                 itemPressed.sendItem(Search.resultArray[position], mode)
@@ -261,6 +272,7 @@ class SwipeController(
             buttonsActions = when (list) {
                 "Search" ->
                     SwipeControllerActions(MusicMode.both, mService)
+
                 else -> SwipeControllerActions("", mService)
             }
             buttonInstance = leftButton
@@ -288,7 +300,8 @@ class SwipeController(
                 buttonsActions = when (list) {
                     "Search" ->
                         SwipeControllerActions(currentMode, mService)
-                    else -> SwipeControllerActions("",mService)
+
+                    else -> SwipeControllerActions("", mService)
                 }
             }
             buttonInstance = rightButton

@@ -69,8 +69,8 @@ import io.github.uditkarode.able.databinding.Player400Binding
 import io.github.uditkarode.able.databinding.Player410Binding
 import io.github.uditkarode.able.databinding.PlayermassiveBinding
 import io.github.uditkarode.able.fragments.Home
-import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.MusicClientActivity

@@ -19,12 +19,24 @@
 package io.github.uditkarode.able.services
 
 import android.annotation.SuppressLint
-import android.app.*
-import android.content.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.ContentUris
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
-import android.media.*
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
+import android.media.MediaMetadata
+import android.media.MediaPlayer
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.net.Uri
@@ -33,7 +45,6 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
-import androidx.annotation.RequiresApi
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
@@ -42,18 +53,23 @@ import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
-import io.github.uditkarode.able.models.CacheStatus
-import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.model.CacheStatus
+import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.util.*
-import kotlin.collections.ArrayList
 
 /**
  * The service that plays music.
@@ -84,20 +100,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
         val registeredClients = mutableSetOf<MusicClient>()
 
-        fun registerClient(client: Any){
+        fun registerClient(client: Any) {
             try {
                 registeredClients.add(client as MusicClient)
-            } catch(e: ClassCastException){
+            } catch (e: ClassCastException) {
                 Log.e("ERR>", "Could not register client!")
             }
         }
 
-        fun unregisterClient(client: Any){
+        fun unregisterClient(client: Any) {
             try {
                 registeredClients.remove(client as MusicClient)
-            } catch(e: ClassCastException){}
+            } catch (e: ClassCastException) {
+            }
         }
-        
+
         private lateinit var notificationManager: NotificationManager
         private var focusRequest: AudioFocusRequest? = null
         private var wakeLock: PowerManager.WakeLock? = null
@@ -136,7 +153,11 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onCreate() {
         super.onCreate()
-        registerReceiver(receiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY), RECEIVER_EXPORTED)
+        registerReceiver(
+            receiver,
+            IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+            RECEIVER_EXPORTED
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
                 setAudioAttributes(AudioAttributes.Builder().run {
@@ -214,8 +235,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                     )
                 )
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setDeleteIntent(PendingIntent.getService(this, 1, intent,
-                    PendingIntent.FLAG_IMMUTABLE))
+                .setDeleteIntent(
+                    PendingIntent.getService(
+                        this, 1, intent,
+                        PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
                 .setOngoing(true)
                 .style = style
         }
@@ -249,21 +274,26 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 mediaSessionPlay()
                 setPlayPause(SongState.playing)
             }
+
             action.equals("ACTION_PAUSE", ignoreCase = true) -> {
                 setPlayPause(SongState.paused)
             }
+
             action.equals("ACTION_PREVIOUS", ignoreCase = true) -> {
                 setNextPrevious(next = false)
             }
+
             action.equals("ACTION_NEXT", ignoreCase = true) -> {
                 setNextPrevious(next = true)
             }
+
             action.equals("ACTION_REPEAT", ignoreCase = true) -> {
-                if(onRepeat)
+                if (onRepeat)
                     setShuffleRepeat(shuffle = false, repeat = false)
                 else
                     setShuffleRepeat(shuffle = false, repeat = true)
             }
+
             action.equals("ACTION_KILL", ignoreCase = true) -> {
                 cleanUp()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -300,7 +330,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
         setShuffle(shuffle)
         onRepeat = repeat
-        launch(Dispatchers.Default)  {
+        launch(Dispatchers.Default) {
             registeredClients.forEach { it.shuffleRepeatChanged(onShuffle, onRepeat) }
         }
     }
@@ -313,7 +343,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         currentIndex = index
         songChanged()
         launch(Dispatchers.Default) {
-                registeredClients.forEach { it.indexChanged(currentIndex) }
+            registeredClients.forEach { it.indexChanged(currentIndex) }
         }
     }
 
@@ -325,7 +355,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         else pauseAudio()
 
         launch(Dispatchers.Default) {
-                registeredClients.forEach { it.playStateChanged(state) }
+            registeredClients.forEach { it.playStateChanged(state) }
         }
     }
 
@@ -362,7 +392,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             registeredClients.forEach { it.queueChanged(playQueue) }
         }
 
-        launch(Dispatchers.Default)  {
+        launch(Dispatchers.Default) {
             registeredClients.forEach { it.indexChanged(currentIndex) }
         }
     }
@@ -486,7 +516,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                     }
                     try {
                         tmpf.inputStream().use {
-                                mediaPlayer.setDataSource(it.fd)
+                            mediaPlayer.setDataSource(it.fd)
                         }
                     } catch (e: Exception) {
                         mediaPlayer.stop()
@@ -505,7 +535,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                             seekTo(prevOff)
                         }
 
-                        if ((songDur == 0) and (mediaPlayer.duration > 0)) songDur = mediaPlayer.duration; fplay = true
+                        if ((songDur == 0) and (mediaPlayer.duration > 0)) songDur =
+                            mediaPlayer.duration; fplay = true
                     } catch (e: Exception) {
                         mediaPlayer.stop()
                         mediaPlayer.reset()
@@ -519,7 +550,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
 
                     while (mediaPlayer.currentPosition < sleepT) {
-                        prevDur = if (mediaPlayer.currentPosition < prevOff) mediaPlayer.currentPosition else prevOff
+                        prevDur =
+                            if (mediaPlayer.currentPosition < prevOff) mediaPlayer.currentPosition else prevOff
                         delay(100)
                     }
 
@@ -543,10 +575,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
                 mediaPlayer.prepareAsync()
                 launch(Dispatchers.Default) {
-                registeredClients.forEach(MusicClient::songChanged)
+                    registeredClients.forEach(MusicClient::songChanged)
                 }
                 launch(Dispatchers.Default) {
-                registeredClients.forEach { it.indexChanged(currentIndex) }
+                    registeredClients.forEach { it.indexChanged(currentIndex) }
                 }
             } catch (e: java.lang.Exception) {
                 Log.e("ERR>", "$e")
@@ -663,10 +695,12 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
         mediaPlayer.pause()
         launch(Dispatchers.Default) {
-                registeredClients.forEach { it.playStateChanged(run {
-                if (mediaPlayer.isPlaying) SongState.playing
-                else SongState.paused
-            }) }
+            registeredClients.forEach {
+                it.playStateChanged(run {
+                    if (mediaPlayer.isPlaying) SongState.playing
+                    else SongState.paused
+                })
+            }
         }
     }
 
@@ -675,7 +709,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     private fun cleanUp() {
         launch(Dispatchers.Default) {
-                registeredClients.forEach(MusicClient::isExiting)
+            registeredClients.forEach(MusicClient::isExiting)
         }
         mediaPlayer.stop()
         mediaSession.release()
@@ -843,8 +877,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             MediaMetadata.Builder()
                 .putBitmap(MediaMetadata.METADATA_KEY_ART, songCoverArt?.get())
                 .putLong(MediaMetadata.METADATA_KEY_DURATION, mediaPlayer.duration.toLong())
-                .putString(MediaMetadata.METADATA_KEY_ARTIST, artistOverride ?: playQueue[currentIndex].artist)
-                .putString(MediaMetadata.METADATA_KEY_TITLE, nameOverride ?: playQueue[currentIndex].name)
+                .putString(
+                    MediaMetadata.METADATA_KEY_ARTIST,
+                    artistOverride ?: playQueue[currentIndex].artist
+                )
+                .putString(
+                    MediaMetadata.METADATA_KEY_TITLE,
+                    nameOverride ?: playQueue[currentIndex].name
+                )
                 .build()
         )
     }

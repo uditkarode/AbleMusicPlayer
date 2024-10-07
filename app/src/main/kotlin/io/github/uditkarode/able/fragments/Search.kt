@@ -34,7 +34,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.databinding.SearchBinding
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.coroutines.CoroutineScope

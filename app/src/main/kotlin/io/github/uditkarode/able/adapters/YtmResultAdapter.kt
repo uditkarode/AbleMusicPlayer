@@ -32,7 +32,7 @@ import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.AlbumPlaylist
 import io.github.uditkarode.able.fragments.Search
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.song.Song
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.lang.ref.WeakReference
 
@@ -40,9 +40,11 @@ import java.lang.ref.WeakReference
  * Shows results in the search fragment when the search mode is set to YouTube Music.
  */
 @ExperimentalCoroutinesApi
-class YtmResultAdapter(private val songList: ArrayList<Song>,
-                       private val wr: WeakReference<Search>,
-                       private val mode: String): RecyclerView.Adapter<YtmResultAdapter.RVVH>() {
+class YtmResultAdapter(
+    private val songList: ArrayList<Song>,
+    private val wr: WeakReference<Search>,
+    private val mode: String
+) : RecyclerView.Adapter<YtmResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
         RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
 
@@ -68,7 +70,7 @@ class YtmResultAdapter(private val songList: ArrayList<Song>,
             Typeface.createFromAsset(holder.songName.context.assets, "fonts/inter.otf")
 
         holder.itemView.setOnClickListener {
-            if(current.youtubeLink.contains("youtube.com/playlist")){
+            if (current.youtubeLink.contains("youtube.com/playlist")) {
                 holder.itemView.context.run {
                     startActivity(Intent(this, AlbumPlaylist::class.java).run {
                         this.putExtra("name", current.name)
@@ -82,7 +84,7 @@ class YtmResultAdapter(private val songList: ArrayList<Song>,
         }
     }
 
-    class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
+    class RVVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val songName = itemView.findViewById<TextView>(R.id.vid_song)!!
         val songUploader = itemView.findViewById<TextView>(R.id.vid_uploader)!!
         val songAlbumArt = itemView.findViewById<ImageView>(R.id.vid_albart)!!

@@ -27,7 +27,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Search
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.song.Song
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.lang.ref.WeakReference
 
@@ -35,7 +35,10 @@ import java.lang.ref.WeakReference
  * Shows results in the search fragment when the search mode is set to regular YouTube.
  */
 @ExperimentalCoroutinesApi
-class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: WeakReference<Search>): RecyclerView.Adapter<YtResultAdapter.RVVH>() {
+class YtResultAdapter(
+    private val songList: ArrayList<Song>,
+    private val wr: WeakReference<Search>
+) : RecyclerView.Adapter<YtResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
         RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_result, parent, false))
 
@@ -67,13 +70,13 @@ class YtResultAdapter(private val songList: ArrayList<Song>, private val wr: Wea
         /* Will Show Full Name for the Song held */
         holder.itemView.setOnLongClickListener {
             holder.vidName.isSingleLine = false
-           // holder.vidName.setLines(Int.MAX_VALUE)
+            // holder.vidName.setLines(Int.MAX_VALUE)
             notifyItemChanged(position)
             true
         }
     }
 
-    class RVVH(itemView: View): RecyclerView.ViewHolder(itemView) {
+    class RVVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val vidName = itemView.findViewById<TextView>(R.id.vid_name)!!
         val vidChannel = itemView.findViewById<TextView>(R.id.vid_uploader)!!
         val titleTxt = itemView.findViewById<TextView>(R.id.title_txt)!!

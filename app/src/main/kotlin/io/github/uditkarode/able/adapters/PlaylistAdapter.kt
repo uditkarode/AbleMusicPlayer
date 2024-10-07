@@ -32,7 +32,7 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
-import io.github.uditkarode.able.models.Playlist
+import io.github.uditkarode.able.model.Playlist
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,10 +42,12 @@ import java.io.File
  * Lists the playlists in the playlist fragment.
  */
 @ExperimentalCoroutinesApi
-class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
-    : RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
+class PlaylistAdapter(private var playlists: ArrayList<Playlist>) :
+    RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {
-        return PLVH(LayoutInflater.from(parent.context).inflate(R.layout.playlist_item, parent, false))
+        return PLVH(
+            LayoutInflater.from(parent.context).inflate(R.layout.playlist_item, parent, false)
+        )
     }
 
     override fun getItemCount() = playlists.size
@@ -80,7 +82,7 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
 
             MaterialDialog(holder.itemView.context).show {
                 title(text = holder.itemView.context.getString(R.string.rem_song))
-                listItems(items = songNames){ _, index, _ ->
+                listItems(items = songNames) { _, index, _ ->
                     Shared.removeFromPlaylist(current, songs[index])
                     Toast.makeText(context, "Song removed from playlist", Toast.LENGTH_SHORT).show()
                     playlists = Shared.getPlaylists()
@@ -98,13 +100,13 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>)
         }
     }
 
-    fun update(newPlaylists: ArrayList<Playlist>){
+    fun update(newPlaylists: ArrayList<Playlist>) {
         playlists.clear()
         playlists.addAll(newPlaylists)
         notifyDataSetChanged()
     }
 
-    class PLVH(itemView: View): RecyclerView.ViewHolder(itemView){
+    class PLVH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val playlistNameTv = itemView.findViewById<TextView>(R.id.playlist_name)!!
         val numberSongsTv = itemView.findViewById<TextView>(R.id.number_songs)!!
 

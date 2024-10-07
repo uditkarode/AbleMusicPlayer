@@ -31,7 +31,6 @@ import android.graphics.Rect
 import android.graphics.drawable.BitmapDrawable
 import android.os.*
 import android.text.Html
-import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.Toast
@@ -51,9 +50,9 @@ import io.github.uditkarode.able.adapters.ViewPagerAdapter
 import io.github.uditkarode.able.databinding.ActivityMainBinding
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
-import io.github.uditkarode.able.models.MusicMode
-import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.model.MusicMode
+import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.DownloadService.Companion.enqueueDownload
 import io.github.uditkarode.able.services.MusicService
@@ -69,7 +68,6 @@ import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.NewPipe
 import java.io.ByteArrayOutputStream
 import java.util.*
-import kotlin.collections.ArrayList
 
 /**
  * First activity that shows up when the user opens the application
@@ -269,7 +267,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     @SuppressLint("SetTextI18n")
     fun songChange() {
-        if(mService != null) {
+        if (mService != null) {
             launch(Dispatchers.Main) {
                 binding.activitySeekbar.progress = 0
                 binding.activitySeekbar.max = mService!!.getMediaPlayer().duration
@@ -304,11 +302,14 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
 
     override fun onResume() {
         super.onResume()
-        if(mService == null)
+        if (mService == null)
             bindService()
         else
-            playPauseEvent(if((mService as MusicService)
-                    .getMediaPlayer().isPlaying) SongState.playing else SongState.paused)
+            playPauseEvent(
+                if ((mService as MusicService)
+                        .getMediaPlayer().isPlaying
+                ) SongState.playing else SongState.paused
+            )
     }
 
     override fun sendItem(song: Song, mode: String) {
@@ -317,10 +318,10 @@ class MainActivity : MusicClientActivity(), Search.SongCallback, ServiceResultRe
         if (mode.isNotEmpty())
             currentMode = mode
 
-        if(song.ytmThumbnail.contains("googleusercontent")) //set resolution for youtube music art
+        if (song.ytmThumbnail.contains("googleusercontent")) //set resolution for youtube music art
         {
-            song.ytmThumbnail = song.ytmThumbnail.replace("w120","w1500")
-            song.ytmThumbnail = song.ytmThumbnail.replace("h120","h1500")
+            song.ytmThumbnail = song.ytmThumbnail.replace("w120", "w1500")
+            song.ytmThumbnail = song.ytmThumbnail.replace("h120", "h1500")
         }
         when (currentMode) {
             MusicMode.download -> {

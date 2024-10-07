@@ -34,8 +34,8 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.models.Playlist
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.Playlist
+import io.github.uditkarode.able.model.song.Song
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey

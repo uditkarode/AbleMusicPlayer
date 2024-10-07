@@ -29,7 +29,6 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.bumptech.glide.Glide
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -37,12 +36,15 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.LocalPlaylistAdapter
 import io.github.uditkarode.able.databinding.LocalplaylistBinding
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import java.lang.ref.WeakReference
 
 /**
@@ -107,19 +109,19 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             }
 
             launch(Dispatchers.Default) {
-                val playSong = fun(){
+                val playSong = fun() {
                     val mService = mService.value!!
                     mService.setQueue(resultArray)
                     mService.setIndex(0)
 
-                    if(freshStart)
+                    if (freshStart)
                         MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                 }
 
-                if(mService.value != null) playSong()
+                if (mService.value != null) playSong()
                 else {
                     mService.collect {
-                        if(it != null) {
+                        if (it != null) {
                             playSong()
                         }
                     }
@@ -131,7 +133,8 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             resultArray = Shared.getSongsFromPlaylistFile(name)
 
             launch(Dispatchers.Main) {
-                binding.apRv.adapter = LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
+                binding.apRv.adapter =
+                    LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
                 binding.apRv.layoutManager = LinearLayoutManager(this@LocalPlaylist)
                 binding.loadingView.visibility = View.GONE
                 binding.loadingView.pauseAnimation()
@@ -147,7 +150,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
 
     override fun onResume() {
         super.onResume()
-        if(mService.value == null)
+        if (mService.value == null)
             bindEvent()
     }
 
@@ -184,18 +187,18 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
         }
 
         launch(Dispatchers.Default) {
-            val playSong = fun(){
+            val playSong = fun() {
                 val mService = mService.value!!
                 mService.setQueue(array)
                 mService.setIndex(index)
-                if(freshStart)
+                if (freshStart)
                     MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
             }
 
-            if(mService.value != null) playSong()
+            if (mService.value != null) playSong()
             else {
                 mService.collect {
-                    if(it != null) {
+                    if (it != null) {
                         playSong()
                     }
                 }

@@ -37,13 +37,11 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaybumAdapter
 import io.github.uditkarode.able.databinding.AlbumplaylistBinding
 import io.github.uditkarode.able.fragments.Search
-import io.github.uditkarode.able.fragments.Search.Companion
-import io.github.uditkarode.able.models.Song
+import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.lang.ref.WeakReference

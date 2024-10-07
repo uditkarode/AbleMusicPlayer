@@ -40,8 +40,8 @@ import com.afollestad.materialdialogs.input.input
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaylistAdapter
 import io.github.uditkarode.able.databinding.PlaylistsBinding
-import io.github.uditkarode.able.models.Song
-import io.github.uditkarode.able.models.SongState
+import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.SpotifyImportService
 import io.github.uditkarode.able.utils.Shared
@@ -140,7 +140,7 @@ class Playlists : Fragment(), MusicService.MusicClient {
     override fun isLoading(doLoad: Boolean) {}
 
     override fun spotifyImportChange(starting: Boolean) {
-        if(starting){
+        if (starting) {
             isImporting = true
             _binding!!.spotbut.setImageResource(R.drawable.ic_cancle_action)
         } else {

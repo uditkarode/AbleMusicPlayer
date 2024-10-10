@@ -8,3 +8,6 @@ Happy Composing 💚💚💚.
 
 - Separating data and domain layers from ui layer to start migrating ui to compose (migrating to multi-module project structure)
 - create and use core - `model` module
+- create service and utils module
+- add services to service module
+- add utils module

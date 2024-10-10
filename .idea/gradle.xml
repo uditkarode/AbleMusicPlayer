@@ -27,6 +27,7 @@
             <option value="$PROJECT_DIR$/core" />
             <option value="$PROJECT_DIR$/core/model" />
             <option value="$PROJECT_DIR$/core/services" />
+            <option value="$PROJECT_DIR$/core/utils" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

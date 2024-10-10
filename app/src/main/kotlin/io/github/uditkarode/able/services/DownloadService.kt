@@ -33,7 +33,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.models.DownloadableSong
+import io.github.uditkarode.able.model.DownloadableSong
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.CoroutineScope

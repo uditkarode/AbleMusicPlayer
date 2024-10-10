@@ -1,4 +1,7 @@
 @file:Suppress("UnstableApiUsage")
+
+include(":core:services")
+
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

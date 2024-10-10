@@ -26,6 +26,7 @@
             <option value="$PROJECT_DIR$/build-logic/convention" />
             <option value="$PROJECT_DIR$/core" />
             <option value="$PROJECT_DIR$/core/model" />
+            <option value="$PROJECT_DIR$/core/services" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />

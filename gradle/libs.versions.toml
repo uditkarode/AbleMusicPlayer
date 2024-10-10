@@ -36,6 +36,9 @@ xfetch2 = "3.1.6"
 kotlin = "2.0.20"
 compose-bom = "2024.09.03"
 constraintCompose = "1.0.1"
+junit = "4.13.2"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
 
 [libraries]
 analytics = { module = "com.flurry.android:analytics", version.ref = "analytics" }
@@ -91,6 +94,9 @@ compose-constraintLayout = { group = "androidx.constraintlayout", name = "constr
 # Dependencies of the included build-logic
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 #spotless-gradlePlugin = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
 
 [plugins]

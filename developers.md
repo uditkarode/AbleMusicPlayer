@@ -11,3 +11,7 @@ Happy Composing 💚💚💚.
 - create service and utils module
 - add services to service module
 - add utils module
+- rolling back changes due dependence of utils, services, activites on each other
+- something needs to be done
+- unable to move utils due to use of string res
+- thinking of plan....

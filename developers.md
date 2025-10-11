@@ -28,8 +28,35 @@ we migrated and stabilised the whole till then we will be it will added later.
 - **Stream YT Music**
 - **Download & Play Playlist (yt or spotify)**
 
+# Lines Of Code
+let's see how low can we drop xml usage
+>as of: 12/10/2025
+```markdown
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+Kotlin                          59           1073           1782           6395
+XML                            112            394             20           5730
+JSON                            13              0              0           2412
+Java                            12            517           1715           1247
+Text                             9             84              0            399
+Gradle                           8             35              7            239
+CMake                            5             60             30            178
+Bourne Shell                     3             21             22            177
+ProGuard                         2             12             19            142
+YAML                             3              3              0            114
+TOML                             1              5             13             94
+DOS Batch                        1             23              2             59
+Markdown                         2             12              0             45
+Properties                       7              0             25             21
+C++                              1              1              5              1
+-------------------------------------------------------------------------------
+SUM:                           238           2240           3640          17253
+-------------------------------------------------------------------------------
 ```
-OLD
+
+### old
+```
 - Separating data and domain layers from ui layer to start migrating ui to compose (migrating to multi-module project structure)
 - create and use core - `model` module
 - create service and utils module

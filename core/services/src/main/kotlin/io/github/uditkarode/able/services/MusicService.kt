@@ -65,7 +65,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.schabi.newpipe.extractor.stream.StreamInfo
+//import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field

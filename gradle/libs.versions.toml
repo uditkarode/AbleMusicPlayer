@@ -10,7 +10,7 @@ core = "3.3.0"
 coreKtx = "1.13.1"
 glide = "4.14.2"
 gradient = "1.0.1"
-agp = "8.5.2"
+agp = "8.13.0"
 gson = "2.10.1"
 input = "3.3.0"
 jaudiotaggerAndroid = "995dd88554"
@@ -33,12 +33,14 @@ roundedimageview = "2.3.0"
 viewpump = "2.0.3"
 workRuntime = "2.9.1"
 xfetch2 = "3.1.6"
-kotlin = "2.0.20"
-compose-bom = "2024.09.03"
+kotlin = "2.2.10"
+compose-bom = "2025.10.00"
 constraintCompose = "1.0.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
+jvmTarget = "17"
+
 
 [libraries]
 analytics = { module = "com.flurry.android:analytics", version.ref = "analytics" }
@@ -80,6 +82,7 @@ compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = 
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-ui-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 compose-material = { group = "androidx.compose.material", name = "material" }
@@ -90,6 +93,7 @@ compose-animations = { group = "androidx.compose.animation", name = "animation" 
 compose-animtions-core = { group = "androidx.compose.animation", name = "animation-core" }
 compose-animtions-graphics = { group = "androidx.compose.animation", name = "animation-graphics" }
 compose-constraintLayout = { group = "androidx.constraintlayout", name = "constraintlayout-compose", version.ref = "constraintCompose" }
+compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
 
 # Dependencies of the included build-logic
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
@@ -100,13 +104,16 @@ espresso-core = { group = "androidx.test.espresso", name = "espresso-core", vers
 #spotless-gradlePlugin = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
 
 [plugins]
-androidApplication = { id = "com.android.application", version.ref = "agp" }
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 android-test = { id = "com.android.test", version.ref = "agp" }
-kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 #ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 #spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+able-application = { id = "able.android.application" }
+able-library = { id = "able.library" }
 

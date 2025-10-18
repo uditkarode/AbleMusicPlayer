@@ -384,7 +384,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             onShuffle = false
             val currSong = playQueue[currentIndex]
-            playQueue = ArrayList(playQueue.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
+            playQueue = ArrayList(playQueue.sortedBy { it.name.uppercase(Locale.getDefault()) })
             currentIndex = playQueue.indexOf(currSong)
         }
 

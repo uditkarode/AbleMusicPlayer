@@ -153,7 +153,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             songList = Shared.getSongList(Constants.ableSongDir)
             songList.addAll(Shared.getLocalSongs(requireContext()))
             if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
-                it.name.toUpperCase(
+                it.name.uppercase(
                     Locale.getDefault()
                 )
             })
@@ -431,7 +431,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                         )
                         songList =
                             ArrayList(songList.sortedBy {
-                                it.name.toUpperCase(
+                                it.name.uppercase(
                                     Locale.getDefault()
                                 )
                             })
@@ -480,7 +480,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         songList = Shared.getSongList(Constants.ableSongDir)
         if (context != null) songList.addAll(Shared.getLocalSongs(context as Context))
         songList = ArrayList(songList.sortedBy {
-            it.name.toUpperCase(
+            it.name.uppercase(
                 Locale.getDefault()
             )
         })

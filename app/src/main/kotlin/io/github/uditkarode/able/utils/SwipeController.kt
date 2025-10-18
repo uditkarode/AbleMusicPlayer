@@ -55,7 +55,7 @@ class SwipeControllerActions(
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(context!!))
         songList = ArrayList(songList.sortedBy {
-            it.name.toUpperCase(
+            it.name.uppercase(
                 Locale.getDefault()
             )
         })

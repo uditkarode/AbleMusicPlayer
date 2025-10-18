@@ -500,7 +500,7 @@ object Shared {
             .show()
         modifyPlaylist(
             playlist.name,
-            ArrayList(songs.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
+            ArrayList(songs.sortedBy { it.name.uppercase(Locale.getDefault()) })
         )
     }
 

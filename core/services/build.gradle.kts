@@ -1,6 +1,5 @@
 plugins {
-    alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.kotlinAndroid)
+    alias(libs.plugins.able.library)
 }
 
 android {
@@ -18,9 +17,7 @@ android {
 dependencies {
     implementation(libs.core.ktx)
     implementation(libs.glide)
-    implementation(projects.core.model)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.newpipeextractor)
     implementation(libs.work.runtime)
-//    implementation(libs.glide.compiler)
 }

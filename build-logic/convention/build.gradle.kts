@@ -13,3 +13,16 @@ dependencies {
     compileOnly(libs.android.gradlePlugin)
     compileOnly(libs.kotlin.gradlePlugin)
 }
+
+gradlePlugin {
+    plugins {
+        register("androidLibraryCompose") {
+            id = "able.library"
+            implementationClass = "AbleModuleComposeConventionPlugin"
+        }
+        register("androidApplicationCompose") {
+            id = "able.android.application"
+            implementationClass = "AndroidApplicationComposeConventionPlugin"
+        }
+    }
+}

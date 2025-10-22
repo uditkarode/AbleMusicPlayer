@@ -29,6 +29,8 @@
             <option value="$PROJECT_DIR$/core/model" />
             <option value="$PROJECT_DIR$/core/services" />
             <option value="$PROJECT_DIR$/core/utils" />
+            <option value="$PROJECT_DIR$/features" />
+            <option value="$PROJECT_DIR$/features/player" />
           </set>
         </option>
       </GradleProjectSettings>

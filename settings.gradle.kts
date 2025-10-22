@@ -1,10 +1,5 @@
 @file:Suppress("UnstableApiUsage")
 
-include(":core:utils")
-
-
-include(":core:services")
-
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -32,5 +27,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "YoutubeMobile"
 include (":app")
-
+// Core Modules
 include(":core:model")
+include(":core:utils")
+include(":core:services")
+
+// Features
+include(":features:player")

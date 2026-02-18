@@ -27,7 +27,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.ResultReceiver
 import android.util.Log
 import androidx.core.app.JobIntentService
 import androidx.core.app.NotificationManagerCompat
@@ -87,8 +86,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
 
     override fun onHandleWork(p0: Intent) {
         val song: ArrayList<String> = p0.getStringArrayListExtra("song") ?: arrayListOf()
-        val mResultReceiver = p0.getParcelableExtra<ResultReceiver>("receiver")!!
-        songQueue.add(DownloadableSong(song[0], song[2], song[1], song[3], mResultReceiver))
+        songQueue.add(DownloadableSong(song[0], song[2], song[1], song[3]))
         if (songQueue.size == 1) download(songQueue[0])
         else {
             NotificationManagerCompat.from(this@DownloadService).apply {

@@ -120,6 +120,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         private lateinit var mediaSession: MediaSession
         private var ps = PlaybackState.Builder()
         private var coverArtHeight: Int? = null
+        var isLoading = false
+            private set
         private var isInstantiated = false
         private var onShuffle = false
         private var onRepeat = false
@@ -465,7 +467,16 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         }
 
+        isLoading = true
+        launch(Dispatchers.Default) {
+            registeredClients.forEach { it.isLoading(true) }
+        }
+
         mediaPlayer.setOnPreparedListener {
+            isLoading = false
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.isLoading(false) }
+            }
             mediaSessionPlay()
             setPlayPause(SongState.playing)
 
@@ -913,9 +924,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
                 if (song.ytmThumbnail.isNotBlank()) {
+                    var thumbUrl = song.ytmThumbnail
+                    if (thumbUrl.contains("googleusercontent")) {
+                        thumbUrl = thumbUrl.replace("w120", "w1500")
+                            .replace("h120", "h1500")
+                    }
                     Glide.with(this@MusicService)
                         .asBitmap()
-                        .load(song.ytmThumbnail)
+                        .load(thumbUrl)
                         .signature(ObjectKey("save"))
                         .listener(object : RequestListener<Bitmap> {
                             override fun onLoadFailed(

@@ -121,6 +121,7 @@ class Player : MusicClientActivity() {
     private lateinit var artistName: TextView
     private lateinit var playerQueue: ImageView
     private lateinit var youtubeProgressbar: ProgressBar
+    private lateinit var centerLoadingSpinner: ProgressBar
     private lateinit var completePosition: TextView
     private lateinit var imgAlbart: RoundedImageView
 
@@ -263,6 +264,17 @@ class Player : MusicClientActivity() {
                 ?: binding400?.playerCenterIcon
                 ?: binding410?.playerCenterIcon
                 ?: bindingMassive?.playerCenterIcon) as ImageView
+
+        centerLoadingSpinner = ProgressBar(this).apply {
+            layoutParams = RelativeLayout.LayoutParams(
+                playerCenterIcon.layoutParams.width,
+                playerCenterIcon.layoutParams.height
+            ).apply {
+                addRule(RelativeLayout.CENTER_IN_PARENT)
+            }
+            visibility = View.GONE
+        }
+        (playerCenterIcon.parent as ViewGroup).addView(centerLoadingSpinner)
 
         playerCenterIcon.setOnClickListener {
             launch(Dispatchers.Default) {
@@ -636,18 +648,9 @@ class Player : MusicClientActivity() {
     }
 
     private fun onBindDone() {
-        if (mService!!.getMediaPlayer().isPlaying) playerCenterIcon.setImageDrawable(
-            ContextCompat.getDrawable(
-                this@Player,
-                R.drawable.nobg_pause
-            )
-        )
-        else playerCenterIcon.setImageDrawable(
-            ContextCompat.getDrawable(
-                this@Player,
-                R.drawable.nobg_play
-            )
-        )
+        if (MusicService.isLoading) {
+            isLoading(true)
+        }
 
         playing = if (mService!!.getMediaPlayer().isPlaying) SongState.playing else SongState.paused
         playPauseEvent(playing)
@@ -949,7 +952,7 @@ class Player : MusicClientActivity() {
                         if (response != null) {
                             val json = JSONObject(response.string()).getJSONArray("data")
                                 .getJSONObject(0).getJSONObject("album")
-                            val imgLink = json.getString("cover_big")
+                            val imgLink = json.getString("cover_xl")
                             val albumName = json.getString("title")
 
                             try {
@@ -1073,16 +1076,21 @@ class Player : MusicClientActivity() {
             val mService = mService as MusicService
             updateAlbumArt()
 
-            val duration = mService.getMediaPlayer().duration
-            playerSeekbar.max = duration
-
-
-            completePosition.text = getDurationFromMs(duration)
-
             val song = mService.getPlayQueue()[mService.getCurrentIndex()]
             songName.text = song.name
             artistName.text = song.artist
-            playerSeekbar.progress = mService.getMediaPlayer().currentPosition
+
+            val duration = mService.getMediaPlayer().duration
+            if (duration > 0 && mService.getMediaPlayer().isPlaying) {
+                playerSeekbar.max = duration
+                completePosition.text = getDurationFromMs(duration)
+                playerSeekbar.progress = mService.getMediaPlayer().currentPosition
+            } else {
+                playerSeekbar.max = 100
+                playerSeekbar.progress = 0
+                completePosition.text = "0:00"
+                playerCurrentPosition.text = "0:00"
+            }
         }
     }
 
@@ -1162,7 +1170,21 @@ class Player : MusicClientActivity() {
 
     override fun indexChanged(index: Int) {}
 
-    override fun isLoading(doLoad: Boolean) {}
+    override fun isLoading(doLoad: Boolean) {
+        launch(Dispatchers.Main) {
+            if (doLoad) {
+                playerCenterIcon.visibility = View.INVISIBLE
+                centerLoadingSpinner.visibility = View.VISIBLE
+                playerSeekbar.progress = 0
+                playerSeekbar.max = 100
+                completePosition.text = "0:00"
+                playerCurrentPosition.text = "0:00"
+            } else {
+                centerLoadingSpinner.visibility = View.GONE
+                playerCenterIcon.visibility = View.VISIBLE
+            }
+        }
+    }
 
     override fun spotifyImportChange(starting: Boolean) {}
 

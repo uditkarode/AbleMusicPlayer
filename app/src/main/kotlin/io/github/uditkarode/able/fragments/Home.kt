@@ -270,9 +270,14 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 }
 
                 if (song.ytmThumbnail.isNotBlank()) {
+                    var thumbUrl = song.ytmThumbnail
+                    if (thumbUrl.contains("googleusercontent")) {
+                        thumbUrl = thumbUrl.replace("w120", "w1500")
+                            .replace("h120", "h1500")
+                    }
                     Glide.with(requireContext())
                         .asBitmap()
-                        .load(song.ytmThumbnail)
+                        .load(thumbUrl)
                         .diskCacheStrategy(DiskCacheStrategy.NONE)
                         .signature(ObjectKey("save"))
                         .skipMemoryCache(true)

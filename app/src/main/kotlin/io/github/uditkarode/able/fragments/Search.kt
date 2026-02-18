@@ -39,7 +39,6 @@ import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
@@ -53,7 +52,6 @@ import java.util.Collections.singletonList
 /**
  * The second fragment. Used to search for songs.
  */
-@ExperimentalCoroutinesApi
 class Search : Fragment(), CoroutineScope {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences

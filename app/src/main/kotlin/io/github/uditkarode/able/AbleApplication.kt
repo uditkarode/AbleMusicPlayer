@@ -16,28 +16,14 @@
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package io.github.uditkarode.able.adapters
+package io.github.uditkarode.able
 
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
-import androidx.viewpager2.adapter.FragmentStateAdapter
-import io.github.uditkarode.able.fragments.Home
-import io.github.uditkarode.able.fragments.Search
-import io.github.uditkarode.able.fragments.Playlists
+import android.app.Application
+import io.github.uditkarode.able.utils.Constants
 
-/**
- * Adapter for ViewPager2 on MainActivity.
- */
-class ViewPagerAdapter(activity: FragmentActivity, private val home: Home) :
-    FragmentStateAdapter(activity) {
-
-    override fun createFragment(position: Int): Fragment {
-        return when (position) {
-            0 -> home
-            1 -> Search()
-            else -> Playlists()
-        }
+class AbleApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        Constants.init(this)
     }
-
-    override fun getItemCount() = 3
 }

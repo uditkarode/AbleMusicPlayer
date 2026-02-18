@@ -26,7 +26,6 @@ import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.MusicMode
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import java.util.*
@@ -35,7 +34,6 @@ internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
 
-@ExperimentalCoroutinesApi
 class SwipeControllerActions(
     private var mode: String,
     private var mService: MutableStateFlow<MusicService?>?
@@ -55,9 +53,7 @@ class SwipeControllerActions(
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(context!!))
         songList = ArrayList(songList.sortedBy {
-            it.name.toUpperCase(
-                Locale.getDefault()
-            )
+            it.name.uppercase(Locale.getDefault())
         })
     }
 
@@ -160,7 +156,6 @@ class SwipeControllerActions(
     }
 }
 
-@ExperimentalCoroutinesApi
 @Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
 class SwipeController(

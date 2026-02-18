@@ -60,7 +60,6 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -75,7 +74,6 @@ import java.util.*
  * The service that plays music.
  */
 
-@ExperimentalCoroutinesApi
 class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, CoroutineScope {
 
     interface MusicClient {
@@ -297,7 +295,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             action.equals("ACTION_KILL", ignoreCase = true) -> {
                 cleanUp()
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    stopForeground(true)
+                    stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         }
@@ -384,7 +382,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             onShuffle = false
             val currSong = playQueue[currentIndex]
-            playQueue = ArrayList(playQueue.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
+            playQueue = ArrayList(playQueue.sortedBy { it.name.uppercase(Locale.getDefault()) })
             currentIndex = playQueue.indexOf(currSong)
         }
 
@@ -942,7 +940,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                                         Shared.getIdFromLink(song.youtubeLink)
                                     )
                                 }
-                                val url = stream.url
+                                val url = stream.content
                                 playQueue[currentIndex].filePath = url!!
                                 return false
                             }

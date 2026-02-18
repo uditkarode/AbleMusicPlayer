@@ -30,12 +30,9 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.utils.Constants
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-
 /**
  * The service that handles import of Spotify songs.
  */
-@ExperimentalCoroutinesApi
 class SpotifyImportService(val context: Context, workerParams: WorkerParameters) :
     MusicService.MusicClient, Worker(
     context,

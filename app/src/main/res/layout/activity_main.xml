@@ -10,12 +10,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <io.github.uditkarode.able.utils.UnscrollableViewpager
+    <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/main_content"
         android:layout_above="@+id/bn_parent"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        />
+        android:layout_height="match_parent" />
 
     <LinearLayout
         android:id="@+id/bn_parent"

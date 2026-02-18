@@ -31,12 +31,9 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.databinding.AboutBinding
 import io.github.uditkarode.able.utils.Constants
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-
 /**
  * The about page.
  */
-@ExperimentalCoroutinesApi
 class About: AppCompatActivity() {
     private lateinit var binding: AboutBinding
 

@@ -18,37 +18,31 @@
 
 package io.github.uditkarode.able.utils
 
-import android.os.Environment
+import android.content.Context
 import java.io.File
 
 class Constants {
     companion object {
+        private lateinit var baseDir: File
+
+        fun init(context: Context) {
+            baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        }
+
         /** a File object pointing to the folder where playlist JSONs will be stored */
-        @Suppress("DEPRECATION")
-        val playlistFolder = File(
-            Environment.getExternalStorageDirectory(),
-            "AbleMusic/playlists")
+        val playlistFolder: File get() = File(baseDir, "playlists")
 
-        /**
-         * a File object pointing to the folder where all AbleMusic related files
-         * will be stored.
-         */
-        @Suppress("DEPRECATION")
-        val ableSongDir = File(
-            Environment.getExternalStorageDirectory(),
-            "AbleMusic")
+        /** a File object pointing to the folder where all AbleMusic related files will be stored. */
+        val ableSongDir: File get() = baseDir
 
-        /**
-         * a File object pointing to the folder where all songs imported from Spotify
-         * will be stored.
-         */
-        val playlistSongDir = File(ableSongDir.absolutePath + "/playlist_songs")
+        /** a File object pointing to the folder where all songs imported from Spotify will be stored. */
+        val playlistSongDir: File get() = File(baseDir, "playlist_songs")
 
         /** a File object pointing to the folder where album art JPGs will be stored */
-        val albumArtDir = File(ableSongDir.absolutePath + "/album_art")
+        val albumArtDir: File get() = File(baseDir, "album_art")
 
         /** a File object pointing to the folder where temporary items will be stored */
-        val cacheDir = File(ableSongDir.absolutePath + "/cache")
+        val cacheDir: File get() = File(baseDir, "cache")
 
         /**
          * API keys and version code names which *should* be replaced during compilation.

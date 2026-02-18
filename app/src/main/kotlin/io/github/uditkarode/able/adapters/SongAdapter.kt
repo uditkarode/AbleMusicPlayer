@@ -47,7 +47,10 @@ import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import java.lang.ref.WeakReference
@@ -55,7 +58,6 @@ import java.lang.ref.WeakReference
 /**
  * Shows songs on the Home fragment.
  */
-@ExperimentalCoroutinesApi
 class SongAdapter(
     private var songList: ArrayList<Song>,
     private val wr: WeakReference<Home>? = null,

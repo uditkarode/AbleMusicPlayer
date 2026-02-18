@@ -59,8 +59,6 @@ import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -80,7 +78,6 @@ import java.util.*
 /**
  * The first fragment. Shows a list of songs present on the user's device.
  */
-@ExperimentalCoroutinesApi
 class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     private lateinit var okClient: OkHttpClient
     private lateinit var serviceConn: ServiceConnection
@@ -153,9 +150,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             songList = Shared.getSongList(Constants.ableSongDir)
             songList.addAll(Shared.getLocalSongs(requireContext()))
             if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
-                it.name.toUpperCase(
-                    Locale.getDefault()
-                )
+                it.name.uppercase(Locale.getDefault())
             })
         }
         songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
@@ -265,7 +260,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
                 val stream = streamInfo.audioStreams.run { this[size - 1] }
 
-                val url = stream.url
+                val url = stream.content
                 val bitrate = stream.averageBitrate
                 val ext = stream.getFormat()!!.suffix
                 songId = Shared.getIdFromLink(song.youtubeLink)
@@ -346,7 +341,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         song.filePath = "caching"
         song.streamMutexes = arrayOf(Mutex(), Mutex())
 
-        GlobalScope.launch(Dispatchers.IO) {
+        launch(Dispatchers.IO) {
             val req = Request.Builder().url(songUrl).build()
             val resp = okClient.newCall(req).execute()
             val body = resp.body!!
@@ -431,9 +426,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                         )
                         songList =
                             ArrayList(songList.sortedBy {
-                                it.name.toUpperCase(
-                                    Locale.getDefault()
-                                )
+                                it.name.uppercase(Locale.getDefault())
                             })
                         launch(Dispatchers.Main) {
                             songAdapter?.update(songList)
@@ -480,9 +473,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         songList = Shared.getSongList(Constants.ableSongDir)
         if (context != null) songList.addAll(Shared.getLocalSongs(context as Context))
         songList = ArrayList(songList.sortedBy {
-            it.name.toUpperCase(
-                Locale.getDefault()
-            )
+            it.name.uppercase(Locale.getDefault())
         })
         launch(Dispatchers.Main) {
             songAdapter?.update(songList)

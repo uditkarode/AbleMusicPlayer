@@ -16,6 +16,8 @@
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+@file:Suppress("DEPRECATION")
+
 package io.github.uditkarode.able.services
 
 import android.app.Notification
@@ -132,7 +134,7 @@ class DownloadService : JobIntentService(), CoroutineScope {
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
-            val url = stream.url
+            val url = stream.content
             val bitrate = stream.averageBitrate
             val ext = stream.getFormat()!!.suffix
             val mediaFile = File(Constants.ableSongDir, id)

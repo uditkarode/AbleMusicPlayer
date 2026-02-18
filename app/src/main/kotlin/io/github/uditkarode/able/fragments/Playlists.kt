@@ -45,13 +45,10 @@ import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.services.SpotifyImportService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-
 /**
  * The third fragment. Used to view/edit/play locally stored playlists.
  * Playlists are stored in the JSON format.
  */
-@ExperimentalCoroutinesApi
 class Playlists : Fragment(), MusicService.MusicClient {
     private var isImporting = false
     private var _binding: PlaylistsBinding? = null

@@ -24,12 +24,9 @@ import android.os.Bundle
 import io.github.dreierf.materialintroscreen.MaterialIntroActivity
 import io.github.dreierf.materialintroscreen.SlideFragmentBuilder
 import io.github.uditkarode.able.R
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-
 /**
  * The welcome screen that shows up when the required permissions haven't been granted.
  */
-@ExperimentalCoroutinesApi
 class Welcome: MaterialIntroActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

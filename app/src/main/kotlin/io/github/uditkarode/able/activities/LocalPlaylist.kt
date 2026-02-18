@@ -41,7 +41,6 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -51,7 +50,6 @@ import java.lang.ref.WeakReference
  * The activity that shows up when a user taps on a local playlist from the
  * playlist fragment.
  */
-@ExperimentalCoroutinesApi
 class LocalPlaylist : AppCompatActivity(), CoroutineScope {
     var mService: MutableStateFlow<MusicService?> = MutableStateFlow(null)
     var isBound = false

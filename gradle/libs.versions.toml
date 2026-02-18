@@ -23,13 +23,14 @@ lifecycleViewmodelKtx = "2.8.6"
 lottie = "6.0.0"
 material = "1.12.0"
 materialIntroScreen = "0.0.6"
-newpipeextractor = "v0.24.8"
+newpipeextractor = "v0.25.2"
 okhttp = "4.12.0"
 paletteKtx = "1.0.0"
 preferenceKtx = "1.2.1"
 preferencex = "1.1.0"
 recyclerview = "1.3.2"
 roundedimageview = "2.3.0"
+viewpager2 = "1.1.0"
 viewpump = "2.0.3"
 workRuntime = "2.9.1"
 xfetch2 = "3.1.6"
@@ -71,6 +72,7 @@ preference-ktx = { module = "androidx.preference:preference-ktx", version.ref = 
 preferencex = { module = "com.takisoft.preferencex:preferencex", version.ref = "preferencex" }
 recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "recyclerview" }
 roundedimageview = { module = "com.makeramen:roundedimageview", version.ref = "roundedimageview" }
+viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2" }
 viewpump = { module = "io.github.inflationx:viewpump", version.ref = "viewpump" }
 work-runtime = { module = "androidx.work:work-runtime", version.ref = "workRuntime" }
 #xfetch2 = { module = "androidx.tonyodev.fetch2:xfetch2", version.ref = "xfetch2" }

@@ -1,0 +1,101 @@
+name: Build Release APK
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASS: ${{ secrets.KEY_PASS }}
+      STORE_PASS: ${{ secrets.STORE_PASS }}
+
+    steps:
+      # ---------- Setup ----------
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      # ---------- Notify build started ----------
+
+      - name: Telegram — build started
+        env:
+          TG_BOT_KEY: ${{ secrets.TG_BOT_KEY }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA::8}"
+          curl -sf -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" \
+            -d chat_id="-1001415196670" \
+            -d disable_web_page_preview=true \
+            -d parse_mode=markdown \
+            -d text="🤖 \`building\` [${SHORT_SHA}](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA}) 🤖"
+
+      # ---------- Prepare build ----------
+
+      # Inject API keys into source (replaced at compile time)
+      - name: Inject API keys
+        env:
+          RAPID_KEY: ${{ secrets.RAPID_KEY }}
+        run: |
+          CONSTANTS="app/src/main/kotlin/io/github/uditkarode/able/utils/Constants.kt"
+          sed -i "s/INSERT_RAPID_KEY/${RAPID_KEY}/" "$CONSTANTS"
+
+      # Clone the release keystore from a private repo (read-only PAT)
+      - name: Fetch signing keystore
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${TOKEN}@github.com/uditkarode/AbleMusicKeystore.git" \
+            _keystore
+          mv _keystore/release.keystore app/
+          rm -rf _keystore
+
+      # ---------- Build ----------
+
+      - name: Build release APK
+        run: ./gradlew :app:assembleRelease
+
+      # ---------- Upload artifacts ----------
+
+      # Upload APK to Telegram channel
+      - name: Telegram — upload APK
+        env:
+          TG_BOT_KEY: ${{ secrets.TG_BOT_KEY }}
+        run: |
+          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          SHORT_SHA="${GITHUB_SHA::8}"
+          curl -sf -F document=@"${APK}" \
+            "https://api.telegram.org/bot${TG_BOT_KEY}/sendDocument" \
+            -F chat_id="-1001415196670" \
+            -F parse_mode=Markdown \
+            -F caption="\`${SHORT_SHA}\`"
+
+      # Also save APK as a GitHub Actions artifact for easy download
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AbleMusic-${{ github.sha }}
+          path: app/build/outputs/apk/release/*.apk
+
+      # ---------- Notify build finished ----------
+
+      - name: Telegram — build finished
+        env:
+          TG_BOT_KEY: ${{ secrets.TG_BOT_KEY }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA::8}"
+          curl -sf -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" \
+            -d chat_id="-1001415196670" \
+            -d disable_web_page_preview=true \
+            -d parse_mode=markdown \
+            -d text="🤖 \`build finished\` [${SHORT_SHA}](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA}) 🤖"

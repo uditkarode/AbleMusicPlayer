@@ -82,7 +82,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0.9"
+                        android:text="0.96"
                         android:textColor="#fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
@@ -115,7 +115,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
-                        android:text="InterdimensionalBoop"
+                        android:text="ConcentricPuddles"
                         android:textColor="#fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead" />
 
@@ -182,27 +182,26 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/hpm"
+                        android:text="@string/jayesh"
                         android:textColor="#fbfbfb"
+                        fontPath="interbold.otf"
                         android:textSize="18sp"
-                        fontPath="SanFranciscoM.otf"
                         android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
                         tools:ignore="MissingPrefix"/>
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/deseg_hpm"
+                        android:layout_marginBottom="10sp"
+                        android:text="@string/deseg_dev"
                         android:textColor="#80fbfbfb"
                         android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                         tools:ignore="HardcodedText" />
 
                     <TextView
-                        android:id="@+id/himanshu"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textSize="18sp"
-                        android:layout_marginTop="10dp"
                         android:text="@string/graphics_d"
                         android:textColor="#fbfbfb"
                         fontPath="interbold.otf"
@@ -267,18 +266,6 @@
                             android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
                             tools:ignore="MissingPrefix"/>
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/donate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/donate"
-                            app:backgroundTint="#ff5023"
-                            android:padding="12dp"
-                            android:textSize="18sp"
-                            app:icon="@drawable/ic_heart"
-                            android:layout_gravity="center_horizontal"
-                            android:textAppearance="@style/TextAppearance.AppCompat.Subhead"
-                            tools:ignore="MissingPrefix"/>
 
                     </LinearLayout>
 

@@ -19,26 +19,25 @@
 package io.github.uditkarode.able.adapters
 
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentPagerAdapter
+import androidx.fragment.app.FragmentActivity
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.fragments.Playlists
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
- * Adapter for ViewPager on MainActivity.
+ * Adapter for ViewPager2 on MainActivity.
  */
-@ExperimentalCoroutinesApi
-class ViewPagerAdapter(fm: FragmentManager, private val home: Home):
-    FragmentPagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
-    override fun getItem(position: Int): Fragment {
-        return when(position) {
+class ViewPagerAdapter(activity: FragmentActivity, private val home: Home) :
+    FragmentStateAdapter(activity) {
+
+    override fun createFragment(position: Int): Fragment {
+        return when (position) {
             0 -> home
             1 -> Search()
             else -> Playlists()
         }
     }
 
-    override fun getCount() = 3
+    override fun getItemCount() = 3
 }

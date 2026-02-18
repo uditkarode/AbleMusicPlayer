@@ -26,7 +26,6 @@ import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.MusicMode
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import java.util.*
@@ -35,7 +34,6 @@ internal enum class ButtonsState {
     GONE, LEFT_VISIBLE, RIGHT_VISIBLE
 }
 
-@ExperimentalCoroutinesApi
 class SwipeControllerActions(
     private var mode: String,
     private var mService: MutableStateFlow<MusicService?>?
@@ -55,9 +53,7 @@ class SwipeControllerActions(
         songList = Shared.getSongList(Constants.ableSongDir)
         songList.addAll(Shared.getLocalSongs(context!!))
         songList = ArrayList(songList.sortedBy {
-            it.name.toUpperCase(
-                Locale.getDefault()
-            )
+            it.name.uppercase(Locale.getDefault())
         })
     }
 
@@ -108,7 +104,7 @@ class SwipeControllerActions(
 
             else -> {
                 initialiseSongCallback(context!!)
-                itemPressed.sendItem(Search.resultArray[position], MusicMode.both)
+                itemPressed.sendItem(Search.resultArray[position], "")
             }
         }
     }
@@ -160,7 +156,6 @@ class SwipeControllerActions(
     }
 }
 
-@ExperimentalCoroutinesApi
 @Suppress("DEPRECATION")
 @SuppressLint("ClickableViewAccessibility")
 class SwipeController(
@@ -268,13 +263,8 @@ class SwipeController(
             if (list.equals("Home"))
                 drawText("Playlist", c, leftButton, p)
             else
-                drawText(MusicMode.both, c, leftButton, p)
-            buttonsActions = when (list) {
-                "Search" ->
-                    SwipeControllerActions(MusicMode.both, mService)
-
-                else -> SwipeControllerActions("", mService)
-            }
+                drawText("Play", c, leftButton, p)
+            buttonsActions = SwipeControllerActions("", mService)
             buttonInstance = leftButton
         } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
             val rightButton = RectF(
@@ -289,7 +279,7 @@ class SwipeController(
                 drawText("DELETE", c, rightButton, p)
             else {
                 val mode: String? = PreferenceManager.getDefaultSharedPreferences(context!!)
-                    .getString("mode_key", MusicMode.download)
+                    .getString("mode_key", MusicMode.stream)
                 val currentMode: String = if (mode == MusicMode.download) {
                     drawText(MusicMode.stream, c, rightButton, p)
                     MusicMode.stream

@@ -36,14 +36,12 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Constants
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.io.File
 import java.lang.ref.WeakReference
 
 /**
  * Lists songs in a local playlist.
  */
-@ExperimentalCoroutinesApi
 class LocalPlaylistAdapter(
     private val songList: ArrayList<Song>,
     private val wr: WeakReference<LocalPlaylist>

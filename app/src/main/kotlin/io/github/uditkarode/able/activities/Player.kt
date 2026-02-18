@@ -25,9 +25,7 @@ import android.graphics.Rect
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.TouchDelegate
@@ -75,29 +73,29 @@ import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
+import androidx.activity.OnBackPressedCallback
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.File
-import java.util.*
 import java.util.concurrent.TimeUnit
 
 /**
  * The Player UI activity.
  */
 
-@ExperimentalCoroutinesApi
 class Player : MusicClientActivity() {
     private lateinit var serviceConn: ServiceConnection
     private var mService: MusicService? = null
-    private lateinit var timer: Timer
+    private var seekbarJob: Job? = null
 
     private var playing = SongState.paused
-    private var scheduled = false
     private var onShuffle = false
     private var onRepeat = false
 
@@ -123,6 +121,7 @@ class Player : MusicClientActivity() {
     private lateinit var artistName: TextView
     private lateinit var playerQueue: ImageView
     private lateinit var youtubeProgressbar: ProgressBar
+    private lateinit var centerLoadingSpinner: ProgressBar
     private lateinit var completePosition: TextView
     private lateinit var imgAlbart: RoundedImageView
 
@@ -265,6 +264,17 @@ class Player : MusicClientActivity() {
                 ?: binding400?.playerCenterIcon
                 ?: binding410?.playerCenterIcon
                 ?: bindingMassive?.playerCenterIcon) as ImageView
+
+        centerLoadingSpinner = ProgressBar(this).apply {
+            layoutParams = RelativeLayout.LayoutParams(
+                playerCenterIcon.layoutParams.width,
+                playerCenterIcon.layoutParams.height
+            ).apply {
+                addRule(RelativeLayout.CENTER_IN_PARENT)
+            }
+            visibility = View.GONE
+        }
+        (playerCenterIcon.parent as ViewGroup).addView(centerLoadingSpinner)
 
         playerCenterIcon.setOnClickListener {
             launch(Dispatchers.Default) {
@@ -625,21 +635,22 @@ class Player : MusicClientActivity() {
                 ?: bindingMassive?.youtubeProgressbar) as ProgressBar
 
         youtubeProgressbar.visibility = View.GONE
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                launch {
+                    delay(300)
+                    if (!this@Player.isDestroyed) Glide.with(this@Player).clear(imgAlbart)
+                }
+                finish()
+            }
+        })
     }
 
     private fun onBindDone() {
-        if (mService!!.getMediaPlayer().isPlaying) playerCenterIcon.setImageDrawable(
-            ContextCompat.getDrawable(
-                this@Player,
-                R.drawable.nobg_pause
-            )
-        )
-        else playerCenterIcon.setImageDrawable(
-            ContextCompat.getDrawable(
-                this@Player,
-                R.drawable.nobg_play
-            )
-        )
+        if (MusicService.isLoading) {
+            isLoading(true)
+        }
 
         playing = if (mService!!.getMediaPlayer().isPlaying) SongState.playing else SongState.paused
         playPauseEvent(playing)
@@ -658,29 +669,21 @@ class Player : MusicClientActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (scheduled) {
-            scheduled = false
-            timer.cancel()
-            timer.purge()
-        }
+        seekbarJob?.cancel()
     }
 
     private fun startSeekbarUpdates() {
-        if (!scheduled) {
-            scheduled = true
-            timer = Timer()
-            timer.schedule(object : TimerTask() {
-                override fun run() {
-                    if (mService != null) {
-                        val mService = mService as MusicService
-                        launch(Dispatchers.Main) {
-                            val songPosition = mService.getMediaPlayer().currentPosition
-                            playerSeekbar.progress = songPosition
-                            playerCurrentPosition.text = getDurationFromMs(songPosition)
-                        }
-                    }
+        if (seekbarJob?.isActive == true) return
+        seekbarJob = launch {
+            while (isActive) {
+                if (mService != null) {
+                    val ms = mService as MusicService
+                    val songPosition = ms.getMediaPlayer().currentPosition
+                    playerSeekbar.progress = songPosition
+                    playerCurrentPosition.text = getDurationFromMs(songPosition)
                 }
-            }, 0, 1000)
+                delay(1000)
+            }
         }
     }
 
@@ -806,11 +809,7 @@ class Player : MusicClientActivity() {
         if (playing == SongState.playing) {
             startSeekbarUpdates()
         } else {
-            if (scheduled) {
-                scheduled = false
-                timer.cancel()
-                timer.purge()
-            }
+            seekbarJob?.cancel()
         }
     }
 
@@ -953,7 +952,7 @@ class Player : MusicClientActivity() {
                         if (response != null) {
                             val json = JSONObject(response.string()).getJSONArray("data")
                                 .getJSONObject(0).getJSONObject("album")
-                            val imgLink = json.getString("cover_big")
+                            val imgLink = json.getString("cover_xl")
                             val albumName = json.getString("title")
 
                             try {
@@ -1077,16 +1076,21 @@ class Player : MusicClientActivity() {
             val mService = mService as MusicService
             updateAlbumArt()
 
-            val duration = mService.getMediaPlayer().duration
-            playerSeekbar.max = duration
-
-
-            completePosition.text = getDurationFromMs(duration)
-
             val song = mService.getPlayQueue()[mService.getCurrentIndex()]
             songName.text = song.name
             artistName.text = song.artist
-            playerSeekbar.progress = mService.getMediaPlayer().currentPosition
+
+            val duration = mService.getMediaPlayer().duration
+            if (duration > 0 && mService.getMediaPlayer().isPlaying) {
+                playerSeekbar.max = duration
+                completePosition.text = getDurationFromMs(duration)
+                playerSeekbar.progress = mService.getMediaPlayer().currentPosition
+            } else {
+                playerSeekbar.max = 100
+                playerSeekbar.progress = 0
+                completePosition.text = "0:00"
+                playerCurrentPosition.text = "0:00"
+            }
         }
     }
 
@@ -1118,14 +1122,6 @@ class Player : MusicClientActivity() {
             )
     }
 
-    override fun onBackPressed() {
-        super.onBackPressed()
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (!this.isDestroyed) Glide.with(this@Player).clear(imgAlbart)
-        }, 300)
-        finish()
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         if (!this.isDestroyed)
@@ -1136,8 +1132,10 @@ class Player : MusicClientActivity() {
         playPauseEvent(state)
     }
 
-    override fun songChanged() = runOnUiThread {
-        songChangeEvent()
+    override fun songChanged() {
+        launch(Dispatchers.Main) {
+            songChangeEvent()
+        }
     }
 
     override fun durationChanged(duration: Int) {
@@ -1172,7 +1170,21 @@ class Player : MusicClientActivity() {
 
     override fun indexChanged(index: Int) {}
 
-    override fun isLoading(doLoad: Boolean) {}
+    override fun isLoading(doLoad: Boolean) {
+        launch(Dispatchers.Main) {
+            if (doLoad) {
+                playerCenterIcon.visibility = View.INVISIBLE
+                centerLoadingSpinner.visibility = View.VISIBLE
+                playerSeekbar.progress = 0
+                playerSeekbar.max = 100
+                completePosition.text = "0:00"
+                playerCurrentPosition.text = "0:00"
+            } else {
+                centerLoadingSpinner.visibility = View.GONE
+                playerCenterIcon.visibility = View.VISIBLE
+            }
+        }
+    }
 
     override fun spotifyImportChange(starting: Boolean) {}
 

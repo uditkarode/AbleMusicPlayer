@@ -5,21 +5,15 @@ plugins {
 
 android {
     namespace = "io.github.uditkarode.able"
-    ndkVersion = "21.0.6113669"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "io.github.uditkarode.able"
-        minSdk = 21
-        targetSdk = 34
+        minSdk = 23
+        targetSdk = 35
         versionCode = 1
-        versionName = "InterdimensionalBoop"
+        versionName = "ConcentricPuddles"
 
-        externalNativeBuild {
-            cmake {
-                cppFlags("")
-            }
-        }
         buildFeatures {
             viewBinding = true
         }
@@ -54,33 +48,19 @@ android {
             signingConfig = signingConfigs["release"]
         }
     }
-
-    externalNativeBuild {
-        cmake {
-            path("CMakeLists.txt")
-        }
-    }
-    packagingOptions {
-        jniLibs {
-            excludes += listOf("lib/x86_64/**", "lib/armeabi-v7a/**", "lib/x86/**")
-        }
-        resources {
-            excludes += listOf("lib/x86_64/**", "lib/armeabi-v7a/**", "lib/x86/**")
-        }
-    }
 }
 
 dependencies {
     implementation(projects.core.model)
 
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation(libs.kotlin.stdlib.jdk7)
     implementation(libs.appcompat)
     implementation(libs.core.ktx)
     implementation(libs.material)
     implementation(libs.calligraphy3)
     implementation(libs.viewpump)
     implementation(libs.recyclerview)
+    implementation(libs.viewpager2)
     implementation(libs.core)
     implementation(libs.material.dialogs.input)
     implementation(libs.okhttp)
@@ -92,7 +72,6 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.material.dialogs.bottomsheets)
     implementation(libs.glide)
-    implementation(libs.analytics)
     implementation(libs.roundedimageview)
     implementation(libs.preference.ktx)
     implementation(libs.preferencex)

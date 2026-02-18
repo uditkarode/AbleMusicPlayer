@@ -22,7 +22,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
@@ -40,7 +42,12 @@ import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
-import kotlinx.coroutines.*
+import androidx.activity.OnBackPressedCallback
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -50,7 +57,6 @@ import java.lang.ref.WeakReference
  * The activity that shows up when a user taps on an album or playlist
  * from the search results.
  */
-@ExperimentalCoroutinesApi
 class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
     private lateinit var serviceConn: ServiceConnection
     private val resultArray = ArrayList<Song>()
@@ -76,6 +82,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
         )
         binding = AlbumplaylistBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        setupBackNavigation()
         binding.loadingView.progress = 0.3080229f
         binding.loadingView.playAnimation()
         val name = intent.getStringExtra("name") ?: ""
@@ -231,14 +238,18 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    override fun onBackPressed() {
-        super.onBackPressed()
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (!this.isDestroyed)
-                Glide.with(this).clear(binding.playbumArt)
-        }, 300)
-        Glide.with(this).clear(binding.playbumArt)
-        finish()
+    private fun setupBackNavigation() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Glide.with(this@AlbumPlaylist).clear(binding.playbumArt)
+                launch {
+                    delay(300)
+                    if (!this@AlbumPlaylist.isDestroyed)
+                        Glide.with(this@AlbumPlaylist).clear(binding.playbumArt)
+                }
+                finish()
+            }
+        })
     }
 
     override fun onDestroy() {

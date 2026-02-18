@@ -23,7 +23,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.afollestad.materialdialogs.MaterialDialog
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
@@ -31,12 +30,9 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.databinding.AboutBinding
 import io.github.uditkarode.able.utils.Constants
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-
 /**
  * The about page.
  */
-@ExperimentalCoroutinesApi
 class About: AppCompatActivity() {
     private lateinit var binding: AboutBinding
 
@@ -62,15 +58,6 @@ class About: AppCompatActivity() {
 
         binding.support.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/AbleApp")))
-        }
-
-        binding.donate.setOnClickListener {
-            MaterialDialog(this@About).show {
-                title(text = this@About.getString(R.string.donate))
-                message(text = this@About.getString(R.string.donate_subtext).format("<a href=\"https://paypal.me/uditkarode\">PayPal</a>", "uditkarode@paytm")) {
-                    html()
-                }
-            }
         }
     }
 

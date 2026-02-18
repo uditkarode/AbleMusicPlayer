@@ -43,6 +43,7 @@ import org.jaudiotagger.tag.images.AndroidArtwork
 import org.jaudiotagger.tag.mp4.Mp4FieldKey
 import org.jaudiotagger.tag.mp4.Mp4Tag
 import org.json.JSONArray
+import org.schabi.newpipe.extractor.Image
 import java.io.*
 import java.util.*
 
@@ -176,6 +177,45 @@ object Shared {
         return link.run {
             substring(lastIndexOf("=") + 1)
         }
+    }
+
+    /**
+     * Picks the best available thumbnail URL from a list of NewPipe Image objects.
+     * For ytimg URLs, constructs a maxresdefault URL.
+     * For googleusercontent URLs, requests high-resolution via URL params.
+     * Falls back to the largest available thumbnail.
+     */
+    fun getBestThumbnail(thumbnails: List<Image>, videoUrl: String): String {
+        if (thumbnails.isEmpty()) return ""
+
+        // Try to construct a high-res ytimg URL
+        for (thumbnail in thumbnails) {
+            if (thumbnail.url.contains("ytimg")) {
+                val songId = getIdFromLink(videoUrl)
+                return "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
+            }
+        }
+
+        // For googleusercontent URLs, upscale the dimensions
+        for (thumbnail in thumbnails) {
+            if (thumbnail.url.contains("googleusercontent")) {
+                return thumbnail.url.replace(Regex("=w\\d+-h\\d+"), "=w1500-h1500")
+            }
+        }
+
+        // Fallback: pick the largest thumbnail by resolution
+        return thumbnails.maxByOrNull { it.height * it.width }?.url
+            ?: thumbnails[0].url
+    }
+
+    /**
+     * Upscales a thumbnail URL to high resolution if possible.
+     */
+    fun upscaleThumbnailUrl(url: String): String {
+        if (url.contains("googleusercontent")) {
+            return url.replace(Regex("=w\\d+-h\\d+"), "=w1500-h1500")
+        }
+        return url
     }
 
     /**
@@ -375,7 +415,7 @@ object Shared {
                  */
                 if (f.extension == "tmp" ||
                     (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
-                    || (f.extension != "webm")
+                    || (f.extension != "webm" && f.extension != "mp3")
                 ) {
                     continue
                 }
@@ -500,7 +540,7 @@ object Shared {
             .show()
         modifyPlaylist(
             playlist.name,
-            ArrayList(songs.sortedBy { it.name.toUpperCase(Locale.getDefault()) })
+            ArrayList(songs.sortedBy { it.name.uppercase(Locale.getDefault()) })
         )
     }
 
@@ -536,5 +576,13 @@ object Shared {
             }
         }
         return result
+    }
+
+    fun cleanupTempFiles() {
+        Constants.cacheDir.listFiles()?.forEach { file ->
+            if (file.name.endsWith(".tmp") || file.name.contains(".tmp.")) {
+                file.delete()
+            }
+        }
     }
 }

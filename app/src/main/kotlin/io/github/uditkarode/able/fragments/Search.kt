@@ -39,7 +39,6 @@ import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
@@ -53,7 +52,6 @@ import java.util.Collections.singletonList
 /**
  * The second fragment. Used to search for songs.
  */
-@ExperimentalCoroutinesApi
 class Search : Fragment(), CoroutineScope {
     private lateinit var itemPressed: SongCallback
     private lateinit var sp: SharedPreferences
@@ -213,23 +211,9 @@ class Search : Fragment(), CoroutineScope {
 
                                         extractor.fetchPage()
 
-                                        var thumbnailUrl: String = ""
-
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as StreamInfoItem
-                                            for (thumbnail in song.thumbnails) {
-                                                if (thumbnail.url.contains("ytimg")) {
-                                                    val songId = Shared.getIdFromLink(ex.url)
-                                                    thumbnailUrl =
-                                                        "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
-                                                    break
-                                                }
-                                            }
-
-                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
-                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
-                                                thumbnailUrl = song.thumbnails[0].url
-                                            }
+                                            val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
@@ -249,22 +233,9 @@ class Search : Fragment(), CoroutineScope {
                                         )
 
                                         extractor.fetchPage()
-                                        var thumbnailUrl: String = ""
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
-                                            for (thumbnail in song.thumbnails) {
-                                                if (thumbnail.url.contains("ytimg")) {
-                                                    val songId = Shared.getIdFromLink(ex.url)
-                                                    thumbnailUrl =
-                                                        "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
-                                                    break
-                                                }
-                                            }
-
-                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
-                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
-                                                thumbnailUrl = song.thumbnails[0].url
-                                            }
+                                            val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
@@ -288,22 +259,9 @@ class Search : Fragment(), CoroutineScope {
 
                                         extractor.fetchPage()
 
-                                        var thumbnailUrl: String = ""
                                         for (song in extractor.initialPage.items) {
                                             val ex = song as PlaylistInfoItem
-                                            for (thumbnail in song.thumbnails) {
-                                                if (thumbnail.url.contains("ytimg")) {
-                                                    val songId = Shared.getIdFromLink(ex.url)
-                                                    thumbnailUrl =
-                                                        "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
-                                                    break
-                                                }
-                                            }
-
-                                            // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
-                                            if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
-                                                thumbnailUrl = song.thumbnails[0].url
-                                            }
+                                            val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
@@ -324,22 +282,9 @@ class Search : Fragment(), CoroutineScope {
 
                                 extractor.fetchPage()
 
-                                var thumbnailUrl: String = ""
                                 for (song in extractor.initialPage.items) {
                                     val ex = song as PlaylistInfoItem
-                                    for (thumbnail in song.thumbnails) {
-                                        if (thumbnail.url.contains("ytimg")) {
-                                            val songId = Shared.getIdFromLink(ex.url)
-                                            thumbnailUrl =
-                                                "https://i.ytimg.com/vi/$songId/maxresdefault.jpg"
-                                            break
-                                        }
-                                    }
-
-                                    // Check if a suitable thumbnail URL was found, otherwise use the first available thumbnail
-                                    if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
-                                        thumbnailUrl = song.thumbnails[0].url
-                                    }
+                                    val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
                                     resultArray.add(
                                         Song(
                                             name = ex.name,

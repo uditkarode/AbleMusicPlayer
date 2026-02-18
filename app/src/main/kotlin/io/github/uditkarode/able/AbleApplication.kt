@@ -16,15 +16,14 @@
     along with AbleMusicPlayer.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-package io.github.uditkarode.able.model.song
+package io.github.uditkarode.able
 
-class Song(
-    val name: String,
-    var artist: String="",
-    var youtubeLink: String = "",
-    var filePath: String = "",
-    var placeholder: Boolean = false,
-    var ytmThumbnail: String = "",
-    val albumId: Long = -1,
-    var isLocal: Boolean = false,
-)
+import android.app.Application
+import io.github.uditkarode.able.utils.Constants
+
+class AbleApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        Constants.init(this)
+    }
+}

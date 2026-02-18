@@ -53,6 +53,7 @@ import io.github.uditkarode.able.model.CacheStatus
 import io.github.uditkarode.able.model.Format
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
+import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
@@ -166,11 +167,15 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     override fun onResume() {
         super.onResume()
         MusicService.registerClient(this)
+        DownloadService.onDownloadComplete = { updateSongList() }
+        // Refresh song list in case a download completed while we were paused
+        updateSongList()
     }
 
     override fun onPause() {
         super.onPause()
         MusicService.unregisterClient(this)
+        DownloadService.onDownloadComplete = null
     }
 
     fun bindEvent() {
@@ -401,8 +406,9 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                     "-metadata title=\"${song.name}\" " +
                     "-metadata artist=\"${song.artist}\" -y "
 
+            val mp3Bitrate = maxOf(bitrate, 128)
             if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
-                command += "-vn -ab ${bitrate}k -c:a mp3 -ar 44100 "
+                command += "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 "
 
             command += "\"${
                 tempFile.absolutePath.replace(

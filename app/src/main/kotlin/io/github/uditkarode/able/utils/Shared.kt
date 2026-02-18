@@ -415,7 +415,7 @@ object Shared {
                  */
                 if (f.extension == "tmp" ||
                     (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
-                    || (f.extension != "webm")
+                    || (f.extension != "webm" && f.extension != "mp3")
                 ) {
                     continue
                 }

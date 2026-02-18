@@ -56,7 +56,6 @@ import io.github.uditkarode.able.model.MusicMode
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.DownloadService
-import io.github.uditkarode.able.services.DownloadService.Companion.enqueueDownload
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.CustomDownloader
@@ -94,6 +93,13 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
             super.onCreate(savedInstanceState)
             startActivity(Intent(this@MainActivity, Welcome::class.java))
             return;
+        }
+
+        // Request notification permission for existing users (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
 
         launch(Dispatchers.Main) {
@@ -308,14 +314,26 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
         song.ytmThumbnail = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
         when (currentMode) {
             MusicMode.download -> {
+                if (DownloadService.isAlreadyQueued(song.youtubeLink)) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "${song.name} is already downloading",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return
+                }
                 val songL = ArrayList<String>()
                 songL.add(song.name)
                 songL.add(song.youtubeLink)
                 songL.add(song.artist)
                 songL.add(song.ytmThumbnail)
-                val serviceIntentService = Intent(this@MainActivity, DownloadService::class.java)
+                val dlIntent = Intent(this@MainActivity, DownloadService::class.java)
                     .putStringArrayListExtra("song", songL)
-                enqueueDownload(this, serviceIntentService)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(dlIntent)
+                } else {
+                    startService(dlIntent)
+                }
                 Toast.makeText(
                     this@MainActivity,
                     "${song.name} ${getString(R.string.dl_added)}",

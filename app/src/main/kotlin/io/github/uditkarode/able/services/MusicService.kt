@@ -933,25 +933,23 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                             override fun onLoadFailed(
                                 e: GlideException?,
                                 model: Any?,
-                                target: Target<Bitmap>?,
+                                target: Target<Bitmap>,
                                 isFirstResource: Boolean
                             ): Boolean {
                                 return false
                             }
 
                             override fun onResourceReady(
-                                resource: Bitmap?,
-                                model: Any?,
+                                resource: Bitmap,
+                                model: Any,
                                 target: Target<Bitmap>?,
-                                dataSource: DataSource?,
+                                dataSource: DataSource,
                                 isFirstResource: Boolean
                             ): Boolean {
-                                if (resource != null) {
-                                    Shared.saveStreamingAlbumArt(
-                                        resource,
-                                        Shared.getIdFromLink(song.youtubeLink)
-                                    )
-                                }
+                                Shared.saveStreamingAlbumArt(
+                                    resource,
+                                    Shared.getIdFromLink(song.youtubeLink)
+                                )
                                 val url = stream.content
                                 playQueue[currentIndex].filePath = url!!
                                 return false

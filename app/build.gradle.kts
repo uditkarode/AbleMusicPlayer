@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "io.github.uditkarode.able"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "io.github.uditkarode.able"
-        minSdk = 21
-        targetSdk = 34
+        minSdk = 23
+        targetSdk = 35
         versionCode = 1
         versionName = "InterdimensionalBoop"
 

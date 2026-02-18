@@ -67,21 +67,25 @@ jobs:
 
       # ---------- Upload artifacts ----------
 
-      # Upload APK to Telegram channel
-      - name: Telegram — upload APK
+      # Rename and upload each per-ABI APK to Telegram channel
+      - name: Telegram — upload APKs
         env:
           TG_BOT_KEY: ${{ secrets.TG_BOT_KEY }}
         run: |
-          APK=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
           SHORT_SHA="${GITHUB_SHA::8}"
-          curl -sf -F document=@"${APK}" \
-            "https://api.telegram.org/bot${TG_BOT_KEY}/sendDocument" \
-            -F chat_id="-1001415196670" \
-            -F parse_mode=Markdown \
-            -F caption="\`${SHORT_SHA}\`"
+          for APK in app/build/outputs/apk/release/*.apk; do
+            ABI=$(basename "$APK" .apk | sed 's/app-//' | sed 's/-release//' | sed 's/-unsigned//')
+            RENAMED="app/build/outputs/apk/release/AbleMusic-${ABI}-${SHORT_SHA}.apk"
+            mv "$APK" "$RENAMED"
+            curl -sf -F document=@"${RENAMED}" \
+              "https://api.telegram.org/bot${TG_BOT_KEY}/sendDocument" \
+              -F chat_id="-1001415196670" \
+              -F parse_mode=Markdown \
+              -F caption="\`${SHORT_SHA} — ${ABI}\`"
+          done
 
-      # Also save APK as a GitHub Actions artifact for easy download
-      - name: Upload APK artifact
+      # Also save APKs as GitHub Actions artifacts for easy download
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AbleMusic-${{ github.sha }}

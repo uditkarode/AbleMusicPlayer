@@ -78,6 +78,7 @@ or via the UPI address %2$s</string>
     <string name="dl_added">is added to Download Queue</string>
     <string name="about_also">Also, huge thanks to the NewPipe team for the extractor.</string>
     <string name="dev">Udit Karode</string>
+    <string name="jayesh">Jayesh Seth</string>
     <string name="hpm">Hyperterminal</string>
     <string name="graphics_d">Sajid Shaik</string>
     <string name="product_man">Safan Sulfikar</string>
@@ -91,5 +92,5 @@ or via the UPI address %2$s</string>
     <string name="crp">create playlist</string>
     <string name="opo">Choose the layout that player uses.</string>
     <string name="opo_title">Player Layout</string>
-    <string name="no_songs">No downloaded songs yet.\nSearch and download songs to see them here.</string>
+    <string name="no_songs">No downloaded songs yet.</string>
 </resources>

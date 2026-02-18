@@ -7,8 +7,6 @@ steps:
     image: uditkarode/android-sdk-arch:latest
     commands:
       - "export GH_TOKEN"
-      - "export FLURRY_KEY"
-      - "export GH_TOKEN"
       - "export KEY_ALIAS"
       - "export KEY_PASS"
       - "export RAPID_KEY"
@@ -21,8 +19,6 @@ steps:
         include:
           - master
     environment:
-      FLURRY_KEY:
-        from_secret: FLURRY_KEY
       GH_TOKEN:
         from_secret: token
       KEY_ALIAS:

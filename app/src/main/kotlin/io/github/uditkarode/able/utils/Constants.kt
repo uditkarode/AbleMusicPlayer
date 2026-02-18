@@ -47,9 +47,8 @@ class Constants {
         /**
          * API keys and version code names which *should* be replaced during compilation.
          */
-        const val FLURRY_KEY = "INSERT_FLURRY_KEY"
         const val RAPID_API_KEY= "INSERT_RAPID_KEY"
-        const val VERSION = "Debug"
+        const val VERSION = "0.96"
 
         const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
         const val CHANNEL_ID = "AbleMusicDownload"

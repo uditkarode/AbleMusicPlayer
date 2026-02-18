@@ -1,5 +1,4 @@
 [versions]
-analytics = "14.0.0"
 appcompat = "1.7.0"
 bottomsheets = "3.3.0"
 calligraphy3 = "3.1.1"
@@ -37,7 +36,6 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 
 [libraries]
-analytics = { module = "com.flurry.android:analytics", version.ref = "analytics" }
 appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 calligraphy3 = { module = "io.github.inflationx:calligraphy3", version.ref = "calligraphy3" }
 constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }

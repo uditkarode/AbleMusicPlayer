@@ -41,7 +41,6 @@ import androidx.core.text.HtmlCompat
 import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
-import com.flurry.android.FlurryAgent
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
@@ -115,10 +114,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
                 byte,
                 0, byte.size
             )
-
-            FlurryAgent.Builder()
-                .withLogEnabled(false)
-                .build(this@MainActivity, Constants.FLURRY_KEY)
         }
 
         super.onCreate(savedInstanceState)

@@ -142,18 +142,17 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         songs.adapter = songAdapter
         songs.layoutManager = lam
         itemTouchHelper.attachToRecyclerView(songs)
+        songAdapter?.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() { updateEmptyState() }
+        })
         updateEmptyState()
     }
 
     private fun updateEmptyState() {
         if (_binding == null) return
-        if (songList.isEmpty()) {
-            binding.emptyState.visibility = View.VISIBLE
-            binding.songs.visibility = View.GONE
-        } else {
-            binding.emptyState.visibility = View.GONE
-            binding.songs.visibility = View.VISIBLE
-        }
+        val isEmpty = songAdapter?.itemCount == 0
+        binding.emptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        binding.songs.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 
     override fun onResume() {

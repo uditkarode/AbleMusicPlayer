@@ -12,7 +12,7 @@ android {
         minSdk = 23
         targetSdk = 35
         versionCode = 1
-        versionName = "InterdimensionalBoop"
+        versionName = "ConcentricPuddles"
 
         buildFeatures {
             viewBinding = true
@@ -72,7 +72,6 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.material.dialogs.bottomsheets)
     implementation(libs.glide)
-    implementation(libs.analytics)
     implementation(libs.roundedimageview)
     implementation(libs.preference.ktx)
     implementation(libs.preferencex)

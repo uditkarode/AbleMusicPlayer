@@ -270,11 +270,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 }
 
                 if (song.ytmThumbnail.isNotBlank()) {
-                    var thumbUrl = song.ytmThumbnail
-                    if (thumbUrl.contains("googleusercontent")) {
-                        thumbUrl = thumbUrl.replace("w120", "w1500")
-                            .replace("h120", "h1500")
-                    }
+                    val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
                     Glide.with(requireContext())
                         .asBitmap()
                         .load(thumbUrl)
@@ -316,7 +312,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
                                     mService.value?.setQueue(arrayListOf(song))
                                     mService.value?.setIndex(0)
-                                    MusicService.registeredClients.forEach { it.isLoading(false) }
                                     if (freshStart)
                                         MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                                 }

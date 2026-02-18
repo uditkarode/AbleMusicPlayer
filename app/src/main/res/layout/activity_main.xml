@@ -24,25 +24,31 @@
         android:animateLayoutChanges="true"
         android:layout_alignParentBottom="true">
 
-        <SeekBar
-            android:id="@+id/activity_seekbar"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#80fbfbfb"
-            android:focusable="false"
-            android:paddingStart="0dp"
-            android:paddingEnd="0dp"
-            android:progressTint="@color/white"
-            android:splitTrack="false" />
+            android:layout_height="wrap_content">
 
-        <ProgressBar
-            android:id="@+id/bb_ProgressBar"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:visibility="gone"
-            android:padding="0dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:indeterminate="true" />
+            <SeekBar
+                android:id="@+id/activity_seekbar"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#80fbfbfb"
+                android:focusable="false"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:progressTint="@color/white"
+                android:splitTrack="false" />
+
+            <ProgressBar
+                android:id="@+id/bb_ProgressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:visibility="gone"
+                android:padding="0dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:indeterminate="true" />
+
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="match_parent"

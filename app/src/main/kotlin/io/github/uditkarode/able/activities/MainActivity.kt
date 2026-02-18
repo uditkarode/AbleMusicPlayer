@@ -305,11 +305,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
         if (mode.isNotEmpty())
             currentMode = mode
 
-        if (song.ytmThumbnail.contains("googleusercontent")) //set resolution for youtube music art
-        {
-            song.ytmThumbnail = song.ytmThumbnail.replace("w120", "w1500")
-            song.ytmThumbnail = song.ytmThumbnail.replace("h120", "h1500")
-        }
+        song.ytmThumbnail = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
         when (currentMode) {
             MusicMode.download -> {
                 val songL = ArrayList<String>()

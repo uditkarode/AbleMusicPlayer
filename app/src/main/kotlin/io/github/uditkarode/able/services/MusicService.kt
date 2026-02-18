@@ -742,7 +742,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                         it,
                         (coverArtHeight!! * ratio).toInt(),
                         coverArtHeight!!,
-                        false
+                        true
                     )
                 } else {
                     it
@@ -924,11 +924,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 val stream = streamInfo.audioStreams.run { this[this.size - 1] }
 
                 if (song.ytmThumbnail.isNotBlank()) {
-                    var thumbUrl = song.ytmThumbnail
-                    if (thumbUrl.contains("googleusercontent")) {
-                        thumbUrl = thumbUrl.replace("w120", "w1500")
-                            .replace("h120", "h1500")
-                    }
+                    val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
                     Glide.with(this@MusicService)
                         .asBitmap()
                         .load(thumbUrl)

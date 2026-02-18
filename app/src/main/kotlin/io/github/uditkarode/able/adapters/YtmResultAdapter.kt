@@ -33,6 +33,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.AlbumPlaylist
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.utils.Shared
 import java.lang.ref.WeakReference
 
 /**
@@ -56,7 +57,7 @@ class YtmResultAdapter(
 
         holder.songAlbumArt.run {
             Glide.with(context)
-                .load(current.ytmThumbnail)
+                .load(Shared.getSmallThumbnailUrl(current.ytmThumbnail))
                 .signature(ObjectKey("stream"))
                 .into(this)
         }

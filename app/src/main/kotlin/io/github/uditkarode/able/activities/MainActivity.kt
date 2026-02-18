@@ -262,10 +262,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     fun songChange() {
         if (mService != null) {
             launch(Dispatchers.Main) {
-                binding.activitySeekbar.progress = 0
-                binding.activitySeekbar.max = mService!!.getMediaPlayer().duration
-
-                startSeekbarUpdates()
                 val song = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -276,6 +272,8 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
                 } else {
                     binding.bbSong.text = "${song.name} • ${song.artist}"
                 }
+
+                binding.activitySeekbar.progress = 0
             }
         }
     }

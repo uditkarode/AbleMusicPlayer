@@ -121,7 +121,7 @@ object ChunkedDownloader {
                         downloaded += read
 
                         val progress = ((downloaded * 100) / contentLength).toInt()
-                        if (progress / 5 != lastNotifiedProgress / 5) {
+                        if (progress / 2 != lastNotifiedProgress / 2) {
                             lastNotifiedProgress = progress
                             listener?.onProgress(progress)
                         }

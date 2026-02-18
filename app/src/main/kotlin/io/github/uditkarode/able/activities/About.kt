@@ -28,8 +28,8 @@ import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.BuildConfig
 import io.github.uditkarode.able.databinding.AboutBinding
-import io.github.uditkarode.able.utils.Constants
 /**
  * The about page.
  */
@@ -54,7 +54,7 @@ class About: AppCompatActivity() {
 
         setContentView(binding.root)
 
-        binding.versionString.text = Constants.VERSION
+        binding.versionString.text = BuildConfig.BUILD_TYPE.replaceFirstChar { it.uppercase() }
 
         binding.support.setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/AbleApp")))

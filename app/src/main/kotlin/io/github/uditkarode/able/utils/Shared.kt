@@ -219,6 +219,19 @@ object Shared {
     }
 
     /**
+     * Returns a small thumbnail URL suitable for list items.
+     */
+    fun getSmallThumbnailUrl(url: String): String {
+        if (url.contains("maxresdefault.jpg")) {
+            return url.replace("maxresdefault.jpg", "mqdefault.jpg")
+        }
+        if (url.contains("googleusercontent")) {
+            return url.replace(Regex("=w\\d+-h\\d+"), "=w180-h180")
+        }
+        return url
+    }
+
+    /**
      * @param image a Bitmap object (album art).
      * @param id the YouTube ID of the song that's being streamed.
      * This is used to temporarily store the album art of the song being streamed.

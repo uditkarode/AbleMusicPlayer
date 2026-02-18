@@ -104,7 +104,7 @@ class SwipeControllerActions(
 
             else -> {
                 initialiseSongCallback(context!!)
-                itemPressed.sendItem(Search.resultArray[position], MusicMode.both)
+                itemPressed.sendItem(Search.resultArray[position], "")
             }
         }
     }
@@ -263,13 +263,8 @@ class SwipeController(
             if (list.equals("Home"))
                 drawText("Playlist", c, leftButton, p)
             else
-                drawText(MusicMode.both, c, leftButton, p)
-            buttonsActions = when (list) {
-                "Search" ->
-                    SwipeControllerActions(MusicMode.both, mService)
-
-                else -> SwipeControllerActions("", mService)
-            }
+                drawText("Play", c, leftButton, p)
+            buttonsActions = SwipeControllerActions("", mService)
             buttonInstance = leftButton
         } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
             val rightButton = RectF(

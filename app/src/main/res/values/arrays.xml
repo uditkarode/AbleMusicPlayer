@@ -22,7 +22,5 @@
     <string-array name="modes">
         <item>Download</item>
         <item>Stream</item>
-        <item>Both</item>
-
     </string-array>
 </resources>

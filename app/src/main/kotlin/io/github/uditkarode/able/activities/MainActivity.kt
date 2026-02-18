@@ -348,14 +348,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
             }
 
             MusicMode.stream -> {
-                home.streamAudio(song, false)
-                launch(Dispatchers.Main) {
-                    loadingEvent(true)
-                }
-            }
-
-            MusicMode.both -> {
-                home.streamAudio(song, true)
+                home.streamAudio(song)
                 launch(Dispatchers.Main) {
                     loadingEvent(true)
                 }

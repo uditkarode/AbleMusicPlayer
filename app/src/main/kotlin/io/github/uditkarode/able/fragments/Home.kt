@@ -32,19 +32,15 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.graphics.drawable.toBitmap
 import androidx.fragment.app.Fragment
-import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.databinding.HomeBinding
-import io.github.uditkarode.able.model.Format
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.DownloadService
@@ -146,6 +142,18 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         songs.adapter = songAdapter
         songs.layoutManager = lam
         itemTouchHelper.attachToRecyclerView(songs)
+        updateEmptyState()
+    }
+
+    private fun updateEmptyState() {
+        if (_binding == null) return
+        if (songList.isEmpty()) {
+            binding.emptyState.visibility = View.VISIBLE
+            binding.songs.visibility = View.GONE
+        } else {
+            binding.emptyState.visibility = View.GONE
+            binding.songs.visibility = View.VISIBLE
+        }
     }
 
     override fun onResume() {
@@ -180,11 +188,8 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     /**
      * Downloads and streams a song using chunked Range requests
      * to bypass YouTube's per-connection throttle.
-     *
-     * @param song the song to stream.
-     * @param toCache whether we want to save this to the disk permanently.
      */
-    fun streamAudio(song: Song, toCache: Boolean) {
+    fun streamAudio(song: Song) {
         var freshStart = false
         if (isAdded) {
             if (!Shared.serviceRunning(MusicService::class.java, requireContext())) {
@@ -228,7 +233,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
                     ?: streamInfo.audioStreams[0]
                 val url = stream.content!!
-                val bitrate = stream.averageBitrate
                 val ext = stream.getFormat()!!.suffix
                 val songId = Shared.getIdFromLink(song.youtubeLink)
 
@@ -241,13 +245,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                             .diskCacheStrategy(DiskCacheStrategy.NONE)
                             .skipMemoryCache(true)
                             .submit().get()
-
-                        if (toCache) {
-                            if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
-                            Shared.saveAlbumArtToDisk(drw.toBitmap(), File(Constants.albumArtDir, songId))
-                        } else {
-                            Shared.saveStreamingAlbumArt(drw.toBitmap(), songId)
-                        }
+                        Shared.saveStreamingAlbumArt(drw.toBitmap(), songId)
                     } catch (e: Exception) {
                         Log.e("ERR>", "Failed to save album art: $e")
                     }
@@ -268,17 +266,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                     return
                 }
 
-                if (toCache) {
-                    // Transcode + save permanently
-                    val finalPath = ffmpegTranscode(tempFile, songId, song, ext, bitrate)
-                    tempFile.delete()
-                    song.filePath = finalPath
-                    launch(Dispatchers.Main) { updateSongList() }
-                } else {
-                    // Play from temp file
-                    song.filePath = tempFile.absolutePath
-                }
-
+                song.filePath = tempFile.absolutePath
                 mService.value?.setQueue(arrayListOf(song))
                 mService.value?.setIndex(0)
                 if (freshStart)
@@ -292,34 +280,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         }
     }
 
-    private fun ffmpegTranscode(
-        tempFile: File, songId: String, song: Song, ext: String, bitrate: Int
-    ): String {
-        val format = if (PreferenceManager.getDefaultSharedPreferences(requireContext())
-                .getString("format_key", "webm") == "mp3"
-        ) Format.MODE_MP3 else Format.MODE_WEBM
-
-        var command = "-i \"${tempFile.absolutePath}\" -c copy " +
-                "-metadata title=\"${song.name}\" " +
-                "-metadata artist=\"${song.artist}\" -y "
-
-        val mp3Bitrate = maxOf(bitrate, 128)
-        if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
-            command += "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 "
-
-        val finalExt = if (format == Format.MODE_MP3) "mp3" else ext
-        if (!Constants.ableSongDir.exists()) Constants.ableSongDir.mkdirs()
-        val finalFile = File(Constants.ableSongDir, "$songId.$finalExt")
-        command += "\"${finalFile.absolutePath}\""
-
-        when (val rc = FFmpeg.execute(command)) {
-            Config.RETURN_CODE_SUCCESS -> Log.d("DL>", "FFmpeg transcode success")
-            else -> Log.e("ERR>", "FFmpeg failed with rc=$rc")
-        }
-
-        return finalFile.absolutePath
-    }
-
     fun updateSongList() {
         songList = Shared.getSongList(Constants.ableSongDir)
         if (context != null) songList.addAll(Shared.getLocalSongs(context as Context))
@@ -328,6 +288,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         })
         launch(Dispatchers.Main) {
             songAdapter?.update(songList)
+            updateEmptyState()
         }
     }
 

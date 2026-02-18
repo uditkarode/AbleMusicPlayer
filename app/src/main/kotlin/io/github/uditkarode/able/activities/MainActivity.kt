@@ -86,6 +86,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         NewPipe.init(CustomDownloader.getInstance())
+        Shared.cleanupTempFiles()
 
         if (checkCallingOrSelfPermission(Manifest.permission.READ_MEDIA_AUDIO)
             != PackageManager.PERMISSION_GRANTED

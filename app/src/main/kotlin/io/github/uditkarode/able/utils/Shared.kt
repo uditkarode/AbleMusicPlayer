@@ -577,4 +577,12 @@ object Shared {
         }
         return result
     }
+
+    fun cleanupTempFiles() {
+        Constants.cacheDir.listFiles()?.forEach { file ->
+            if (file.name.endsWith(".tmp") || file.name.contains(".tmp.")) {
+                file.delete()
+            }
+        }
+    }
 }

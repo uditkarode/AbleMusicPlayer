@@ -38,27 +38,19 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.model.DownloadableSong
 import io.github.uditkarode.able.model.Format
+import io.github.uditkarode.able.utils.ChunkedDownloader
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
-import okhttp3.ConnectionPool
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.schabi.newpipe.extractor.stream.StreamInfo
-import java.io.BufferedInputStream
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
-import java.net.SocketException
 import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 class DownloadService : Service() {
     companion object {
         private const val NOTIF_ID = 2
         private const val DL_CHANNEL_ID = "AbleMusicDownloadProgress"
-        private const val MAX_RETRIES = 3
-        private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; rv:128.0) Gecko/20100101 Firefox/128.0"
         private val activeLinks = mutableSetOf<String>()
         var onDownloadComplete: (() -> Unit)? = null
 
@@ -72,14 +64,6 @@ class DownloadService : Service() {
     private lateinit var builder: Notification.Builder
     private lateinit var notificationManager: NotificationManager
     private val mainHandler = Handler(Looper.getMainLooper())
-    // Disable connection pooling so each Range chunk gets a fresh TCP connection,
-    // bypassing YouTube's per-connection throttling
-    private val okClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(2, TimeUnit.MINUTES)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .connectionPool(ConnectionPool(0, 1, TimeUnit.MILLISECONDS))
-        .build()
     private val queue = LinkedBlockingQueue<DownloadableSong>()
     @Volatile private var workerRunning = false
     @Volatile private var hadError = false
@@ -154,116 +138,6 @@ class DownloadService : Service() {
         notificationManager.notify(NOTIF_ID, builder.build())
     }
 
-    private fun downloadFile(url: String, tempFile: File): Boolean {
-        // YouTube throttles per TCP connection. Using small Range chunks with
-        // no connection pooling means each chunk gets a fresh connection and
-        // avoids the throttle.
-        val chunkSize = 256L * 1024 // 256KB per chunk
-
-        // Get content length
-        val headReq = Request.Builder()
-            .url(url).head()
-            .addHeader("User-Agent", USER_AGENT)
-            .build()
-        val headResp = okClient.newCall(headReq).execute()
-        val contentLength = headResp.header("Content-Length")?.toLongOrNull() ?: -1L
-        headResp.close()
-
-        if (contentLength <= 0) {
-            Log.d("DL>", "Unknown content length, falling back to single request")
-            return downloadFileSingle(url, tempFile)
-        }
-
-        val numChunks = (contentLength + chunkSize - 1) / chunkSize
-        Log.d("DL>", "Content-Length: $contentLength (${contentLength / 1024}KB), $numChunks chunks")
-
-        val oStream = FileOutputStream(tempFile)
-        var downloaded = 0L
-        var lastNotifiedProgress = -1
-        val startTime = System.currentTimeMillis()
-
-        while (downloaded < contentLength) {
-            val rangeEnd = minOf(downloaded + chunkSize - 1, contentLength - 1)
-
-            for (attempt in 1..MAX_RETRIES) {
-                try {
-                    if (attempt > 1) {
-                        Log.d("DL>", "Chunk retry $attempt for bytes $downloaded-$rangeEnd")
-                        Thread.sleep(1000L * attempt)
-                    }
-
-                    val req = Request.Builder()
-                        .url(url)
-                        .addHeader("User-Agent", USER_AGENT)
-                        .addHeader("Range", "bytes=$downloaded-$rangeEnd")
-                        .addHeader("Connection", "close")
-                        .build()
-                    val resp = okClient.newCall(req).execute()
-                    val body = resp.body!!
-                    val iStream = BufferedInputStream(body.byteStream())
-
-                    val data = ByteArray(65536)
-                    var read: Int
-                    while (iStream.read(data).also { read = it } != -1) {
-                        oStream.write(data, 0, read)
-                        downloaded += read
-
-                        val progress = ((downloaded * 100) / contentLength).toInt()
-                        if (progress / 5 != lastNotifiedProgress / 5) {
-                            lastNotifiedProgress = progress
-                            builder.setProgress(100, progress, false)
-                            builder.setContentText("$progress%")
-                            updateNotification()
-                        }
-                    }
-
-                    iStream.close()
-                    resp.close()
-                    break // chunk succeeded
-                } catch (e: SocketException) {
-                    Log.e("DL>", "Chunk attempt $attempt failed: ${e.message}")
-                    if (attempt == MAX_RETRIES) {
-                        oStream.close()
-                        tempFile.delete()
-                        throw e
-                    }
-                }
-            }
-        }
-
-        oStream.flush()
-        oStream.close()
-
-        val elapsed = (System.currentTimeMillis() - startTime) / 1000.0
-        val speedKBs = if (elapsed > 0) (contentLength / 1024.0 / elapsed).toInt() else 0
-        Log.d("DL>", "Download complete: ${contentLength / 1024}KB in ${elapsed.toInt()}s ($speedKBs KB/s)")
-        return true
-    }
-
-    /** Fallback for when content length is unknown */
-    private fun downloadFileSingle(url: String, tempFile: File): Boolean {
-        val req = Request.Builder()
-            .url(url)
-            .addHeader("User-Agent", USER_AGENT)
-            .build()
-        val resp = okClient.newCall(req).execute()
-        val body = resp.body!!
-        val iStream = BufferedInputStream(body.byteStream())
-        val oStream = FileOutputStream(tempFile)
-
-        val data = ByteArray(65536)
-        var read: Int
-        while (iStream.read(data).also { read = it } != -1) {
-            oStream.write(data, 0, read)
-        }
-
-        oStream.flush()
-        oStream.close()
-        iStream.close()
-        resp.close()
-        return true
-    }
-
     private fun download(song: DownloadableSong) {
         val id = song.youtubeLink.run {
             this.substring(this.lastIndexOf("=") + 1)
@@ -320,7 +194,11 @@ class DownloadService : Service() {
             builder.setProgress(100, 0, false)
             updateNotification()
 
-            downloadFile(url, tempFile)
+            ChunkedDownloader.download(url, tempFile) { progress ->
+                builder.setProgress(100, progress, false)
+                builder.setContentText("$progress%")
+                updateNotification()
+            }
 
             // FFmpeg transcode / metadata
             builder.setContentText(getString(R.string.saving))

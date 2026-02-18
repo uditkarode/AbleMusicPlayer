@@ -46,16 +46,12 @@ import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
-import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Player
-import io.github.uditkarode.able.model.CacheStatus
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
+import io.github.uditkarode.able.utils.ChunkedDownloader
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import kotlinx.coroutines.CoroutineScope
@@ -461,11 +457,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             if (mediaPlayer.isPlaying) mediaPlayer.stop()
             mediaPlayer.reset()
         }
-        if (playQueue[currentIndex].filePath == "") {
-            launch(Dispatchers.Default) {
-                getStreamArt()
-            }
-        }
 
         isLoading = true
         launch(Dispatchers.Default) {
@@ -486,112 +477,67 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         }
 
-        if (playQueue[currentIndex].cacheStatus != CacheStatus.NULL) { // Cache while streaming
-            var fplay = false
-            var prevDur = 0
-            var prevOff = 0
-            var prevProg = 0
-            var songDur = 0
-            val tmpf = File("${Constants.ableSongDir.absolutePath}/tmp_stream-$currentIndex.tmp")
+        if (playQueue[currentIndex].filePath == "") {
+            // Needs stream resolution + download
+            launch(Dispatchers.IO) {
+                resolveAndDownloadStream(currentIndex)
+            }
+        } else {
+            playSongFromFile()
+        }
+    }
 
+    private fun resolveAndDownloadStream(index: Int) {
+        try {
+            val song = playQueue[index]
+            val streamInfo = StreamInfo.getInfo(song.youtubeLink)
+            val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
+                ?: streamInfo.audioStreams[0]
+            val url = stream.content!!
+            val songId = Shared.getIdFromLink(song.youtubeLink)
+
+            // Fetch album art
+            if (song.ytmThumbnail.isNotBlank()) {
+                try {
+                    val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
+                    val bitmap = Glide.with(this@MusicService)
+                        .asBitmap().load(thumbUrl)
+                        .signature(ObjectKey("save")).submit().get()
+                    Shared.saveStreamingAlbumArt(bitmap, songId)
+                } catch (_: Exception) {}
+            }
+
+            // Download audio using chunked Range requests
+            val tempFile = File(Constants.cacheDir, "$songId.stream.tmp")
+            if (!Constants.cacheDir.exists()) Constants.cacheDir.mkdirs()
+            ChunkedDownloader.download(url, tempFile)
+
+            // Check that the user hasn't skipped to another song
+            if (currentIndex != index) {
+                tempFile.delete()
+                return
+            }
+
+            playQueue[index].filePath = tempFile.absolutePath
+            launch(Dispatchers.Main) { playSongFromFile() }
+        } catch (e: Exception) {
+            Log.e("ERR>", "resolveAndDownloadStream failed: $e")
+            launch(Dispatchers.Main) { nextSong() }
+        }
+    }
+
+    private fun playSongFromFile() {
+        try {
+            mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
+            mediaPlayer.prepareAsync()
             launch(Dispatchers.Default) {
                 registeredClients.forEach(MusicClient::songChanged)
             }
             launch(Dispatchers.Default) {
                 registeredClients.forEach { it.indexChanged(currentIndex) }
             }
-
-            launch(Dispatchers.IO) {
-                while (playQueue[currentIndex].cacheStatus != CacheStatus.NULL) {
-                    while (
-                        (playQueue[currentIndex].streamProg < 10) or
-                        (playQueue[currentIndex].streamProg - prevProg < 10) or
-                        (playQueue[currentIndex].streamMutexes[0].isLocked and
-                                playQueue[currentIndex].streamMutexes[1].isLocked) or
-                        mediaPlayer.isPlaying
-                    ) {
-                        delay(50)
-                    }
-                    val prog = playQueue[currentIndex].streamProg
-                    prevProg = prog
-
-                    val streamNum =
-                        if (playQueue[currentIndex].streamMutexes[0].isLocked) 1 else 0
-
-                    playQueue[currentIndex].streamMutexes[streamNum].lock()
-
-                    tmpf.outputStream().use {
-                        it.write(playQueue[currentIndex].streams[streamNum])
-                    }
-                    try {
-                        tmpf.inputStream().use {
-                            mediaPlayer.setDataSource(it.fd)
-                        }
-                    } catch (e: Exception) {
-                        mediaPlayer.stop()
-                        mediaPlayer.reset()
-                        continue
-                    } finally {
-                        playQueue[currentIndex].streamMutexes[streamNum].unlock()
-                    }
-
-                    var sleepT: Long
-
-                    try {
-                        mediaPlayer.prepare()
-
-                        if (fplay) {
-                            seekTo(prevOff)
-                        }
-
-                        if ((songDur == 0) and (mediaPlayer.duration > 0)) songDur =
-                            mediaPlayer.duration; fplay = true
-                    } catch (e: Exception) {
-                        mediaPlayer.stop()
-                        mediaPlayer.reset()
-                        continue
-                    } finally {
-                        sleepT = ((prog * songDur) / 100).toLong()
-                        if ((sleepT > 0) and (sleepT < songDur)) {
-                            prevOff = sleepT.toInt()
-                        }
-                    }
-
-
-                    while (mediaPlayer.currentPosition < sleepT) {
-                        prevDur =
-                            if (mediaPlayer.currentPosition < prevOff) mediaPlayer.currentPosition else prevOff
-                        delay(100)
-                    }
-
-                    mediaPlayer.stop()
-                    mediaPlayer.reset()
-                }
-
-                tmpf.delete()
-
-                if (prevDur < songDur) {
-                    val dur = prevDur
-
-                    mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
-                    mediaPlayer.prepare()
-
-                    seekTo(dur)
-                }
-            }
-        } else {
-            try {
-                mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
-                mediaPlayer.prepareAsync()
-                launch(Dispatchers.Default) {
-                    registeredClients.forEach(MusicClient::songChanged)
-                }
-                launch(Dispatchers.Default) {
-                    registeredClients.forEach { it.indexChanged(currentIndex) }
-                }
-            } catch (e: java.lang.Exception) {
-                Log.e("ERR>", "$e")
-            }
+        } catch (e: Exception) {
+            Log.e("ERR>", "$e")
         }
     }
 
@@ -903,63 +849,4 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) cleanUp()
     }
 
-    /**
-     * if the filePath of the current song is empty,
-     * it is assumed that it contains a youtubeLink.
-     * fetches the album art and streams the song.
-     */
-    private fun getStreamArt() {
-        launch(Dispatchers.IO) {
-            try {
-                val song = playQueue[currentIndex]
-                val tmp: StreamInfo?
-                try {
-                    tmp = StreamInfo.getInfo(song.youtubeLink)
-                } catch (e: java.lang.Exception) {
-                    Log.e("ERR>", e.toString())
-                    nextSong()
-                    return@launch
-                }
-                val streamInfo = tmp ?: StreamInfo.getInfo(song.youtubeLink)
-                val stream = streamInfo.audioStreams.run { this[this.size - 1] }
-
-                if (song.ytmThumbnail.isNotBlank()) {
-                    val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
-                    Glide.with(this@MusicService)
-                        .asBitmap()
-                        .load(thumbUrl)
-                        .signature(ObjectKey("save"))
-                        .listener(object : RequestListener<Bitmap> {
-                            override fun onLoadFailed(
-                                e: GlideException?,
-                                model: Any?,
-                                target: Target<Bitmap>,
-                                isFirstResource: Boolean
-                            ): Boolean {
-                                return false
-                            }
-
-                            override fun onResourceReady(
-                                resource: Bitmap,
-                                model: Any,
-                                target: Target<Bitmap>?,
-                                dataSource: DataSource,
-                                isFirstResource: Boolean
-                            ): Boolean {
-                                Shared.saveStreamingAlbumArt(
-                                    resource,
-                                    Shared.getIdFromLink(song.youtubeLink)
-                                )
-                                val url = stream.content
-                                playQueue[currentIndex].filePath = url!!
-                                return false
-                            }
-                        }).submit()
-                }
-            } catch (e: java.lang.Exception) {
-                Log.e("ERR>", e.toString())
-                nextSong()
-            }
-        }
-    }
 }

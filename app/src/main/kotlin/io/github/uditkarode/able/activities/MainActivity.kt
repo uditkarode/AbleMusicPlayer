@@ -82,6 +82,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
     private var mService: MusicService? = null
     private var playing = false
+    private var isCurrentlyLoading = false
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -200,16 +201,16 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     }
 
     private fun loadingEvent(loading: Boolean) {
+        isCurrentlyLoading = loading
         binding.bbProgressBar.visibility = if (loading) View.VISIBLE else View.GONE
-        if (!
-            loading
-        ) {
-            binding.activitySeekbar.visibility = View.VISIBLE
-            binding.bnParent.invalidate()
-        } else {
+        if (loading) {
             binding.activitySeekbar.visibility = View.GONE
-            binding.bnParent.invalidate()
+            binding.bbIcon.visibility = View.INVISIBLE
+        } else {
+            binding.activitySeekbar.visibility = View.VISIBLE
+            binding.bbIcon.visibility = View.VISIBLE
         }
+        binding.bnParent.invalidate()
     }
 
     private fun bindService() {
@@ -224,13 +225,19 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     fun playPauseEvent(state: SongState) {
         launch(Dispatchers.Main) {
             if (state == SongState.playing) {
+                if (isCurrentlyLoading) {
+                    loadingEvent(false)
+                }
                 Glide.with(this@MainActivity).load(R.drawable.pause)
                     .into(binding.bbIcon)
-
                 playing = true
             } else {
                 playing = false
                 Glide.with(this@MainActivity).load(R.drawable.play).into(binding.bbIcon)
+            }
+
+            if (isCurrentlyLoading) {
+                binding.bbIcon.visibility = View.INVISIBLE
             }
 
             if (state == SongState.playing) startSeekbarUpdates()
@@ -294,7 +301,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
     override fun sendItem(song: Song, mode: String) {
         var currentMode = PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
-            .getString("mode_key", MusicMode.download)
+            .getString("mode_key", MusicMode.stream)
         if (mode.isNotEmpty())
             currentMode = mode
 
@@ -366,9 +373,14 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     override fun indexChanged(index: Int) {}
 
     override fun isLoading(doLoad: Boolean) {
-        launch(Dispatchers.Main) {
-            loadingEvent(doLoad)
+        if (doLoad) {
+            launch(Dispatchers.Main) {
+                loadingEvent(true)
+            }
         }
+        // Don't call loadingEvent(false) here — prepareAsync completes
+        // before audio actually starts. Loading ends in playPauseEvent
+        // when SongState.playing is received.
     }
 
     override fun spotifyImportChange(starting: Boolean) {}

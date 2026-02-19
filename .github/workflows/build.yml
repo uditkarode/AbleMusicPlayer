@@ -99,11 +99,11 @@ jobs:
           SHORT_SHA="${GITHUB_SHA::8}"
           TAG="build-${SHORT_SHA}"
           COMMIT_MSG=$(git log -1 --pretty=%s)
+          NOTES=$(printf 'Automated release from commit [`%s`](https://github.com/${{ github.repository }}/commit/%s)\n\n**%s**' \
+            "$SHORT_SHA" "$GITHUB_SHA" "$COMMIT_MSG")
           gh release create "$TAG" \
             --title "Build ${SHORT_SHA}" \
-            --notes "Automated release from commit [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA})
-
-**${COMMIT_MSG}**" \
+            --notes "$NOTES" \
             --latest \
             app/build/outputs/apk/release/*.apk
 

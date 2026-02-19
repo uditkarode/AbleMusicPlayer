@@ -841,10 +841,11 @@ class Player : MusicClientActivity() {
             binding.artistName.text = song.artist
 
             val duration = mService.getMediaPlayer().duration
-            if (duration > 0 && mService.getMediaPlayer().isPlaying) {
+            if (duration > 0) {
                 binding.playerSeekbar.max = duration
                 binding.completePosition.text = getDurationFromMs(duration)
                 binding.playerSeekbar.progress = mService.getMediaPlayer().currentPosition
+                binding.playerCurrentPosition.text = getDurationFromMs(mService.getMediaPlayer().currentPosition)
             } else {
                 binding.playerSeekbar.max = 100
                 binding.playerSeekbar.progress = 0

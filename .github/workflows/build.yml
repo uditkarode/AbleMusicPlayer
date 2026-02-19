@@ -63,7 +63,7 @@ jobs:
       # ---------- Build ----------
 
       - name: Build release APK
-        run: ./gradlew :app:assembleRelease
+        run: ./gradlew :app:assembleRelease --configuration-cache --parallel
 
       # ---------- Upload artifacts ----------
 
@@ -90,6 +90,22 @@ jobs:
         with:
           name: AbleMusic-${{ github.sha }}
           path: app/build/outputs/apk/release/*.apk
+
+      # Create a GitHub Release with the APKs
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SHORT_SHA="${GITHUB_SHA::8}"
+          TAG="build-${SHORT_SHA}"
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          gh release create "$TAG" \
+            --title "Build ${SHORT_SHA}" \
+            --notes "Automated release from commit [\`${SHORT_SHA}\`](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA})
+
+**${COMMIT_MSG}**" \
+            --latest \
+            app/build/outputs/apk/release/*.apk
 
       # ---------- Notify build finished ----------
 

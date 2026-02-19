@@ -157,6 +157,7 @@ class Search : Fragment(), CoroutineScope {
             _binding!!.searchModePr.setOnClickListener(it)
         }
         _binding!!.loadingView.enableMergePathsForKitKatAndAbove(true)
+        _binding!!.loadingView.progress = 0.3080229f
         getItems(view.findViewById(R.id.search_bar), view.findViewById(R.id.search_rv))
     }
 

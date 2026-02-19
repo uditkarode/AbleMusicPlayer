@@ -64,10 +64,21 @@ class Playlists : Fragment(), MusicService.MusicClient {
         return binding.root
     }
 
+    private fun updateEmptyState() {
+        if (_binding == null) return
+        val isEmpty = _binding!!.playlistsRv.adapter?.itemCount == 0
+        _binding!!.emptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        _binding!!.playlistsRv.visibility = if (isEmpty) View.GONE else View.VISIBLE
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding!!.playlistsRv.adapter = PlaylistAdapter(Shared.getPlaylists())
         _binding!!.playlistsRv.layoutManager = LinearLayoutManager(requireContext())
+        _binding!!.playlistsRv.adapter?.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onChanged() { updateEmptyState() }
+        })
+        updateEmptyState()
         var inputId = ""
         _binding!!.spotbut.setOnClickListener {
             if (!isImporting) {
@@ -146,6 +157,7 @@ class Playlists : Fragment(), MusicService.MusicClient {
             (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
                 playlistAdapter.update(Shared.getPlaylists())
                 _binding!!.spotbut.setImageResource(R.drawable.ic_spot)
+                updateEmptyState()
             }
         }
     }

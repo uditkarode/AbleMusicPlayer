@@ -93,4 +93,5 @@ or via the UPI address %2$s</string>
     <string name="opo">Choose the layout that player uses.</string>
     <string name="opo_title">Player Layout</string>
     <string name="no_songs">No downloaded songs yet.</string>
+    <string name="no_playlists">No playlists yet.</string>
 </resources>

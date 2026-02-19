@@ -1,23 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:background="@color/colorPrimaryDark"
     tools:context=".activities.Settings">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/colorPrimaryDark"
+        app:titleTextColor="#fbfbfb"
+        app:navigationIconTint="#fbfbfb" />
 
-        <FrameLayout
-            android:id="@+id/content"
-            android:background="#212121"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+    <FrameLayout
+        android:id="@+id/content"
+        android:background="#212121"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

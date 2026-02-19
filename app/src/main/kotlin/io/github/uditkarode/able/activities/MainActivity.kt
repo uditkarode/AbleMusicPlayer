@@ -260,6 +260,11 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
                 }
 
                 binding.activitySeekbar.progress = 0
+
+                try {
+                    val duration = mService!!.getMediaPlayer().duration
+                    if (duration > 0) binding.activitySeekbar.max = duration
+                } catch (_: Exception) {}
             }
         }
     }
@@ -277,12 +282,18 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
         super.onResume()
         if (mService == null)
             bindService()
-        else
-            playPauseEvent(
-                if ((mService as MusicService)
-                        .getMediaPlayer().isPlaying
-                ) SongState.playing else SongState.paused
-            )
+        else {
+            songChange()
+            if (MusicService.isLoading) {
+                loadingEvent(true)
+            } else {
+                playPauseEvent(
+                    if ((mService as MusicService)
+                            .getMediaPlayer().isPlaying
+                    ) SongState.playing else SongState.paused
+                )
+            }
+        }
     }
 
     override fun sendItem(song: Song, mode: String) {

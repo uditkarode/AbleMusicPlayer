@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.Menu
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import com.google.android.material.appbar.MaterialToolbar
 import com.takisoft.preferencex.PreferenceFragmentCompat
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.utils.Shared
@@ -15,9 +16,12 @@ class Settings: AppCompatActivity() {
         super.onCreate(savedInstanceState)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         setContentView(R.layout.settings_view)
-        title = getString(R.string.settings)
 
-        actionBar?.setDisplayHomeAsUpEnabled(true)
+        val toolbar = findViewById<MaterialToolbar>(R.id.settings_toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = getString(R.string.settings)
+
         if (Shared.isFirstOpen) Shared.isFirstOpen = false
         supportFragmentManager.beginTransaction()
             .replace(
@@ -25,6 +29,11 @@ class Settings: AppCompatActivity() {
                 SettingsFragment()
             )
             .commit()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

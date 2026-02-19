@@ -5,8 +5,11 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
 import android.media.MediaScannerConnection
 import android.view.MotionEvent
 import android.view.View
@@ -29,10 +32,6 @@ import io.github.uditkarode.able.services.MusicService
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import java.util.*
-
-internal enum class ButtonsState {
-    GONE, LEFT_VISIBLE, RIGHT_VISIBLE
-}
 
 class SwipeControllerActions(
     private var mode: String,
@@ -162,34 +161,35 @@ class SwipeController(
     private val context: Context?,
     private val list: String?,
     private val mService: MutableStateFlow<MusicService?>?
-) :
-    ItemTouchHelper.Callback() {
+) : ItemTouchHelper.Callback() {
+
     private var swipeBack = false
-    private var buttonShowedState = ButtonsState.GONE
-    private var buttonInstance: RectF? = null
     private var buttonsActions = SwipeControllerActions("", mService)
-    private val buttonWidth = 200f
+    private val actionThreshold = 350f
+    private val cornerRadius = 20f
+
+    private val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textSize = 52f
+        typeface = context?.assets?.let {
+            Typeface.createFromAsset(it, "fonts/interbold.otf")
+        } ?: Typeface.create("sans-serif", Typeface.BOLD)
+        textAlign = Paint.Align.CENTER
+    }
 
     override fun getMovementFlags(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder
-    ): Int {
-        return makeMovementFlags(
-            0,
-            LEFT or RIGHT
-        )
-    }
+    ): Int = makeMovementFlags(0, LEFT or RIGHT)
 
     override fun onMove(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
-    ): Boolean {
-        return false
-    }
+    ): Boolean = false
 
-    override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-    }
+    override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
 
     override fun convertToAbsoluteDirection(flags: Int, layoutDirection: Int): Int {
         if (swipeBack) {
@@ -208,16 +208,10 @@ class SwipeController(
         actionState: Int,
         isCurrentlyActive: Boolean
     ) {
-
         if (actionState == ACTION_STATE_SWIPE) {
             setTouchListener(recyclerView, viewHolder, dX)
+            drawSwipeReveal(c, viewHolder, dX)
         }
-        buttonShowedState = when {
-            dX < -50 -> ButtonsState.RIGHT_VISIBLE
-            dX > 50 -> ButtonsState.LEFT_VISIBLE
-            else -> ButtonsState.GONE
-        }
-        drawButtons(c, viewHolder)
         super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
     }
 
@@ -230,88 +224,143 @@ class SwipeController(
             swipeBack =
                 event.action == MotionEvent.ACTION_CANCEL || event.action == MotionEvent.ACTION_UP
             if (swipeBack) {
-                if (dX < -buttonWidth) {
-                    buttonShowedState = ButtonsState.RIGHT_VISIBLE
+                if (dX < -actionThreshold)
                     buttonsActions.onRightClicked(context, viewHolder.adapterPosition)
-                } else if (dX > buttonWidth) {
-                    buttonShowedState = ButtonsState.LEFT_VISIBLE
+                else if (dX > actionThreshold)
                     buttonsActions.onLeftClicked(context, viewHolder.adapterPosition)
-                }
             }
             false
         }
     }
 
-    private fun drawButtons(
+    private fun drawSwipeReveal(
         c: Canvas,
-        viewHolder: RecyclerView.ViewHolder
+        viewHolder: RecyclerView.ViewHolder,
+        dX: Float
     ) {
-        val buttonWidthWithoutPadding = buttonWidth - 20
-        val corners = 16f
-        val itemView: View = viewHolder.itemView
-        val p = Paint()
-        buttonInstance = null
-        if (buttonShowedState == ButtonsState.LEFT_VISIBLE) {
-            val leftButton = RectF(
-                itemView.left.toFloat(),
-                itemView.top.toFloat(),
-                itemView.left.toFloat() + buttonWidthWithoutPadding,
-                itemView.bottom.toFloat()
-            )
-            p.color = Color.argb(255, 148, 188, 227)
-            c.drawRoundRect(leftButton, corners, corners, p)
-            if (list.equals("Home"))
-                drawText("Playlist", c, leftButton, p)
-            else
-                drawText("Play", c, leftButton, p)
-            buttonsActions = SwipeControllerActions("", mService)
-            buttonInstance = leftButton
-        } else if (buttonShowedState == ButtonsState.RIGHT_VISIBLE) {
-            val rightButton = RectF(
-                itemView.right - buttonWidthWithoutPadding,
-                itemView.top.toFloat(),
-                itemView.right.toFloat(),
-                itemView.bottom.toFloat()
-            )
-            p.color = Color.argb(255, 183, 28, 28)
-            c.drawRoundRect(rightButton, corners, corners, p)
-            if (list.equals("Home"))
-                drawText("DELETE", c, rightButton, p)
-            else {
-                val mode: String? = PreferenceManager.getDefaultSharedPreferences(context!!)
-                    .getString("mode_key", MusicMode.stream)
-                val currentMode: String = if (mode == MusicMode.download) {
-                    drawText(MusicMode.stream, c, rightButton, p)
-                    MusicMode.stream
-                } else {
-                    drawText(MusicMode.download, c, rightButton, p)
-                    MusicMode.download
-                }
-                buttonsActions = when (list) {
-                    "Search" ->
-                        SwipeControllerActions(currentMode, mService)
+        val absDx = kotlin.math.abs(dX)
+        if (absDx < 5f) return
 
-                    else -> SwipeControllerActions("", mService)
-                }
-            }
-            buttonInstance = rightButton
+        val itemView = viewHolder.itemView
+        val progress = (absDx / actionThreshold).coerceIn(0f, 1.5f)
+
+        if (dX > 0) {
+            // Swipe right — left action (Playlist / Play)
+            drawGradient(c, itemView, dX, isLeft = true)
+            val text = if (list == "Home") "Playlist" else "Play"
+            drawLabel(c, itemView, dX, progress, isLeft = true, text = text)
+            buttonsActions = SwipeControllerActions("", mService)
+        } else {
+            // Swipe left — right action (Delete / Download / Stream)
+            val text = resolveRightAction()
+            drawGradient(c, itemView, dX, isLeft = false)
+            drawLabel(c, itemView, dX, progress, isLeft = false, text = text)
         }
-        buttonShowedState = ButtonsState.GONE
     }
 
-    private fun drawText(
-        text: String,
+    private fun drawGradient(
         c: Canvas,
-        button: RectF,
-        p: Paint
+        itemView: View,
+        dX: Float,
+        isLeft: Boolean
     ) {
-        var textSize = 50f
-        if (text == MusicMode.download)
-            textSize = 35f
-        p.color = Color.WHITE
-        p.isAntiAlias = true
-        p.textSize = textSize
-        val textWidth = p.measureText(text)
-        c.drawText(text, button.centerX() - textWidth / 2, button.centerY() + textSize / 2, p)
+        val top = itemView.top.toFloat()
+        val bottom = itemView.bottom.toFloat()
+        val alpha = 210
+
+        if (isLeft) {
+            val left = itemView.left.toFloat()
+            val right = itemView.left + dX
+            val r = 148; val g = 188; val b = 227
+
+            bgPaint.shader = LinearGradient(
+                left, 0f, right, 0f,
+                intArrayOf(
+                    Color.argb(alpha, r, g, b),
+                    Color.argb(alpha, r, g, b),
+                    Color.argb(0, r, g, b)
+                ),
+                floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP
+            )
+
+            // Round only the trailing edge (right side) by extending left beyond clip
+            c.save()
+            c.clipRect(left, top, right, bottom)
+            c.drawRoundRect(
+                RectF(left - cornerRadius, top, right, bottom),
+                cornerRadius, cornerRadius, bgPaint
+            )
+            c.restore()
+        } else {
+            val absDx = kotlin.math.abs(dX)
+            val left = itemView.right - absDx
+            val right = itemView.right.toFloat()
+
+            bgPaint.shader = LinearGradient(
+                left, 0f, right, 0f,
+                intArrayOf(
+                    Color.argb(0, 220, 75, 55),            // leading: transparent
+                    Color.argb(alpha, 220, 75, 55),         // soft red, fading in
+                    Color.argb(alpha, 195, 40, 35),         // mid: richer red
+                    Color.argb(alpha, 170, 25, 20)          // trailing: deep red
+                ),
+                floatArrayOf(0f, 0.25f, 0.7f, 1f),
+                Shader.TileMode.CLAMP
+            )
+
+            // Round only the trailing edge (left side) by extending right beyond clip
+            c.save()
+            c.clipRect(left, top, right, bottom)
+            c.drawRoundRect(
+                RectF(left, top, right + cornerRadius, bottom),
+                cornerRadius, cornerRadius, bgPaint
+            )
+            c.restore()
+        }
+        bgPaint.shader = null
+    }
+
+    private fun drawLabel(
+        c: Canvas,
+        itemView: View,
+        dX: Float,
+        progress: Float,
+        isLeft: Boolean,
+        text: String
+    ) {
+        // Fade in: invisible until 30% progress, fully opaque at 80%
+        val textAlpha = ((progress - 0.3f) / 0.5f * 255).toInt().coerceIn(0, 255)
+        textPaint.alpha = textAlpha
+
+        val top = itemView.top.toFloat()
+        val bottom = itemView.bottom.toFloat()
+        val centerY = (top + bottom) / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
+
+        val centerX = if (isLeft) {
+            (itemView.left.toFloat() + itemView.left + dX) / 2f
+        } else {
+            val absDx = kotlin.math.abs(dX)
+            (itemView.right - absDx + itemView.right.toFloat()) / 2f
+        }
+
+        c.drawText(text, centerX, centerY, textPaint)
+    }
+
+    private fun resolveRightAction(): String {
+        return if (list == "Home") {
+            buttonsActions = SwipeControllerActions("", mService)
+            "Delete"
+        } else {
+            val mode = PreferenceManager.getDefaultSharedPreferences(context!!)
+                .getString("mode_key", MusicMode.stream)
+            val currentMode =
+                if (mode == MusicMode.download) MusicMode.stream else MusicMode.download
+            buttonsActions = if (list == "Search")
+                SwipeControllerActions(currentMode, mService)
+            else
+                SwipeControllerActions("", mService)
+            currentMode
+        }
     }
 }

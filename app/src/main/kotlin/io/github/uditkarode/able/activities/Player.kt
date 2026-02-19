@@ -26,7 +26,6 @@ import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
-import android.util.DisplayMetrics
 import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
@@ -42,7 +41,6 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
-import androidx.preference.PreferenceManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.input.getInputField
@@ -59,11 +57,7 @@ import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.AbleApplication
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
-import io.github.uditkarode.able.databinding.Player220Binding
-import io.github.uditkarode.able.databinding.Player320Binding
-import io.github.uditkarode.able.databinding.Player400Binding
-import io.github.uditkarode.able.databinding.Player410Binding
-import io.github.uditkarode.able.databinding.PlayermassiveBinding
+import io.github.uditkarode.able.databinding.PlayerBinding
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
@@ -99,144 +93,38 @@ class Player : MusicClientActivity() {
 
     private var lastSelectedColor = 0x00fbfbfb
 
-    private var binding220: Player220Binding? = null
-    private var binding320: Player320Binding? = null
-    private var binding400: Player400Binding? = null
-    private var binding410: Player410Binding? = null
-    private var bindingMassive: PlayermassiveBinding? = null
-
-    private lateinit var playerCenterIcon: ImageView
-    private lateinit var topControls: RelativeLayout
-    private lateinit var playerDownArrow: ImageView
-    private lateinit var shuffleButton: ImageView
-    private lateinit var repeatButton: ImageView
-    private lateinit var nextSong: ImageView
-    private lateinit var previousSong: ImageView
-    private lateinit var playerCurrentPosition: TextView
-    private lateinit var albumArt: RelativeLayout
-    private lateinit var playerSeekbar: SeekBar
-    private lateinit var songName: TextView
-    private lateinit var artistName: TextView
-    private lateinit var playerQueue: ImageView
-    private lateinit var youtubeProgressbar: ProgressBar
+    private lateinit var binding: PlayerBinding
     private lateinit var centerLoadingSpinner: ProgressBar
-    private lateinit var completePosition: TextView
-    private lateinit var imgAlbart: RoundedImageView
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val ydpi = DisplayMetrics().run {
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay.getMetrics(this)
-            this.ydpi
-        }
-
-        when (PreferenceManager.getDefaultSharedPreferences(this@Player)
-            .getString("player_layout_key", "Default")) {
-            "Tiny" -> {
-                binding220 = Player220Binding.inflate(layoutInflater)
-                setContentView(binding220!!.root)
-            }
-
-            "Small" -> {
-                binding320 = Player320Binding.inflate(layoutInflater)
-                setContentView(binding320!!.root)
-            }
-
-            "Normal" -> {
-                binding400 = Player400Binding.inflate(layoutInflater)
-                setContentView(binding400!!.root)
-            }
-
-            "Large" -> {
-                binding410 = Player410Binding.inflate(layoutInflater)
-                setContentView(binding410!!.root)
-            }
-
-            "Massive" -> {
-                bindingMassive = PlayermassiveBinding.inflate(layoutInflater)
-                setContentView(bindingMassive!!.root)
-            }
-
-            else -> {
-                if (ydpi > 400) {
-                    binding410 = Player410Binding.inflate(layoutInflater)
-                    setContentView(binding410!!.root)
-                } else if (ydpi >= 395) {
-                    binding400 = Player400Binding.inflate(layoutInflater)
-                    setContentView(binding400!!.root)
-                } else if (ydpi < 395 && ydpi > 230) {
-                    binding320 = Player320Binding.inflate(layoutInflater)
-                    setContentView(binding320!!.root)
-                } else {
-                    binding220 = Player220Binding.inflate(layoutInflater)
-                    setContentView(binding220!!.root)
-                }
-            }
-        }
+        binding = PlayerBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         /**
          * Since we don't use fitSystemWindows, we need to manually
          * apply window insets as margin.
          */
-        if (binding410?.bottomCast != null) {
-            binding410?.bottomCast!!.setOnApplyWindowInsetsListener { _, insets ->
-                val kek = binding410?.bottomCast!!.layoutParams as ViewGroup.MarginLayoutParams
-                @Suppress("DEPRECATION")
-                kek.setMargins(0, 0, 0, insets.systemWindowInsetBottom)
-                insets
-            }
-        }
-        topControls =
-            (binding220?.topControls
-                ?: binding320?.topControls
-                ?: binding400?.topControls
-                ?: binding410?.topControls
-                ?: bindingMassive?.topControls) as RelativeLayout
-
-        completePosition =
-            (binding220?.completePosition
-                ?: binding320?.completePosition
-                ?: binding400?.completePosition
-                ?: binding410?.completePosition
-                ?: bindingMassive?.completePosition) as TextView
-
-        topControls.setOnApplyWindowInsetsListener { _, insets ->
-            val kek = topControls.layoutParams as ViewGroup.MarginLayoutParams
+        binding.bottomCast.setOnApplyWindowInsetsListener { view, insets ->
+            val params = view.layoutParams as ViewGroup.MarginLayoutParams
             @Suppress("DEPRECATION")
-            kek.setMargins(0, insets.systemWindowInsetTop, 0, 0)
+            params.setMargins(0, 0, 0, insets.systemWindowInsetBottom)
             insets
         }
 
-        playerDownArrow =
-            (binding220?.playerDownArrow
-                ?: binding320?.playerDownArrow
-                ?: binding400?.playerDownArrow
-                ?: binding410?.playerDownArrow
-                ?: bindingMassive?.playerDownArrow) as ImageView
+        binding.topControls.setOnApplyWindowInsetsListener { view, insets ->
+            val params = view.layoutParams as ViewGroup.MarginLayoutParams
+            @Suppress("DEPRECATION")
+            params.setMargins(0, insets.systemWindowInsetTop, 0, 0)
+            insets
+        }
 
-
-        playerQueue =
-            (binding220?.playerQueue
-                ?: binding320?.playerQueue
-                ?: binding400?.playerQueue
-                ?: binding410?.playerQueue
-                ?: bindingMassive?.playerQueue) as ImageView
-
-        playerDownArrow.setOnClickListener {
+        binding.playerDownArrow.setOnClickListener {
             finish()
         }
 
-        shuffleButton =
-            (binding220?.shuffleButton
-                ?: binding320?.shuffleButton
-                ?: binding400?.shuffleButton
-                ?: binding410?.shuffleButton
-                ?: bindingMassive?.shuffleButton) as ImageView
-
-        shuffleButton.setOnClickListener {
+        binding.shuffleButton.setOnClickListener {
             if (onShuffle) {
                 mService?.setShuffleRepeat(shuffle = false, repeat = onRepeat)
             } else {
@@ -244,92 +132,51 @@ class Player : MusicClientActivity() {
             }
         }
 
-        playerCenterIcon =
-            (binding220?.playerCenterIcon
-                ?: binding320?.playerCenterIcon
-                ?: binding400?.playerCenterIcon
-                ?: binding410?.playerCenterIcon
-                ?: bindingMassive?.playerCenterIcon) as ImageView
-
         centerLoadingSpinner = ProgressBar(this).apply {
             layoutParams = RelativeLayout.LayoutParams(
-                playerCenterIcon.layoutParams.width,
-                playerCenterIcon.layoutParams.height
+                binding.playerCenterIcon.layoutParams.width,
+                binding.playerCenterIcon.layoutParams.height
             ).apply {
                 addRule(RelativeLayout.CENTER_IN_PARENT)
             }
             visibility = View.GONE
         }
-        (playerCenterIcon.parent as ViewGroup).addView(centerLoadingSpinner)
+        (binding.playerCenterIcon.parent as ViewGroup).addView(centerLoadingSpinner)
 
-        playerCenterIcon.setOnClickListener {
+        binding.playerCenterIcon.setOnClickListener {
             launch(Dispatchers.Default) {
                 if (playing == SongState.playing) mService?.setPlayPause(SongState.paused)
                 else mService?.setPlayPause(SongState.playing)
             }
         }
 
-        repeatButton =
-            (binding220?.repeatButton
-                ?: binding320?.repeatButton
-                ?: binding400?.repeatButton
-                ?: binding410?.repeatButton
-                ?: bindingMassive?.repeatButton) as ImageView
-
-        repeatButton.setOnClickListener {
+        binding.repeatButton.setOnClickListener {
             if (onRepeat) {
                 mService?.setShuffleRepeat(shuffle = onShuffle, repeat = false)
-                DrawableCompat.setTint(repeatButton.drawable, Color.parseColor("#80fbfbfb"))
+                DrawableCompat.setTint(binding.repeatButton.drawable, Color.parseColor("#80fbfbfb"))
             } else {
                 mService?.setShuffleRepeat(shuffle = onShuffle, repeat = true)
-                DrawableCompat.setTint(repeatButton.drawable, Color.parseColor("#805e92f3"))
+                DrawableCompat.setTint(binding.repeatButton.drawable, Color.parseColor("#805e92f3"))
             }
         }
 
-        nextSong =
-            (binding220?.nextSong
-                ?: binding320?.nextSong
-                ?: binding400?.nextSong
-                ?: binding410?.nextSong
-                ?: bindingMassive?.nextSong) as ImageView
-
-        nextSong.setOnClickListener {
+        binding.nextSong.setOnClickListener {
             mService?.setNextPrevious(next = true)
         }
 
-        previousSong =
-            (binding220?.previousSong
-                ?: binding320?.previousSong
-                ?: binding400?.previousSong
-                ?: binding410?.previousSong
-                ?: bindingMassive?.previousSong) as ImageView
-
-        previousSong.setOnClickListener {
+        binding.previousSong.setOnClickListener {
             mService?.setNextPrevious(next = false)
         }
 
         setBgColor(0x002171)
-        playerSeekbar =
-            (binding220?.playerSeekbar
-                ?: binding320?.playerSeekbar
-                ?: binding400?.playerSeekbar
-                ?: binding410?.playerSeekbar
-                ?: bindingMassive?.playerSeekbar) as SeekBar
 
-        playerCurrentPosition =
-            (binding220?.playerCurrentPosition
-                ?: binding320?.playerCurrentPosition
-                ?: binding400?.playerCurrentPosition
-                ?: binding410?.playerCurrentPosition
-                ?: bindingMassive?.playerCurrentPosition) as TextView
-
-        playerSeekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+        binding.playerSeekbar.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onStopTrackingTouch(seekBar: SeekBar) {
                 if (mService != null) {
                     val ms = mService as MusicService
                     ms.seekTo(seekBar.progress)
-                    playerSeekbar.progress = ms.getMediaPlayer().currentPosition
-                    playerCurrentPosition.text = getDurationFromMs(playerSeekbar.progress)
+                    binding.playerSeekbar.progress = ms.getMediaPlayer().currentPosition
+                    binding.playerCurrentPosition.text = getDurationFromMs(binding.playerSeekbar.progress)
                 }
             }
 
@@ -337,14 +184,7 @@ class Player : MusicClientActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
-        albumArt =
-            (binding220?.albumArt
-                ?: binding320?.albumArt
-                ?: binding400?.albumArt
-                ?: binding410?.albumArt
-                ?: bindingMassive?.albumArt) as RelativeLayout
-
-        albumArt.setOnClickListener {
+        binding.albumArt.setOnClickListener {
             if (mService != null) {
                 val ms = mService as MusicService
                 if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
@@ -359,7 +199,7 @@ class Player : MusicClientActivity() {
             }
         }
 
-        albumArt.setOnLongClickListener {
+        binding.albumArt.setOnLongClickListener {
             if (mService != null) {
                 val ms = mService as MusicService
                 if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
@@ -375,14 +215,7 @@ class Player : MusicClientActivity() {
             true
         }
 
-        songName =
-            (binding220?.songName
-                ?: binding320?.songName
-                ?: binding400?.songName
-                ?: binding410?.songName
-                ?: bindingMassive?.songName) as TextView
-
-        songName.setOnClickListener {
+        binding.songName.setOnClickListener {
             if (mService != null) {
                 val mService = this.mService as MusicService
                 val current = mService.getPlayQueue()[mService.getCurrentIndex()]
@@ -447,14 +280,7 @@ class Player : MusicClientActivity() {
             }
         }
 
-        artistName =
-            (binding220?.artistName
-                ?: binding320?.artistName
-                ?: binding400?.artistName
-                ?: binding410?.artistName
-                ?: bindingMassive?.artistName) as TextView
-
-        artistName.setOnClickListener {
+        binding.artistName.setOnClickListener {
             if (mService != null) {
                 val mService = this.mService as MusicService
                 val current = mService.getPlayQueue()[mService.getCurrentIndex()]
@@ -519,69 +345,69 @@ class Player : MusicClientActivity() {
             }
         }
 
-        (shuffleButton.parent as View).post {
+        (binding.shuffleButton.parent as View).post {
             val rect = Rect().also {
-                shuffleButton.getHitRect(it)
+                binding.shuffleButton.getHitRect(it)
                 it.top -= 200
                 it.left -= 200
                 it.bottom += 200
                 it.right += 100
             }
 
-            (shuffleButton.parent as View).touchDelegate = TouchDelegate(rect, shuffleButton)
+            (binding.shuffleButton.parent as View).touchDelegate = TouchDelegate(rect, binding.shuffleButton)
         }
 
-        (repeatButton.parent as View).post {
+        (binding.repeatButton.parent as View).post {
             val rect = Rect().also {
-                repeatButton.getHitRect(it)
+                binding.repeatButton.getHitRect(it)
                 it.top -= 200
                 it.left -= 100
                 it.bottom += 200
                 it.right += 200
             }
 
-            (repeatButton.parent as View).touchDelegate = TouchDelegate(rect, repeatButton)
+            (binding.repeatButton.parent as View).touchDelegate = TouchDelegate(rect, binding.repeatButton)
         }
 
-        (previousSong.parent as View).post {
+        (binding.previousSong.parent as View).post {
             val rect = Rect().also {
-                previousSong.getHitRect(it)
+                binding.previousSong.getHitRect(it)
                 it.top -= 200
                 it.left -= 100
                 it.bottom += 200
                 it.right += 100
             }
 
-            (previousSong.parent as View).touchDelegate = TouchDelegate(rect, previousSong)
+            (binding.previousSong.parent as View).touchDelegate = TouchDelegate(rect, binding.previousSong)
         }
 
-        (nextSong.parent as View).post {
+        (binding.nextSong.parent as View).post {
             val rect = Rect().also {
-                nextSong.getHitRect(it)
+                binding.nextSong.getHitRect(it)
                 it.top -= 200
                 it.left -= 100
                 it.bottom += 200
                 it.right += 100
             }
 
-            (nextSong.parent as View).touchDelegate = TouchDelegate(rect, nextSong)
+            (binding.nextSong.parent as View).touchDelegate = TouchDelegate(rect, binding.nextSong)
         }
 
-        (playerCenterIcon.parent as View).post {
+        (binding.playerCenterIcon.parent as View).post {
             val rect = Rect().also {
-                playerCenterIcon.getHitRect(it)
+                binding.playerCenterIcon.getHitRect(it)
                 it.top -= 200
                 it.left -= 50
                 it.bottom += 200
                 it.right += 50
             }
 
-            (playerCenterIcon.parent as View).touchDelegate =
-                TouchDelegate(rect, playerCenterIcon)
+            (binding.playerCenterIcon.parent as View).touchDelegate =
+                TouchDelegate(rect, binding.playerCenterIcon)
         }
 
 
-        playerQueue.setOnClickListener {
+        binding.playerQueue.setOnClickListener {
             if (mService != null) {
                 val mService = this.mService as MusicService
                 MaterialDialog(this@Player, BottomSheet()).show {
@@ -609,20 +435,14 @@ class Player : MusicClientActivity() {
 
             override fun onServiceDisconnected(name: ComponentName) {}
         }
-        youtubeProgressbar =
-            (binding220?.youtubeProgressbar
-                ?: binding320?.youtubeProgressbar
-                ?: binding400?.youtubeProgressbar
-                ?: binding410?.youtubeProgressbar
-                ?: bindingMassive?.youtubeProgressbar) as ProgressBar
 
-        youtubeProgressbar.visibility = View.GONE
+        binding.youtubeProgressbar.visibility = View.GONE
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 launch {
                     delay(300)
-                    if (!this@Player.isDestroyed) Glide.with(this@Player).clear(imgAlbart)
+                    if (!this@Player.isDestroyed) Glide.with(this@Player).clear(binding.imgAlbart)
                 }
                 finish()
             }
@@ -661,8 +481,8 @@ class Player : MusicClientActivity() {
                 if (mService != null) {
                     val ms = mService as MusicService
                     val songPosition = ms.getMediaPlayer().currentPosition
-                    playerSeekbar.progress = songPosition
-                    playerCurrentPosition.text = getDurationFromMs(songPosition)
+                    binding.playerSeekbar.progress = songPosition
+                    binding.playerCurrentPosition.text = getDurationFromMs(songPosition)
                 }
                 delay(1000)
             }
@@ -681,15 +501,15 @@ class Player : MusicClientActivity() {
 
         lastSelectedColor = color
 
-        previousSong.run {
+        binding.previousSong.run {
             this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
 
-        playerCenterIcon.run {
+        binding.playerCenterIcon.run {
             this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
 
-        nextSong.run {
+        binding.nextSong.run {
             this.setImageDrawable(this.drawable.run { this.setTint(color); this })
         }
     }
@@ -704,13 +524,6 @@ class Player : MusicClientActivity() {
         lightVibrantColor: Int? = null,
         palette: Palette? = null
     ) {
-        val playerBg =
-            binding220?.playerBg
-                ?: binding320?.playerBg
-                ?: binding400?.playerBg
-                ?: binding410?.playerBg
-                ?: bindingMassive?.playerBg
-
 //        RevelyGradient
 //            .linear()
 //            .colors(
@@ -721,64 +534,43 @@ class Player : MusicClientActivity() {
 //            )
 //            .angle(90f)
 //            .alpha(0.76f)
-//            .onBackgroundOf(playerBg!!)
+//            .onBackgroundOf(binding.playerBg)
 
 
-        if (Shared.isColorDark(color)) {
-            playerDownArrow.setImageDrawable(
-                ContextCompat.getDrawable(
-                    this@Player,
-                    R.drawable.down_arrow
-                )
-            )
-            playerQueue.setImageDrawable(
-                ContextCompat.getDrawable(
-                    this@Player,
-                    R.drawable.pl_playlist
-                )
-            )
-            if (lightVibrantColor != null) {
-                if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
-                    val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor
-                        ?: palette?.dominantSwatch?.titleTextColor
-                    playerSeekbar.progressDrawable.setTint(newTitleColor!!)
-                    playerSeekbar.thumb.setTint(newTitleColor)
-                    tintControls(0x002171)
-                } else {
-                    playerSeekbar.progressDrawable.setTint(lightVibrantColor)
-                    playerSeekbar.thumb.setTint(lightVibrantColor)
-                    tintControls(lightVibrantColor)
-                }
+        // Always use white icons since background is always #212121 (dark)
+        binding.playerDownArrow.setImageDrawable(
+            ContextCompat.getDrawable(this@Player, R.drawable.down_arrow)
+        )
+        binding.playerQueue.setImageDrawable(
+            ContextCompat.getDrawable(this@Player, R.drawable.pl_playlist)
+        )
+
+        val accentColor = lightVibrantColor ?: color
+        if (accentColor != 0 && lightVibrantColor != null) {
+            if ((lightVibrantColor and 0xff000000.toInt()) shr 24 == 0) {
+                val newTitleColor = palette?.darkVibrantSwatch?.titleTextColor
+                    ?: palette?.dominantSwatch?.titleTextColor
+                binding.playerSeekbar.progressDrawable.setTint(newTitleColor!!)
+                binding.playerSeekbar.thumb.setTint(newTitleColor)
+                tintControls(0x002171)
+            } else {
+                binding.playerSeekbar.progressDrawable.setTint(lightVibrantColor)
+                binding.playerSeekbar.thumb.setTint(lightVibrantColor)
+                tintControls(lightVibrantColor)
             }
-        } else {
-            playerDownArrow.setImageDrawable(
-                ContextCompat.getDrawable(
-                    this@Player,
-                    R.drawable.down_arrow_black
-                )
-            )
-            playerQueue.setImageDrawable(
-                ContextCompat.getDrawable(
-                    this@Player,
-                    R.drawable.playlist_black
-                )
-            )
-            playerSeekbar.progressDrawable.setTint(color)
-            playerSeekbar.thumb.setTint(color)
-            tintControls(color)
         }
     }
 
     private fun playPauseEvent(ss: SongState) {
         playing = ss
         launch(Dispatchers.Main) {
-            if (playing == SongState.playing) playerCenterIcon.setImageDrawable(
+            if (playing == SongState.playing) binding.playerCenterIcon.setImageDrawable(
                 ContextCompat.getDrawable(
                     this@Player,
                     R.drawable.nobg_pause
                 )
             )
-            else playerCenterIcon.setImageDrawable(
+            else binding.playerCenterIcon.setImageDrawable(
                 ContextCompat.getDrawable(
                     this@Player,
                     R.drawable.nobg_play
@@ -798,23 +590,9 @@ class Player : MusicClientActivity() {
     private fun updateAlbumArt(customSongName: String? = null, forceDeezer: Boolean = false) {
         if (mService != null) {
             val mService = mService as MusicService
-            /* set helper variables */
-            imgAlbart =
-                (binding220?.imgAlbart
-                    ?: binding320?.imgAlbart
-                    ?: binding400?.imgAlbart
-                    ?: binding410?.imgAlbart
-                    ?: bindingMassive?.imgAlbart) as RoundedImageView
 
-            val notePh =
-                (binding220?.notePh
-                    ?: binding320?.notePh
-                    ?: binding400?.notePh
-                    ?: binding410?.notePh
-                    ?: bindingMassive?.imgAlbart) as ImageView
-
-            imgAlbart.visibility = View.GONE
-            notePh.visibility = View.VISIBLE
+            binding.imgAlbart.visibility = View.GONE
+            binding.notePh.visibility = View.VISIBLE
             var didGetArt = false
             val current = mService.getPlayQueue()[mService.getCurrentIndex()]
             val img = File(
@@ -843,7 +621,7 @@ class Player : MusicClientActivity() {
                 if (current.isLocal && !forceDeezer) {
                     Log.i("INFO>", "Fetching from metadata")
                     try {
-                        notePh.visibility = View.GONE
+                        binding.notePh.visibility = View.GONE
                         val sArtworkUri =
                             Uri.parse("content://media/external/audio/albumart")
 
@@ -855,9 +633,9 @@ class Player : MusicClientActivity() {
                             .get().toBitmap()
 
                         launch(Dispatchers.Main) {
-                            imgAlbart.setImageBitmap(Shared.bmp)
-                            imgAlbart.visibility = View.VISIBLE
-                            notePh.visibility = View.GONE
+                            binding.imgAlbart.setImageBitmap(Shared.bmp)
+                            binding.imgAlbart.visibility = View.VISIBLE
+                            binding.notePh.visibility = View.GONE
                             Palette.from(Shared.getSharedBitmap()).generate {
                                 setBgColor(
                                     it?.getDominantColor(0x002171) ?: 0x002171,
@@ -879,14 +657,14 @@ class Player : MusicClientActivity() {
                         val imgToLoad = if (img.exists()) img else cacheImg
                         if (imgToLoad.exists()) {
                             launch(Dispatchers.Main) {
-                                imgAlbart.visibility = View.VISIBLE
-                                notePh.visibility = View.GONE
+                                binding.imgAlbart.visibility = View.VISIBLE
+                                binding.notePh.visibility = View.GONE
                                 Glide.with(this@Player)
                                     .load(imgToLoad)
                                     .centerCrop()
                                     .diskCacheStrategy(DiskCacheStrategy.NONE)
                                     .skipMemoryCache(true)
-                                    .into(imgAlbart)
+                                    .into(binding.imgAlbart)
                                 try {
                                     Shared.bmp?.recycle()
                                     Shared.bmp = BitmapFactory.decodeFile(imgToLoad.absolutePath)
@@ -959,9 +737,9 @@ class Player : MusicClientActivity() {
                                 Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
 
                                 launch(Dispatchers.Main) {
-                                    imgAlbart.setImageBitmap(Shared.getSharedBitmap())
-                                    imgAlbart.visibility = View.VISIBLE
-                                    notePh.visibility = View.GONE
+                                    binding.imgAlbart.setImageBitmap(Shared.getSharedBitmap())
+                                    binding.imgAlbart.visibility = View.VISIBLE
+                                    binding.notePh.visibility = View.GONE
                                     if (mService.getMediaPlayer().isPlaying) {
                                         mService.showNotification(
                                             mService.generateAction(
@@ -1001,16 +779,16 @@ class Player : MusicClientActivity() {
 
                 if (!didGetArt) {
                     launch(Dispatchers.Main) {
-                        imgAlbart.visibility = View.GONE
-                        notePh.visibility = View.VISIBLE
+                        binding.imgAlbart.visibility = View.GONE
+                        binding.notePh.visibility = View.VISIBLE
                         setBgColor(0x002171)
-                        playerSeekbar.progressDrawable.setTint(
+                        binding.playerSeekbar.progressDrawable.setTint(
                             ContextCompat.getColor(
                                 this@Player,
                                 R.color.thatAccent
                             )
                         )
-                        playerSeekbar.thumb.setTint(
+                        binding.playerSeekbar.thumb.setTint(
                             ContextCompat.getColor(
                                 this@Player,
                                 R.color.colorPrimary
@@ -1027,8 +805,8 @@ class Player : MusicClientActivity() {
         if (mService != null) {
             val mService = mService as MusicService
             launch(Dispatchers.Main) {
-                songName.text = name
-                artistName.text = artist
+                binding.songName.text = name
+                binding.artistName.text = artist
             }
 
             if (mService.getMediaPlayer().isPlaying) {
@@ -1059,19 +837,19 @@ class Player : MusicClientActivity() {
             updateAlbumArt()
 
             val song = mService.getPlayQueue()[mService.getCurrentIndex()]
-            songName.text = song.name
-            artistName.text = song.artist
+            binding.songName.text = song.name
+            binding.artistName.text = song.artist
 
             val duration = mService.getMediaPlayer().duration
             if (duration > 0 && mService.getMediaPlayer().isPlaying) {
-                playerSeekbar.max = duration
-                completePosition.text = getDurationFromMs(duration)
-                playerSeekbar.progress = mService.getMediaPlayer().currentPosition
+                binding.playerSeekbar.max = duration
+                binding.completePosition.text = getDurationFromMs(duration)
+                binding.playerSeekbar.progress = mService.getMediaPlayer().currentPosition
             } else {
-                playerSeekbar.max = 100
-                playerSeekbar.progress = 0
-                completePosition.text = "0:00"
-                playerCurrentPosition.text = "0:00"
+                binding.playerSeekbar.max = 100
+                binding.playerSeekbar.progress = 0
+                binding.completePosition.text = "0:00"
+                binding.playerCurrentPosition.text = "0:00"
             }
         }
     }
@@ -1107,7 +885,7 @@ class Player : MusicClientActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (!this.isDestroyed)
-            Glide.with(this@Player).clear(imgAlbart)
+            Glide.with(this@Player).clear(binding.imgAlbart)
     }
 
     override fun playStateChanged(state: SongState) {
@@ -1122,8 +900,8 @@ class Player : MusicClientActivity() {
 
     override fun durationChanged(duration: Int) {
         launch(Dispatchers.Main) {
-            playerSeekbar.max = duration
-            completePosition.text = getDurationFromMs(duration)
+            binding.playerSeekbar.max = duration
+            binding.completePosition.text = getDurationFromMs(duration)
         }
     }
 
@@ -1136,14 +914,14 @@ class Player : MusicClientActivity() {
     override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
         launch(Dispatchers.Main) {
             if (onShuffle)
-                DrawableCompat.setTint(shuffleButton.drawable, Color.parseColor("#805e92f3"))
+                DrawableCompat.setTint(binding.shuffleButton.drawable, Color.parseColor("#805e92f3"))
             else
-                DrawableCompat.setTint(shuffleButton.drawable, Color.parseColor("#fbfbfb"))
+                DrawableCompat.setTint(binding.shuffleButton.drawable, Color.parseColor("#fbfbfb"))
 
             if (onRepeat)
-                DrawableCompat.setTint(repeatButton.drawable, Color.parseColor("#805e92f3"))
+                DrawableCompat.setTint(binding.repeatButton.drawable, Color.parseColor("#805e92f3"))
             else
-                DrawableCompat.setTint(repeatButton.drawable, Color.parseColor("#fbfbfb"))
+                DrawableCompat.setTint(binding.repeatButton.drawable, Color.parseColor("#fbfbfb"))
 
             (this@Player).onShuffle = onShuffle
             (this@Player).onRepeat = onRepeat
@@ -1155,15 +933,15 @@ class Player : MusicClientActivity() {
     override fun isLoading(doLoad: Boolean) {
         launch(Dispatchers.Main) {
             if (doLoad) {
-                playerCenterIcon.visibility = View.INVISIBLE
+                binding.playerCenterIcon.visibility = View.INVISIBLE
                 centerLoadingSpinner.visibility = View.VISIBLE
-                playerSeekbar.progress = 0
-                playerSeekbar.max = 100
-                completePosition.text = "0:00"
-                playerCurrentPosition.text = "0:00"
+                binding.playerSeekbar.progress = 0
+                binding.playerSeekbar.max = 100
+                binding.completePosition.text = "0:00"
+                binding.playerCurrentPosition.text = "0:00"
             } else {
                 centerLoadingSpinner.visibility = View.GONE
-                playerCenterIcon.visibility = View.VISIBLE
+                binding.playerCenterIcon.visibility = View.VISIBLE
             }
         }
     }

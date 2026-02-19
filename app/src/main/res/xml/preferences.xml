@@ -22,16 +22,6 @@
         />
 
     <ListPreference
-        android:defaultValue="Default"
-        android:entries="@array/dpi"
-        android:entryValues="@array/dpi"
-        android:summary="@string/opo"
-        app:iconSpaceReserved="false"
-        android:title="@string/opo_title"
-        android:key="player_layout_key"
-        />
-
-    <ListPreference
         android:defaultValue="Download"
         android:entries="@array/modes"
         android:entryValues="@array/modes"

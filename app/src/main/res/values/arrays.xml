@@ -10,15 +10,6 @@
         <item>Youtube (Videos)</item>
     </string-array>
 
-    <string-array name="dpi">
-        <item>Default</item>
-        <item>Tiny</item>
-        <item>Small</item>
-        <item>Normal</item>
-        <item>Large</item>
-        <item>Massive</item>
-    </string-array>
-
     <string-array name="modes">
         <item>Download</item>
         <item>Stream</item>

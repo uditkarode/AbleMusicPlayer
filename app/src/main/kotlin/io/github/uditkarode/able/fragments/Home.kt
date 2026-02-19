@@ -231,7 +231,7 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
                 val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
                     ?: streamInfo.audioStreams[0]
-                val url = stream.content!!
+                val url = stream.content
                 val ext = stream.getFormat()!!.suffix
                 val songId = Shared.getIdFromLink(song.youtubeLink)
 

@@ -493,7 +493,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
                 ?: streamInfo.audioStreams[0]
-            val url = stream.content!!
+            val url = stream.content
             val songId = Shared.getIdFromLink(song.youtubeLink)
 
             // Fetch album art

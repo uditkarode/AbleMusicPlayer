@@ -112,7 +112,7 @@ object ChunkedDownloader {
                         .addHeader("Connection", "close")
                         .build()
                     val resp = client.newCall(req).execute()
-                    val iStream = BufferedInputStream(resp.body!!.byteStream())
+                    val iStream = BufferedInputStream(resp.body.byteStream())
 
                     val data = ByteArray(65536)
                     var read: Int
@@ -156,7 +156,7 @@ object ChunkedDownloader {
             .addHeader("User-Agent", USER_AGENT)
             .build()
         val resp = client.newCall(req).execute()
-        val iStream = BufferedInputStream(resp.body!!.byteStream())
+        val iStream = BufferedInputStream(resp.body.byteStream())
         val oStream = FileOutputStream(outputFile)
 
         val data = ByteArray(65536)

@@ -932,11 +932,11 @@ class Player : MusicClientActivity() {
                             .build()
                     }
 
-                    val response = OkHttpClient().newCall(albumArtRequest).execute().body
+                    val response = OkHttpClient().newCall(albumArtRequest).execute()
 
                     try {
-                        if (response != null) {
-                            val json = JSONObject(response.string()).getJSONArray("data")
+                        run {
+                            val json = JSONObject(response.body.string()).getJSONArray("data")
                                 .getJSONObject(0).getJSONObject("album")
                             val imgLink = json.getString("cover_xl")
                             val albumName = json.getString("title")

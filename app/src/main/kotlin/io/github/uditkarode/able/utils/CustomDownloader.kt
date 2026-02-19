@@ -56,11 +56,7 @@ class CustomDownloader private constructor(builder: OkHttpClient.Builder) : Down
             response.close()
             throw ReCaptchaException("reCaptcha Challenge requested", url)
         }
-        val body = response.body
-        var responseBodyToReturn: String? = null
-        if (body != null) {
-            responseBodyToReturn = body.string()
-        }
+        val responseBodyToReturn = response.body.string()
         val latestUrl = response.request.url.toString()
         return Response(
             response.code, response.message, response.headers.toMultimap(),

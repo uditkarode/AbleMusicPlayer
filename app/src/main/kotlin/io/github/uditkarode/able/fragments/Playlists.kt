@@ -18,7 +18,9 @@
 
 package io.github.uditkarode.able.fragments
 
+import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,10 +29,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.Data
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequest
-import androidx.work.WorkManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
 import com.afollestad.materialdialogs.actions.setActionButtonEnabled
@@ -103,16 +101,13 @@ class Playlists : Fragment(), MusicService.MusicClient {
                     }
                     getInputLayout().boxBackgroundColor = Color.parseColor("#212121")
                     positiveButton(R.string.pos) {
-                        val builder = Data.Builder()
-                        builder.put("inputId", inputId)
-                        WorkManager.getInstance(view.context)
-                            .beginUniqueWork(
-                                "SpotifyImport",
-                                ExistingWorkPolicy.REPLACE,
-                                OneTimeWorkRequest.Builder(SpotifyImportService::class.java)
-                                    .setInputData(builder.build())
-                                    .build()
-                            ).enqueue()
+                        val intent = Intent(requireContext(), SpotifyImportService::class.java)
+                        intent.putExtra("inputId", inputId)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            requireContext().startForegroundService(intent)
+                        } else {
+                            requireContext().startService(intent)
+                        }
                         Toast.makeText(
                             requireContext(), getString(R.string.spot_importing), Toast.LENGTH_LONG
                         ).show()
@@ -120,7 +115,6 @@ class Playlists : Fragment(), MusicService.MusicClient {
                 }
             } else {
                 MusicService.registeredClients.forEach { it.spotifyImportChange(false) }
-                WorkManager.getInstance(view.context).cancelUniqueWork("SpotifyImport")
             }
         }
     }
@@ -153,7 +147,7 @@ class Playlists : Fragment(), MusicService.MusicClient {
             _binding!!.spotbut.setImageResource(R.drawable.ic_cancle_action)
         } else {
             isImporting = false
-            WorkManager.getInstance(requireContext()).cancelUniqueWork("SpotifyImport")
+            requireContext().stopService(Intent(requireContext(), SpotifyImportService::class.java))
             (activity?.findViewById<RecyclerView>(R.id.playlists_rv)?.adapter as PlaylistAdapter).also { playlistAdapter ->
                 playlistAdapter.update(Shared.getPlaylists())
                 _binding!!.spotbut.setImageResource(R.drawable.ic_spot)

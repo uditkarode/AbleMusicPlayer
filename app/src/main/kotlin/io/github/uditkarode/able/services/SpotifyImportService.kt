@@ -21,133 +21,114 @@ package io.github.uditkarode.able.services
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.Service
 import android.content.Context
+import android.content.Intent
 import android.os.Build
-import androidx.core.app.NotificationManagerCompat
-import androidx.work.Worker
-import androidx.work.WorkerParameters
+import android.os.IBinder
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.utils.Constants
-/**
- * The service that handles import of Spotify songs.
- */
-class SpotifyImportService(val context: Context, workerParams: WorkerParameters) :
-    MusicService.MusicClient, Worker(
-    context,
-    workerParams
-) {
-    private lateinit var builder: Notification.Builder
-    private lateinit var notification: Notification
-    override fun doWork(): Result {
-        createNotificationChannel()
-        if (runAttemptCount > 2) {
-            (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-                it.cancel(3)
-            }
-            return Result.failure()
-        }
-        return try {
-            val playId = inputData.getString("inputId")
-            MusicService.registeredClients.forEach { it.spotifyImportChange(true) }
-            NotificationManagerCompat.from(context).apply {
-                builder.setContentText("")
-                builder.setContentTitle(context.getString(R.string.init_import))
-                builder.setProgress(100, 100, true)
-                builder.setOngoing(true)
-                notify(3, builder.build())
-            }
-//            SpotifyImport.importList(playId.toString(), builder, context)
-            Result.success()
-        } catch (e: Exception) {
-            Result.retry()
-        }
+import io.github.uditkarode.able.utils.SpotifyImport
+import kotlin.concurrent.thread
+
+class SpotifyImportService : Service(), MusicService.MusicClient {
+    companion object {
+        private const val NOTIF_ID = 3
+        private const val CHANNEL_ID = "AbleSpotifyImport"
     }
 
-    override fun onStopped() {
-//        SpotifyImport.isImporting = false
-        super.onStopped()
-        MusicService.unregisterClient(this)
-        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-            it.cancel(3)
+    private lateinit var builder: Notification.Builder
+    private lateinit var notificationManager: NotificationManager
+    @Volatile private var cancelledByUser = false
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        MusicService.registerClient(this)
+        createNotificationChannel()
+        startForeground(NOTIF_ID, builder.build())
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val playId = intent?.getStringExtra("inputId") ?: run {
+            stopSelf()
+            return START_NOT_STICKY
         }
 
+        MusicService.registeredClients.forEach { it.spotifyImportChange(true) }
+
+        thread {
+            SpotifyImport.importList(playId, builder, this)
+            // Detach notification so it stays visible after service stops
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_DETACH)
+            }
+            stopSelf()
+        }
+
+        return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        SpotifyImport.isImporting = false
+        MusicService.unregisterClient(this)
+        // Only cancel notification if user explicitly cancelled the import
+        if (cancelledByUser) {
+            notificationManager.cancel(NOTIF_ID)
+        }
+        super.onDestroy()
     }
 
     private fun createNotificationChannel() {
-        MusicService.registerClient(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Spotify Import",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            channel.enableLights(false)
+            channel.enableVibration(false)
+            channel.setSound(null, null)
+            notificationManager.createNotificationChannel(channel)
+        }
+
         builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(context, Constants.CHANNEL_ID)
+            Notification.Builder(this, CHANNEL_ID)
         } else {
             @Suppress("DEPRECATION")
-            Notification.Builder(context)
+            Notification.Builder(this)
         }
         builder.apply {
-            setContentTitle(context.getString(R.string.init_import))
-            setContentText(context.getString(R.string.pl_wait))
-            setSubText("Spotify ${context.getString(R.string.imp)}")
+            setContentTitle(getString(R.string.init_import))
+            setContentText(getString(R.string.pl_wait))
+            setSubText("Spotify ${getString(R.string.imp)}")
             setSmallIcon(R.drawable.ic_download_icon)
-            builder.setOngoing(true)
-        }
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationChannel = NotificationChannel(
-                Constants.CHANNEL_ID,
-                "AbleMusicImport",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            notificationChannel.enableLights(false)
-            notificationChannel.enableVibration(false)
-            notificationManager.createNotificationChannel(notificationChannel)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notification = builder.setChannelId(Constants.CHANNEL_ID).build()
-        } else {
-            notification = builder.build()
-            notificationManager.notify(3, notification)
+            setOngoing(true)
+            setProgress(100, 0, true)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+            }
         }
     }
 
-    override fun playStateChanged(state: SongState) {
-
-    }
-
-    override fun songChanged() {
-
-    }
-
-    override fun durationChanged(duration: Int) {
-
-    }
-
-    override fun isExiting() {
-//        this.stop()
-    }
-
-    override fun queueChanged(arrayList: ArrayList<Song>) {
-
-    }
-
-    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {
-
-    }
-
-    override fun indexChanged(index: Int) {
-
-    }
-
-    override fun isLoading(doLoad: Boolean) {
-
-    }
-
+    override fun playStateChanged(state: SongState) {}
+    override fun songChanged() {}
+    override fun durationChanged(duration: Int) {}
+    override fun isExiting() {}
+    override fun queueChanged(arrayList: ArrayList<Song>) {}
+    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {}
+    override fun indexChanged(index: Int) {}
+    override fun isLoading(doLoad: Boolean) {}
     override fun spotifyImportChange(starting: Boolean) {
         if (!starting) {
-//            this.stop()
-//            SpotifyImport.isImporting = false
+            cancelledByUser = true
+            SpotifyImport.isImporting = false
+            stopSelf()
         }
     }
-
     override fun serviceStarted() {}
 }

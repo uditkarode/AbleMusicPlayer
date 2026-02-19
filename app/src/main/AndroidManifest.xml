@@ -58,6 +58,11 @@
             android:foregroundServiceType="dataSync"
             android:exported="false"
             />
+
+        <service android:name=".services.SpotifyImportService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            />
     </application>
 
 </manifest>

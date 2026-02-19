@@ -58,12 +58,11 @@ class SpotifyImportService : Service() {
         MusicService.registeredClients.forEach { it.spotifyImportChange(true) }
 
         thread {
-            SpotifyImport.importList(playId, builder, this)
+            val success = SpotifyImport.importList(playId, builder, this)
             importThreadFinished = true
-            // Detach notification so it stays visible after service stops
-            // (error messages persist, success already cancelled the notification)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_DETACH)
+                // Remove notification on success; detach on failure so error persists
+                stopForeground(if (success) STOP_FOREGROUND_REMOVE else STOP_FOREGROUND_DETACH)
             }
             stopSelf()
         }

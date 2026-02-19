@@ -21,7 +21,6 @@
 package io.github.uditkarode.able.utils
 
 import android.app.Notification
-import android.app.NotificationManager
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -66,13 +65,16 @@ object SpotifyImport {
         data class Error(val message: String) : EmbedResult()
     }
 
-    fun importList(playId: String, builder: Notification.Builder, context: Context) {
+    /**
+     * @return true if at least one song was imported successfully.
+     */
+    fun importList(playId: String, builder: Notification.Builder, context: Context): Boolean {
         isImporting = true
         try {
             val result = fetchPlaylistFromEmbed(playId)
             if (result is EmbedResult.Error) {
                 showFailureNotification(builder, context, result.message)
-                return
+                return false
             }
 
             val success = result as EmbedResult.Success
@@ -88,7 +90,7 @@ object SpotifyImport {
             if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
 
             for (i in tracks.indices) {
-                if (!isImporting) return
+                if (!isImporting) return false
 
                 val track = tracks[i]
                 val displayName = "${track.title} - ${track.artist}".run {
@@ -114,15 +116,15 @@ object SpotifyImport {
 
             if (songArr.size > 0) {
                 Shared.modifyPlaylist(fileName, songArr)
-                (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).also {
-                    it.cancel(3)
-                }
+                return true
             } else {
                 showFailureNotification(builder, context, context.getString(R.string.spot_ytfail))
+                return false
             }
         } catch (e: Exception) {
             Log.e(TAG, "Import failed", e)
             showFailureNotification(builder, context, context.getString(R.string.spot_fail))
+            return false
         } finally {
             isImporting = false
             mainHandler.post {

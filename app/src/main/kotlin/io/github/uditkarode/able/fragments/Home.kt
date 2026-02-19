@@ -164,8 +164,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         super.onResume()
         MusicService.registerClient(this)
         DownloadService.onDownloadComplete = { updateSongList() }
-        // Refresh song list in case a download completed while we were paused
-        updateSongList()
     }
 
     override fun onPause() {

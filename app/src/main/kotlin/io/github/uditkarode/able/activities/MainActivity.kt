@@ -35,6 +35,7 @@ import android.os.IBinder
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
@@ -142,21 +143,29 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
         home = Home()
         mainContent.isUserInputEnabled = false
+        mainContent.offscreenPageLimit = 2
         mainContent.adapter = ViewPagerAdapter(this, home)
-        mainContent.setPageTransformer { page, _ ->
-            page.alpha = 0f
-            page.visibility = View.VISIBLE
-
-            page.animate()
-                .alpha(1f).duration = 200
-        }
-
+        var currentPage = 0
         bottomNavigation = binding.bottomNavigation
         bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.home_menu -> binding.mainContent.currentItem = 0
-                R.id.search_menu -> binding.mainContent.currentItem = 1
-                R.id.settings_menu -> binding.mainContent.currentItem = 2
+            val newPage = when (item.itemId) {
+                R.id.home_menu -> 0
+                R.id.search_menu -> 1
+                R.id.settings_menu -> 2
+                else -> 0
+            }
+            if (newPage != currentPage) {
+                val direction = if (newPage > currentPage) 1f else -1f
+                currentPage = newPage
+                mainContent.setCurrentItem(newPage, false)
+                mainContent.alpha = 0.5f
+                mainContent.translationX = direction * mainContent.width * 0.12f
+                mainContent.animate()
+                    .alpha(1f)
+                    .translationX(0f)
+                    .setDuration(100)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
             }
             true
         }

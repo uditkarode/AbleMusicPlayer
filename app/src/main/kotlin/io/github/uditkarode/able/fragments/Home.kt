@@ -83,6 +83,11 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         super.onDestroy()
         coroutineContext.cancelChildren()
         MusicService.unregisterClient(this)
+        DownloadService.onDownloadComplete = null
+        if (isBound) {
+            try { requireContext().unbindService(serviceConn) } catch (_: Exception) {}
+            isBound = false
+        }
         _binding = null
     }
 

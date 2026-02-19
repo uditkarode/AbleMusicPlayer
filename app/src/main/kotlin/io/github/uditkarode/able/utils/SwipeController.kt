@@ -84,9 +84,9 @@ class SwipeControllerActions(
                                     title(text = context.getString(R.string.playlist_namei))
                                     input(context.getString(R.string.name_s)) { _, charSequence ->
                                         Shared.createPlaylist(charSequence.toString(), context)
-                                        Shared.addToPlaylist(Shared.getPlaylists().filter {
+                                        Shared.getPlaylists().firstOrNull {
                                             it.name == "$charSequence.json"
-                                        }[0], current, context)
+                                        }?.let { Shared.addToPlaylist(it, current, context) }
                                     }
                                     getInputLayout().boxBackgroundColor =
                                         Color.parseColor("#000000")

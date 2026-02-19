@@ -92,7 +92,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         var previousIndex = -1
         var currentIndex = -1
 
-        val registeredClients = mutableSetOf<MusicClient>()
+        val registeredClients: MutableSet<MusicClient> =
+            java.util.concurrent.CopyOnWriteArraySet()
 
         fun registerClient(client: Any) {
             try {

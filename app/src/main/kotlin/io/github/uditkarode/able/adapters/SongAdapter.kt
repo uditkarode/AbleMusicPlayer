@@ -235,9 +235,9 @@ class SongAdapter(
                                         charSequence.toString(),
                                         holder.itemView.context
                                     )
-                                    Shared.addToPlaylist(Shared.getPlaylists().filter {
+                                    Shared.getPlaylists().firstOrNull {
                                         it.name == "$charSequence.json"
-                                    }[0], current, holder.itemView.context)
+                                    }?.let { Shared.addToPlaylist(it, current, holder.itemView.context) }
                                 }
                                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
                             }

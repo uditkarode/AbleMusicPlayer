@@ -479,25 +479,28 @@ object Shared {
             null,
             MediaStore.Audio.Media.DEFAULT_SORT_ORDER + " ASC"
         )
-        if (songCursor != null && songCursor.moveToFirst()) {
-            do {
-                val path: String = songCursor.getString(2)
-                if (!path.contains("webm") && !path.contains("WhatsApp")) {
-                    if (path.contains("mp3") || path.contains("m4a")) {
-                        songs.add(
-                            Song(
-                                name = songCursor.getString(0),
-                                artist = songCursor.getString(1),
-                                filePath = path,
-                                albumId = songCursor.getLong(3),
-                                isLocal = true
+        try {
+            if (songCursor != null && songCursor.moveToFirst()) {
+                do {
+                    val path: String = songCursor.getString(2)
+                    if (!path.contains("webm") && !path.contains("WhatsApp")) {
+                        if (path.contains("mp3") || path.contains("m4a")) {
+                            songs.add(
+                                Song(
+                                    name = songCursor.getString(0),
+                                    artist = songCursor.getString(1),
+                                    filePath = path,
+                                    albumId = songCursor.getLong(3),
+                                    isLocal = true
+                                )
                             )
-                        )
+                        }
                     }
-                }
-            } while (songCursor.moveToNext())
+                } while (songCursor.moveToNext())
+            }
+        } finally {
+            songCursor?.close()
         }
-        songCursor?.close()
         return songs
     }
 

@@ -85,12 +85,13 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
         NewPipe.init(CustomDownloader.getInstance())
         Shared.cleanupTempFiles()
 
-        if (checkCallingOrSelfPermission(Manifest.permission.READ_MEDIA_AUDIO)
-            != PackageManager.PERMISSION_GRANTED
+        if (!getSharedPreferences("able_prefs", MODE_PRIVATE)
+                .getBoolean("welcome_shown", false)
         ) {
             super.onCreate(savedInstanceState)
             startActivity(Intent(this@MainActivity, Welcome::class.java))
-            return;
+            finish()
+            return
         }
 
         // Request notification permission for existing users (Android 13+)

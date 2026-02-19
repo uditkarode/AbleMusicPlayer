@@ -17,7 +17,6 @@ coroutines = "1.10.2"
 lifecycleViewmodelKtx = "2.10.0"
 lottie = "6.7.1"
 material = "1.13.0"
-materialIntroScreen = "0.0.6"
 newpipeextractor = "v0.25.2"
 okhttp = "5.3.2"
 paletteKtx = "1.0.0"
@@ -56,7 +55,6 @@ lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 material-dialogs-bottomsheets = { module = "com.afollestad.material-dialogs:bottomsheets", version.ref = "bottomsheets" }
 material-dialogs-input = { module = "com.afollestad.material-dialogs:input", version.ref = "input" }
-material-intro-screen = { module = "io.github.dreierf:material-intro-screen", version.ref = "materialIntroScreen" }
 newpipeextractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipeextractor" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = "paletteKtx" }

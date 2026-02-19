@@ -94,4 +94,13 @@ or via the UPI address %2$s</string>
     <string name="opo_title">Player Layout</string>
     <string name="no_songs">No downloaded songs yet.</string>
     <string name="no_playlists">No playlists yet.</string>
+    <string name="welcome_title">Welcome to Able!</string>
+    <string name="welcome_subtitle">Free and open source music player</string>
+    <string name="perm_notif_title">Notifications</string>
+    <string name="perm_notif_desc">Show playback controls in notification bar</string>
+    <string name="perm_audio_title">Music Library</string>
+    <string name="perm_audio_desc">Access your device\'s music to play local songs</string>
+    <string name="grant">Grant</string>
+    <string name="granted">Granted</string>
+    <string name="welcome_continue">Continue</string>
 </resources>

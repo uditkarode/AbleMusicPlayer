@@ -129,7 +129,12 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
         if (songList.isEmpty()) {
             songList = Shared.getSongList(Constants.ableSongDir)
-            songList.addAll(Shared.getLocalSongs(requireContext()))
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    requireContext(), android.Manifest.permission.READ_MEDIA_AUDIO
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                songList.addAll(Shared.getLocalSongs(requireContext()))
+            }
             if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
                 it.name.uppercase(Locale.getDefault())
             })

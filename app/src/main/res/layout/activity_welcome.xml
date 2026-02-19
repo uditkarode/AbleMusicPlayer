@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/welcome_bg"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <ImageView
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:src="@drawable/welcome_icon" />
+
+    <!--suppress AndroidUnknownAttribute -->
+    <TextView
+        fontPath="fonts/interbold.otf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/welcome_title"
+        android:textColor="@color/white"
+        android:textSize="28sp"
+        tools:ignore="MissingPrefix" />
+
+    <!--suppress AndroidUnknownAttribute -->
+    <TextView
+        fontPath="fonts/inter.otf"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="@string/welcome_subtitle"
+        android:textColor="#80fbfbfb"
+        android:textSize="15sp"
+        tools:ignore="MissingPrefix" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Notification permission -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_rectangle"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="12dp">
+
+            <!--suppress AndroidUnknownAttribute -->
+            <TextView
+                fontPath="fonts/interbold.otf"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/perm_notif_title"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                tools:ignore="MissingPrefix" />
+
+            <!--suppress AndroidUnknownAttribute -->
+            <TextView
+                fontPath="fonts/inter.otf"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/perm_notif_desc"
+                android:textColor="#80fbfbfb"
+                android:textSize="12sp"
+                tools:ignore="MissingPrefix" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btn_notif"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@drawable/rounded_rectangle_accent"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="@string/grant"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+    <!-- Audio permission -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/rounded_rectangle"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="12dp">
+
+            <!--suppress AndroidUnknownAttribute -->
+            <TextView
+                fontPath="fonts/interbold.otf"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/perm_audio_title"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                tools:ignore="MissingPrefix" />
+
+            <!--suppress AndroidUnknownAttribute -->
+            <TextView
+                fontPath="fonts/inter.otf"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/perm_audio_desc"
+                android:textColor="#80fbfbfb"
+                android:textSize="12sp"
+                tools:ignore="MissingPrefix" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btn_audio"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:background="@drawable/rounded_rectangle_accent"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="@string/grant"
+            android:textColor="@color/white"
+            android:textSize="13sp" />
+
+    </LinearLayout>
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="2" />
+
+    <!--suppress AndroidUnknownAttribute -->
+    <TextView
+        android:id="@+id/btn_continue"
+        fontPath="fonts/interbold.otf"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/rounded_rectangle_accent"
+        android:gravity="center"
+        android:text="@string/welcome_continue"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        tools:ignore="MissingPrefix" />
+
+    <Space
+        android:layout_width="0dp"
+        android:layout_height="32dp" />
+
+</LinearLayout>

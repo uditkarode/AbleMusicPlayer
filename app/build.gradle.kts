@@ -67,9 +67,7 @@ dependencies {
     implementation(libs.material.dialogs.input)
     implementation(libs.okhttp)
     implementation(libs.newpipeextractor)
-    //noinspection GradleDependency
-    implementation(libs.material.intro.screen)
-    implementation(libs.lottie)
+implementation(libs.lottie)
 //    implementation(libs.gradient)
     implementation(libs.gson)
     implementation(libs.material.dialogs.bottomsheets)

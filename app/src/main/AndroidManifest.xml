@@ -41,7 +41,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activities.Welcome" android:theme="@style/Theme.Intro" />
+        <activity android:name=".activities.Welcome" android:theme="@style/PlayerTheme" />
         <activity android:name=".activities.About" />
         <activity android:name=".activities.LocalPlaylist" />
         <activity android:name=".activities.AlbumPlaylist" />

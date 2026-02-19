@@ -31,8 +31,8 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.graphics.drawable.toBitmap
 import androidx.preference.PreferenceManager
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
@@ -225,21 +225,22 @@ class DownloadService : Service() {
 
             Log.d("DL>", "FFmpeg command: $command")
 
-            when (val rc = FFmpeg.execute(command)) {
-                Config.RETURN_CODE_SUCCESS -> {
+            val session = FFmpegKit.execute(command)
+            when {
+                ReturnCode.isSuccess(session.returnCode) -> {
                     tempFile.delete()
                     Log.d("DL>", "FFmpeg success, notifying Home")
                     mainHandler.post { onDownloadComplete?.invoke() }
                 }
 
-                Config.RETURN_CODE_CANCEL -> {
+                ReturnCode.isCancel(session.returnCode) -> {
                     Log.e("ERR>", "FFmpeg cancelled.")
                     showError("Download cancelled")
                     return
                 }
 
                 else -> {
-                    Log.e("ERR>", "FFmpeg failed with rc=$rc")
+                    Log.e("ERR>", "FFmpeg failed with rc=${session.returnCode}")
                     showError("Conversion failed")
                     return
                 }

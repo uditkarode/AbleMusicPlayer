@@ -29,7 +29,7 @@ import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
-import com.arthenica.mobileffmpeg.FFprobe
+import com.arthenica.ffmpegkit.FFprobeKit
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
@@ -432,7 +432,7 @@ object Shared {
                 ) {
                     continue
                 }
-                val mediaInfo = FFprobe.getMediaInformation(f.absolutePath)
+                val mediaInfo = FFprobeKit.getMediaInformation(f.absolutePath).mediaInformation
                 if (mediaInfo != null) {
                     val metadata = mediaInfo.tags
                     if (metadata.optString("title").isNotEmpty())

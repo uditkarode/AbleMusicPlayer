@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "io.github.uditkarode.able"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "ConcentricPuddles"
@@ -87,7 +87,8 @@ dependencies {
     implementation(libs.jetbrains.kotlinx.coroutines.android)
     implementation(libs.lifecycle.viewmodel.ktx)
     annotationProcessor(libs.glide.compiler)
-    implementation(files("../app/src/main/libs/mobile-ffmpeg.aar"))
+    implementation(files("src/main/libs/ffmpeg-kit.aar"))
+    implementation("com.arthenica:smart-exception-java:0.2.1")
 }
 
 //sourceSets {

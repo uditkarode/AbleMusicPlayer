@@ -49,8 +49,8 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.customListAdapter
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
@@ -393,14 +393,15 @@ class Player : MusicClientActivity() {
                             val ext = current.filePath.run {
                                 this.substring(this.lastIndexOf(".") + 1)
                             }
-                            when (val rc = FFmpeg.execute(
+                            val session = FFmpegKit.execute(
                                 "-i " +
                                         "\"${current.filePath}\" -y -c copy " +
                                         "-metadata title=\"$charSequence\" " +
                                         "-metadata artist=\"${current.artist}\"" +
                                         " \"${current.filePath}.new.$ext\""
-                            )) {
-                                Config.RETURN_CODE_SUCCESS -> {
+                            )
+                            when {
+                                ReturnCode.isSuccess(session.returnCode) -> {
                                     File(current.filePath).delete()
                                     File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
                                     if (current.isLocal) {
@@ -424,7 +425,7 @@ class Player : MusicClientActivity() {
                                     }
                                 }
 
-                                Config.RETURN_CODE_CANCEL -> {
+                                ReturnCode.isCancel(session.returnCode) -> {
                                     Log.e(
                                         "ERR>",
                                         "Command execution cancelled by user."
@@ -434,10 +435,7 @@ class Player : MusicClientActivity() {
                                 else -> {
                                     Log.e(
                                         "ERR>",
-                                        String.format(
-                                            "Command execution failed with rc=%d and the output below.",
-                                            rc
-                                        )
+                                        "Command execution failed with rc=${session.returnCode}"
                                     )
                                 }
                             }
@@ -467,14 +465,15 @@ class Player : MusicClientActivity() {
                             val ext = current.filePath.run {
                                 this.substring(this.lastIndexOf(".") + 1)
                             }
-                            when (val rc = FFmpeg.execute(
+                            val session = FFmpegKit.execute(
                                 "-i " +
                                         "\"${current.filePath}\" -c copy " +
                                         "-metadata title=\"${current.name}\" " +
                                         "-metadata artist=\"$charSequence\"" +
                                         " \"${current.filePath}.new.$ext\""
-                            )) {
-                                Config.RETURN_CODE_SUCCESS -> {
+                            )
+                            when {
+                                ReturnCode.isSuccess(session.returnCode) -> {
                                     File(current.filePath).delete()
                                     File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
                                     if (current.isLocal) {
@@ -498,7 +497,7 @@ class Player : MusicClientActivity() {
                                     }
                                 }
 
-                                Config.RETURN_CODE_CANCEL -> {
+                                ReturnCode.isCancel(session.returnCode) -> {
                                     Log.e(
                                         "ERR>",
                                         "Command execution cancelled by user."
@@ -508,10 +507,7 @@ class Player : MusicClientActivity() {
                                 else -> {
                                     Log.e(
                                         "ERR>",
-                                        String.format(
-                                            "Command execution failed with rc=%d and the output below.",
-                                            rc
-                                        )
+                                        "Command execution failed with rc=${session.returnCode}"
                                     )
                                 }
                             }

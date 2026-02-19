@@ -42,10 +42,8 @@ import androidx.preference.PreferenceManager
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import io.github.inflationx.calligraphy3.CalligraphyConfig
-import io.github.inflationx.calligraphy3.CalligraphyInterceptor
-import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
+import io.github.uditkarode.able.AbleApplication
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.ViewPagerAdapter
 import io.github.uditkarode.able.databinding.ActivityMainBinding
@@ -118,18 +116,6 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
         super.onCreate(savedInstanceState)
 
-        ViewPump.init(
-            ViewPump.builder()
-                .addInterceptor(
-                    CalligraphyInterceptor(
-                        CalligraphyConfig.Builder()
-                            .setDefaultFontPath("fonts/inter.otf")
-                            .setFontAttrId(R.attr.fontPath)
-                            .build()
-                    )
-                )
-                .build()
-        )
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -279,7 +265,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     }
 
     override fun attachBaseContext(newBase: Context?) {
-        super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!))
+        super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!, AbleApplication.viewPump))
     }
 
     override fun onPause() {

@@ -29,10 +29,8 @@ import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import io.github.inflationx.calligraphy3.CalligraphyConfig
-import io.github.inflationx.calligraphy3.CalligraphyInterceptor
-import io.github.inflationx.viewpump.ViewPump
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
+import io.github.uditkarode.able.AbleApplication
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.LocalPlaylistAdapter
 import io.github.uditkarode.able.databinding.LocalplaylistBinding
@@ -61,18 +59,6 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        ViewPump.init(
-            ViewPump.builder()
-                .addInterceptor(
-                    CalligraphyInterceptor(
-                        CalligraphyConfig.Builder()
-                            .setDefaultFontPath("fonts/inter.otf")
-                            .setFontAttrId(R.attr.fontPath)
-                            .build()
-                    )
-                )
-                .build()
-        )
         binding = LocalplaylistBinding.inflate(layoutInflater)
         setContentView(binding.root)
         binding.loadingView.progress = 0.3080229f
@@ -153,7 +139,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
     }
 
     override fun attachBaseContext(newBase: Context?) {
-        super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!))
+        super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!, AbleApplication.viewPump))
     }
 
     private fun bindEvent() {

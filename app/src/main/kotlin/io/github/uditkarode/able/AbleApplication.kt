@@ -19,11 +19,29 @@
 package io.github.uditkarode.able
 
 import android.app.Application
+import io.github.inflationx.calligraphy3.CalligraphyConfig
+import io.github.inflationx.calligraphy3.CalligraphyInterceptor
+import io.github.inflationx.viewpump.ViewPump
 import io.github.uditkarode.able.utils.Constants
 
 class AbleApplication : Application() {
+    companion object {
+        lateinit var viewPump: ViewPump
+            private set
+    }
+
     override fun onCreate() {
         super.onCreate()
         Constants.init(this)
+        viewPump = ViewPump.builder()
+            .addInterceptor(
+                CalligraphyInterceptor(
+                    CalligraphyConfig.Builder()
+                        .setDefaultFontPath("fonts/inter.otf")
+                        .setFontAttrId(R.attr.fontPath)
+                        .build()
+                )
+            )
+            .build()
     }
 }

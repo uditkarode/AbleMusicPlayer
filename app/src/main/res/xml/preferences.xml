@@ -32,7 +32,7 @@
         />
 
     <ListPreference
-        android:defaultValue="Stream"
+        android:defaultValue="Download"
         android:entries="@array/modes"
         android:entryValues="@array/modes"
         android:summary="@string/play_mode_sum"

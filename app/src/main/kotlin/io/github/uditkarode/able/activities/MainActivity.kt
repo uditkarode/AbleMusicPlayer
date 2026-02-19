@@ -298,7 +298,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
     override fun sendItem(song: Song, mode: String) {
         var currentMode = PreferenceManager.getDefaultSharedPreferences(this@MainActivity)
-            .getString("mode_key", MusicMode.stream)
+            .getString("mode_key", MusicMode.download)
         if (mode.isNotEmpty())
             currentMode = mode
 

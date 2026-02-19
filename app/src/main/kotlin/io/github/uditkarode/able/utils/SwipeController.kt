@@ -353,7 +353,7 @@ class SwipeController(
             "Delete"
         } else {
             val mode = PreferenceManager.getDefaultSharedPreferences(context!!)
-                .getString("mode_key", MusicMode.stream)
+                .getString("mode_key", MusicMode.download)
             val currentMode =
                 if (mode == MusicMode.download) MusicMode.stream else MusicMode.download
             buttonsActions = if (list == "Search")

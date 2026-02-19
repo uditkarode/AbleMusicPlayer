@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-    <ListPreference
-        android:defaultValue="mp3"
-        android:entries="@array/categories"
-        android:entryValues="@array/categories"
-        android:summary="@string/pref_fmt"
-        app:iconSpaceReserved="false"
-        android:title="@string/fmt"
-        android:key="format_key"
-        />
-
-    <ListPreference
+<ListPreference
         android:defaultValue="Youtube Music"
         android:entries="@array/sources"
         android:entryValues="@array/sources"

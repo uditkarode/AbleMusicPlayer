@@ -424,11 +424,11 @@ object Shared {
                  * normal YouTube videos always have an 11 alphanumerical character ID
                  * while YouTube Music songs have a 17 alphanumerical character long ID
                  * Hence, if the filename of a file is not 11 or 17 chars long, skip it.
-                 * also skip if the extension is tmp or not webm or mp3.
+                 * also skip if the extension is tmp or not mp3.
                  */
                 if (f.extension == "tmp" ||
                     (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
-                    || (f.extension != "webm" && f.extension != "mp3")
+                    || f.extension != "mp3"
                 ) {
                     continue
                 }

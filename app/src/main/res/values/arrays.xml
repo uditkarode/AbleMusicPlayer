@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="categories">
-        <item>webm</item>
-        <item>mp3</item>
-    </string-array>
-
-    <string-array name="sources">
+<string-array name="sources">
         <item>Youtube Music</item>
         <item>Youtube (Videos)</item>
     </string-array>

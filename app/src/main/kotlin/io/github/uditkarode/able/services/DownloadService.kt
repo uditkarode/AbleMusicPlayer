@@ -30,14 +30,12 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.graphics.drawable.toBitmap
-import androidx.preference.PreferenceManager
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.model.DownloadableSong
-import io.github.uditkarode.able.model.Format
 import io.github.uditkarode.able.utils.ChunkedDownloader
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
@@ -205,23 +203,15 @@ class DownloadService : Service() {
             builder.setProgress(100, 100, true)
             updateNotification()
 
-            val format =
-                if (PreferenceManager.getDefaultSharedPreferences(this)
-                        .getString("format_key", "webm") == "mp3"
-                ) Format.MODE_MP3
-                else Format.MODE_WEBM
-
             var command = "-i " +
                     "\"${tempFile.absolutePath}\" -c copy " +
                     "-metadata title=\"${song.name}\" " +
                     "-metadata artist=\"${song.artist}\" -y "
 
             val mp3Bitrate = maxOf(bitrate, 128)
-            if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
-                command += "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 "
+            command += "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 "
 
-            command += "\"${Constants.ableSongDir.absolutePath}/$id."
-            command += if (format == Format.MODE_MP3) "mp3\"" else "$ext\""
+            command += "\"${Constants.ableSongDir.absolutePath}/$id.mp3\""
 
             Log.d("DL>", "FFmpeg command: $command")
 

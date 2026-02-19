@@ -23,19 +23,16 @@ package io.github.uditkarode.able.utils
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.graphics.drawable.toBitmap
-import androidx.preference.PreferenceManager
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.model.Format
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import okhttp3.OkHttpClient
@@ -90,10 +87,6 @@ object SpotifyImport {
             if (!Constants.ableSongDir.exists()) Constants.ableSongDir.mkdirs()
             if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
 
-            val format = if (PreferenceManager.getDefaultSharedPreferences(context)
-                    .getString("format_key", "webm") == "mp3"
-            ) Format.MODE_MP3 else Format.MODE_WEBM
-
             for (i in tracks.indices) {
                 if (!isImporting) return
 
@@ -107,7 +100,7 @@ object SpotifyImport {
                 try {
                     val song = downloadFromYouTubeMusic(
                         "${track.title} - ${track.artist}",
-                        builder, context, i, totalTracks, format
+                        builder, context, i, totalTracks
                     )
                     if (song != null) {
                         songArr.add(song)
@@ -143,8 +136,7 @@ object SpotifyImport {
         builder: Notification.Builder,
         context: Context,
         trackIndex: Int,
-        totalTracks: Int,
-        format: Format
+        totalTracks: Int
     ): Song? {
         // Search YouTube Music
         val extractor = ServiceList.YouTube.getSearchExtractor(
@@ -202,17 +194,13 @@ object SpotifyImport {
         // FFmpeg transcode + metadata
         updateNotification(builder, context, displayName, "${trackIndex + 1} of $totalTracks — saving", totalTracks, trackIndex + 1, true)
 
-        var command = "-i \"${tempFile.absolutePath}\" -c copy " +
-                "-metadata title=\"${searchResult.name}\" " +
-                "-metadata artist=\"${searchResult.uploaderName}\" -y "
-
         val mp3Bitrate = maxOf(bitrate, 128)
-        if (format == Format.MODE_MP3 || Build.VERSION.SDK_INT <= Build.VERSION_CODES.M)
-            command += "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 "
-
-        val finalExt = if (format == Format.MODE_MP3) "mp3" else ext
-        val finalFile = File(Constants.ableSongDir, "$songId.$finalExt")
-        command += "\"${finalFile.absolutePath}\""
+        val finalFile = File(Constants.ableSongDir, "$songId.mp3")
+        val command = "-i \"${tempFile.absolutePath}\" -c copy " +
+                "-metadata title=\"${searchResult.name}\" " +
+                "-metadata artist=\"${searchResult.uploaderName}\" -y " +
+                "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 " +
+                "\"${finalFile.absolutePath}\""
 
         val session = FFmpegKit.execute(command)
         tempFile.delete()

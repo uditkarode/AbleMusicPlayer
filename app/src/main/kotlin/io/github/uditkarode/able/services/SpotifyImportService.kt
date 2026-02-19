@@ -27,13 +27,10 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import io.github.uditkarode.able.R
-import io.github.uditkarode.able.model.song.Song
-import io.github.uditkarode.able.model.song.SongState
-import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.SpotifyImport
 import kotlin.concurrent.thread
 
-class SpotifyImportService : Service(), MusicService.MusicClient {
+class SpotifyImportService : Service() {
     companion object {
         private const val NOTIF_ID = 3
         private const val CHANNEL_ID = "AbleSpotifyImport"
@@ -41,14 +38,13 @@ class SpotifyImportService : Service(), MusicService.MusicClient {
 
     private lateinit var builder: Notification.Builder
     private lateinit var notificationManager: NotificationManager
-    @Volatile private var cancelledByUser = false
+    @Volatile private var importThreadFinished = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        MusicService.registerClient(this)
         createNotificationChannel()
         startForeground(NOTIF_ID, builder.build())
     }
@@ -63,7 +59,9 @@ class SpotifyImportService : Service(), MusicService.MusicClient {
 
         thread {
             SpotifyImport.importList(playId, builder, this)
+            importThreadFinished = true
             // Detach notification so it stays visible after service stops
+            // (error messages persist, success already cancelled the notification)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_DETACH)
             }
@@ -75,9 +73,10 @@ class SpotifyImportService : Service(), MusicService.MusicClient {
 
     override fun onDestroy() {
         SpotifyImport.isImporting = false
-        MusicService.unregisterClient(this)
-        // Only cancel notification if user explicitly cancelled the import
-        if (cancelledByUser) {
+        // Only cancel notification if user explicitly cancelled (service killed
+        // before the import thread finished). If the thread finished naturally,
+        // error notifications should persist and success already cancelled it.
+        if (!importThreadFinished) {
             notificationManager.cancel(NOTIF_ID)
         }
         super.onDestroy()
@@ -115,20 +114,4 @@ class SpotifyImportService : Service(), MusicService.MusicClient {
         }
     }
 
-    override fun playStateChanged(state: SongState) {}
-    override fun songChanged() {}
-    override fun durationChanged(duration: Int) {}
-    override fun isExiting() {}
-    override fun queueChanged(arrayList: ArrayList<Song>) {}
-    override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {}
-    override fun indexChanged(index: Int) {}
-    override fun isLoading(doLoad: Boolean) {}
-    override fun spotifyImportChange(starting: Boolean) {
-        if (!starting) {
-            cancelledByUser = true
-            SpotifyImport.isImporting = false
-            stopSelf()
-        }
-    }
-    override fun serviceStarted() {}
 }

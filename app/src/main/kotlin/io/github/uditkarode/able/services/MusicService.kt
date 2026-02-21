@@ -86,6 +86,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     }
 
     companion object {
+        @Volatile var isServiceRunning = false
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
         val mediaPlayer = MediaPlayer()
@@ -151,6 +152,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onCreate() {
         super.onCreate()
+        isServiceRunning = true
         registerReceiver(
             receiver,
             IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
@@ -252,6 +254,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     }
 
     override fun onDestroy() {
+        isServiceRunning = false
         super.onDestroy()
         coroutineContext.cancelChildren()
         unregisterReceiver(receiver)

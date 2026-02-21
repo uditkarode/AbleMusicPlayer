@@ -401,6 +401,9 @@ object Shared {
      * Checks if the service provided is running.
      */
     fun serviceRunning(serviceClass: Class<*>, context: Context): Boolean {
+        if (serviceClass == io.github.uditkarode.able.services.MusicService::class.java) {
+            return io.github.uditkarode.able.services.MusicService.isServiceRunning
+        }
         val manager =
             context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         @Suppress("DEPRECATION")

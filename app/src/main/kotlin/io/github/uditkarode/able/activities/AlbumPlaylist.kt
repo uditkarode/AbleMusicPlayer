@@ -36,10 +36,10 @@ import io.github.uditkarode.able.AbleApplication
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.PlaybumAdapter
 import io.github.uditkarode.able.databinding.AlbumplaylistBinding
-import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -129,12 +129,21 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
             }
         }
 
+        if (!Shared.isInternetConnected(this@AlbumPlaylist)) {
+            Toast.makeText(this@AlbumPlaylist, "No Internet Connection", Toast.LENGTH_LONG).show()
+            binding.loadingView.visibility = View.GONE
+            binding.loadingView.pauseAnimation()
+            return
+        }
+
         launch(Dispatchers.IO) {
+            try {
             val plExtractor = YouTube.getPlaylistExtractor(link)
             plExtractor.fetchPage()
             var thumbnailUrl: String = ""
             for (song in plExtractor.initialPage.items) {
-                val ex = song as StreamInfoItem
+                if (song !is StreamInfoItem) continue
+                val ex = song
                 for (thumbnail in song.thumbnails) {
                     if (thumbnail.url.contains("ytimg")) {
                         val songId = Shared.getIdFromLink(ex.url)
@@ -147,7 +156,7 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 if (thumbnailUrl.isBlank() && song.thumbnails.isNotEmpty()) {
                     thumbnailUrl = song.thumbnails[0].url
                 }
-                Search.resultArray.add(
+                resultArray.add(
                     Song(
                         name = ex.name,
                         artist = ex.uploaderName,
@@ -168,6 +177,14 @@ class AlbumPlaylist : AppCompatActivity(), CoroutineScope {
                 binding.srPr.alpha = 0f
                 binding.srPr.visibility = View.VISIBLE
                 binding.srPr.animate().alpha(1f).duration = 200
+            }
+            } catch (e: Exception) {
+                Log.e("ERR>", "Failed to load playlist: $e")
+                launch(Dispatchers.Main) {
+                    binding.loadingView.visibility = View.GONE
+                    binding.loadingView.pauseAnimation()
+                    Toast.makeText(this@AlbumPlaylist, "Failed to load playlist", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

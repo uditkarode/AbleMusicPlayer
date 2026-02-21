@@ -88,12 +88,13 @@ class Playlists : Fragment(), MusicService.MusicClient {
                             textInp.toString().replace("https://", "")
                                 .split("/").toMutableList()
                         var isValid = true
-                        if (validUrl.size <= 2 || validUrl[0] != "open.spotify.com" || validUrl[1] != "playlist") {
+                        val playlistIndex = validUrl.indexOf("playlist")
+                        if (validUrl.isEmpty() || validUrl[0] != "open.spotify.com"
+                            || playlistIndex == -1 || playlistIndex + 1 >= validUrl.size) {
                             isValid = false
-                        } else if (validUrl[2].contains("?")) {
-                            inputId = validUrl[2].split("?")[0]
                         } else {
-                            inputId = validUrl[2]
+                            val rawId = validUrl[playlistIndex + 1]
+                            inputId = if (rawId.contains("?")) rawId.split("?")[0] else rawId
                         }
 
                         inputField.error = if (isValid) null else getString(R.string.spot_invalid)
@@ -101,6 +102,12 @@ class Playlists : Fragment(), MusicService.MusicClient {
                     }
                     getInputLayout().boxBackgroundColor = Color.parseColor("#212121")
                     positiveButton(R.string.pos) {
+                        if (!Shared.isInternetConnected(requireContext())) {
+                            Toast.makeText(
+                                requireContext(), "No Internet Connection", Toast.LENGTH_LONG
+                            ).show()
+                            return@positiveButton
+                        }
                         val intent = Intent(requireContext(), SpotifyImportService::class.java)
                         intent.putExtra("inputId", inputId)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

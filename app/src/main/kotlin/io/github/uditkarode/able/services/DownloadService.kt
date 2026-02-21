@@ -51,6 +51,7 @@ class DownloadService : Service() {
         private const val DL_CHANNEL_ID = "AbleMusicDownloadProgress"
         private val activeLinks = mutableSetOf<String>()
         var onDownloadComplete: (() -> Unit)? = null
+        @Volatile var downloadCompletedSinceLastCheck = false
 
         fun isAlreadyQueued(youtubeLink: String): Boolean {
             synchronized(activeLinks) {
@@ -220,6 +221,7 @@ class DownloadService : Service() {
                 ReturnCode.isSuccess(session.returnCode) -> {
                     tempFile.delete()
                     Log.d("DL>", "FFmpeg success, notifying Home")
+                    downloadCompletedSinceLastCheck = true
                     mainHandler.post { onDownloadComplete?.invoke() }
                 }
 

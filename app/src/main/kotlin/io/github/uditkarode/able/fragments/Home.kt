@@ -169,6 +169,10 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         super.onResume()
         MusicService.registerClient(this)
         DownloadService.onDownloadComplete = { updateSongList() }
+        if (DownloadService.downloadCompletedSinceLastCheck) {
+            DownloadService.downloadCompletedSinceLastCheck = false
+            updateSongList()
+        }
     }
 
     override fun onPause() {
@@ -288,14 +292,18 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     }
 
     fun updateSongList() {
-        songList = Shared.getSongList(Constants.ableSongDir)
-        if (context != null) songList.addAll(Shared.getLocalSongs(context as Context))
-        songList = ArrayList(songList.sortedBy {
-            it.name.uppercase(Locale.getDefault())
-        })
-        launch(Dispatchers.Main) {
-            songAdapter?.update(songList)
-            updateEmptyState()
+        launch(Dispatchers.IO) {
+            val newList = Shared.getSongList(Constants.ableSongDir)
+            val ctx = context
+            if (ctx != null) newList.addAll(Shared.getLocalSongs(ctx))
+            val sorted = ArrayList(newList.sortedBy {
+                it.name.uppercase(Locale.getDefault())
+            })
+            launch(Dispatchers.Main) {
+                songList = sorted
+                songAdapter?.update(songList)
+                updateEmptyState()
+            }
         }
     }
 

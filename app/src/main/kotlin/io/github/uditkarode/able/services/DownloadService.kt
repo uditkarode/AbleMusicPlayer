@@ -39,6 +39,8 @@ import io.github.uditkarode.able.model.DownloadableSong
 import io.github.uditkarode.able.utils.ChunkedDownloader
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.io.IOException
@@ -74,6 +76,26 @@ class DownloadService : Service() {
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
         startForeground(NOTIF_ID, builder.build())
+        restoreQueue()
+        if (queue.isNotEmpty() && !workerRunning) {
+            workerRunning = true
+            hadError = false
+            thread {
+                processQueue()
+                workerRunning = false
+                if (hadError) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        stopForeground(STOP_FOREGROUND_DETACH)
+                    }
+                }
+                stopSelf()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        persistQueue()
+        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -95,6 +117,7 @@ class DownloadService : Service() {
         }
 
         queue.add(dlSong)
+        persistQueue()
 
         val notifName =
             if (dlSong.name.length > 25) dlSong.name.substring(0, 25) + "..." else dlSong.name
@@ -130,6 +153,7 @@ class DownloadService : Service() {
             synchronized(activeLinks) {
                 activeLinks.remove(song.youtubeLink)
             }
+            persistQueue()
         }
     }
 
@@ -274,6 +298,39 @@ class DownloadService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_DETACH)
             }
+        }
+    }
+
+    private fun persistQueue() {
+        try {
+            val prefs = getSharedPreferences("download_queue", Context.MODE_PRIVATE)
+            val gson = Gson()
+            val pending = queue.toList()
+            prefs.edit()
+                .putString("pending", gson.toJson(pending))
+                .apply()
+        } catch (e: Exception) {
+            Log.e("ERR>", "Failed to persist queue: $e")
+        }
+    }
+
+    private fun restoreQueue() {
+        try {
+            val prefs = getSharedPreferences("download_queue", Context.MODE_PRIVATE)
+            val json = prefs.getString("pending", null) ?: return
+            val gson = Gson()
+            val type = object : TypeToken<List<DownloadableSong>>() {}.type
+            val pending: List<DownloadableSong> = gson.fromJson(json, type) ?: return
+            for (song in pending) {
+                synchronized(activeLinks) {
+                    if (activeLinks.add(song.youtubeLink)) {
+                        queue.add(song)
+                    }
+                }
+            }
+            prefs.edit().remove("pending").apply()
+        } catch (e: Exception) {
+            Log.e("ERR>", "Failed to restore queue: $e")
         }
     }
 

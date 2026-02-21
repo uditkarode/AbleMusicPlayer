@@ -201,22 +201,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         })
 
-        mediaPlayer.setOnErrorListener { _, what, extra ->
-            Log.e("ERR>", "MediaPlayer error: what=$what extra=$extra")
-            isLoading = false
-            launch(Dispatchers.Default) {
-                registeredClients.forEach { it.isLoading(false) }
-            }
-            previousIndex = currentIndex
-            nextSong()
-            true
-        }
-
-        mediaPlayer.setOnCompletionListener {
-            previousIndex = currentIndex
-            nextSong()
-        }
-
         if (builder == null) {
             builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Notification.Builder(this, "10002")
@@ -476,6 +460,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     private fun songChanged() {
         if (!isInstantiated) isInstantiated = true
         else {
+            // Nullify listeners BEFORE stop/reset to prevent spurious
+            // onCompletion/onError callbacks that cause song looping
+            mediaPlayer.setOnCompletionListener(null)
+            mediaPlayer.setOnErrorListener(null)
             if (mediaPlayer.isPlaying) mediaPlayer.stop()
             mediaPlayer.reset()
         }
@@ -483,6 +471,23 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         isLoading = true
         launch(Dispatchers.Default) {
             registeredClients.forEach { it.isLoading(true) }
+        }
+
+        // Set up all listeners fresh for this song change
+        mediaPlayer.setOnErrorListener { _, what, extra ->
+            Log.e("ERR>", "MediaPlayer error: what=$what extra=$extra")
+            isLoading = false
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.isLoading(false) }
+            }
+            previousIndex = currentIndex
+            nextSong()
+            true
+        }
+
+        mediaPlayer.setOnCompletionListener {
+            previousIndex = currentIndex
+            nextSong()
         }
 
         mediaPlayer.setOnPreparedListener {

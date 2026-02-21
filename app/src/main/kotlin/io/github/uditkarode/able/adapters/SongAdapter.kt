@@ -140,52 +140,47 @@ class SongAdapter(
         }
 
         holder.itemView.setOnClickListener {
+            if (current.placeholder) return@setOnClickListener
+
+            val clickPosition = holder.bindingAdapterPosition
+            if (clickPosition == RecyclerView.NO_POSITION) return@setOnClickListener
+
             var freshStart = false
-            if (!current.placeholder) {
-                if (!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        holder.itemView.context.startForegroundService(
-                            Intent(
-                                holder.itemView.context,
-                                MusicService::class.java
-                            )
-                        )
-                    } else {
-                        holder.itemView.context.startService(
-                            Intent(
-                                holder.itemView.context,
-                                MusicService::class.java
-                            )
-                        )
-                    }
-                    wr?.get()!!.bindEvent()
-                    freshStart = true
+            if (!Shared.serviceRunning(MusicService::class.java, holder.itemView.context)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    holder.itemView.context.startForegroundService(
+                        Intent(holder.itemView.context, MusicService::class.java)
+                    )
+                } else {
+                    holder.itemView.context.startService(
+                        Intent(holder.itemView.context, MusicService::class.java)
+                    )
+                }
+                wr?.get()?.bindEvent()
+                freshStart = true
+            }
+
+            launch(Dispatchers.Main) {
+                var mService: MutableStateFlow<MusicService?> =
+                    MutableStateFlow(mServiceFromPlayer)
+                if (wr?.get() != null)
+                    mService = wr.get()!!.mService
+
+                if (mService.value == null) {
+                    mService.first { it != null }
                 }
 
-                launch(Dispatchers.Main) {
-                    var mService: MutableStateFlow<MusicService?> =
-                        MutableStateFlow(mServiceFromPlayer)
-                    if (wr?.get() != null)
-                        mService = wr.get()!!.mService
-
-                    if (mService.value == null) {
-                        mService.first { it != null }
-                    }
-
-                    if (currentIndex != position) {
-                        currentIndex = position
-                        if (onShuffle) {
-                            mService.value?.addToQueue(current)
-                            mService.value?.setNextPrevious(next = true)
-                        } else {
-                            mService.value?.setQueue(songList)
-                            mService.value?.setIndex(position)
-                        }
-
-                        if (freshStart)
-                            MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
-                    }
+                if (onShuffle) {
+                    mService.value?.addToQueue(songList[clickPosition])
+                    mService.value?.setNextPrevious(next = true)
+                } else {
+                    // Pass a COPY to prevent shared mutation between adapter and service
+                    mService.value?.setQueue(ArrayList(songList))
+                    mService.value?.setIndex(clickPosition)
                 }
+
+                if (freshStart)
+                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
             }
         }
 

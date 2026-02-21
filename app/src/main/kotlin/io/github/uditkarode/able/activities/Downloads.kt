@@ -110,13 +110,12 @@ class Downloads : AppCompatActivity() {
             binding.spotifyProgressText.text =
                 "Track ${SpotifyImport.currentTrackIndex} of ${SpotifyImport.totalTracks} — ${SpotifyImport.currentTrackStatus}"
 
-            val progress = SpotifyImport.currentTrackStatus.removeSuffix("%").toIntOrNull()
-            if (progress != null) {
-                binding.spotifyProgressBar.isIndeterminate = false
-                binding.spotifyProgressBar.progress = progress
-            } else {
-                binding.spotifyProgressBar.isIndeterminate = true
-            }
+            val total = SpotifyImport.totalTracks
+            val songPercent = SpotifyImport.currentTrackStatus.removeSuffix("%").toIntOrNull()
+            binding.spotifyProgressBar.isIndeterminate = false
+            binding.spotifyProgressBar.max = total * 100
+            binding.spotifyProgressBar.progress =
+                (SpotifyImport.currentTrackIndex - 1) * 100 + (songPercent ?: 0)
         } else {
             binding.spotifyIdle.visibility = View.VISIBLE
             binding.spotifyActive.visibility = View.GONE

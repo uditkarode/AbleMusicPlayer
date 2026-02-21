@@ -29,7 +29,6 @@ import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
-import com.arthenica.ffmpegkit.FFprobeKit
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
@@ -417,44 +416,45 @@ object Shared {
      * @return an ArrayList of Song objects containing all the Songs that the musicFolder
      * contains.
      */
-    fun getSongList(musicFolder: File): ArrayList<Song> {
-        val songs: ArrayList<Song> = ArrayList()
-        var name = "???"
-        var artist = "???"
-        for (f in musicFolder.listFiles() ?: arrayOf()) {
-            if (!f.isDirectory) {
-                /**
-                 * normal YouTube videos always have an 11 alphanumerical character ID
-                 * while YouTube Music songs have a 17 alphanumerical character long ID
-                 * Hence, if the filename of a file is not 11 or 17 chars long, skip it.
-                 * also skip if the extension is tmp or not mp3.
-                 */
-                if (f.extension != "mp3" || f.name.contains(".tmp")) {
-                    continue
-                }
-                val mediaInfo = FFprobeKit.getMediaInformation(f.absolutePath).mediaInformation
-                if (mediaInfo != null) {
-                    val metadata = mediaInfo.tags
-                    if (metadata.optString("title").isNotEmpty())
-                        name = metadata.optString("title")
-                    if (metadata.optString("ARTIST").isEmpty())
-                        artist = metadata.optString("artist")
-                    else if (metadata.optString("artist").isEmpty())
-                        artist = metadata.optString("ARTIST")
-                    if (name != "???") {
-                        songs.add(
-                            Song(
-                                name,
-                                artist,
-                                filePath = f.path
-                            )
-                        )
-                    }
+    @SuppressLint("InlinedApi")
+    fun getSongList(musicFolder: File, context: Context): ArrayList<Song> {
+        val songs = ArrayList<Song>()
+        val folderPath = musicFolder.absolutePath
+        val indexedPaths = mutableSetOf<String>()
+
+        // Query MediaStore for songs already scanned in this folder (instant)
+        @Suppress("DEPRECATION") val projection = arrayOf(
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.DATA
+        )
+        val selection = "${MediaStore.Audio.Media.DATA} LIKE ?"
+        val selectionArgs = arrayOf("$folderPath/%")
+        val cursor = context.contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection, selection, selectionArgs, null
+        )
+        cursor?.use {
+            while (it.moveToNext()) {
+                val path = it.getString(2)
+                if (path.endsWith(".mp3") && !path.contains(".tmp")) {
+                    songs.add(Song(
+                        name = it.getString(0) ?: File(path).nameWithoutExtension,
+                        artist = it.getString(1) ?: "",
+                        filePath = path
+                    ))
+                    indexedPaths.add(path)
                 }
             }
         }
 
-        //if(songs.isNotEmpty()) songs = ArrayList(songs.sortedBy { it.name })
+        // Pick up any files not yet in MediaStore (use filename as name)
+        for (f in musicFolder.listFiles() ?: arrayOf()) {
+            if (!f.isDirectory && f.extension == "mp3" && !f.name.contains(".tmp")
+                && f.absolutePath !in indexedPaths) {
+                songs.add(Song(name = f.nameWithoutExtension, artist = "", filePath = f.absolutePath))
+            }
+        }
 
         return songs
     }
@@ -462,6 +462,7 @@ object Shared {
     @SuppressLint("InlinedApi")
     fun getLocalSongs(context: Context): ArrayList<Song> {
         val songs: ArrayList<Song> = ArrayList()
+        val ablePath = Constants.ableSongDir.absolutePath
 
         val selection = MediaStore.Audio.Media.IS_MUSIC + " != 0"
         val contentResolver: ContentResolver = context.contentResolver
@@ -483,6 +484,7 @@ object Shared {
             if (songCursor != null && songCursor.moveToFirst()) {
                 do {
                     val path: String = songCursor.getString(2)
+                    if (path.startsWith(ablePath)) continue
                     if (!path.contains("webm") && !path.contains("WhatsApp")) {
                         if (path.contains("mp3") || path.contains("m4a")) {
                             songs.add(

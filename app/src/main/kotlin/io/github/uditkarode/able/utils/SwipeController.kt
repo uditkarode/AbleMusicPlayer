@@ -27,17 +27,14 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.MusicMode
-import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
-import java.util.*
 
 class SwipeControllerActions(
     private var mode: String,
     private var mService: MutableStateFlow<MusicService?>?
 ) {
-    private var songList = ArrayList<Song>()
     private lateinit var itemPressed: Search.SongCallback
 
     private fun initialiseSongCallback(context: Context?) {
@@ -48,18 +45,10 @@ class SwipeControllerActions(
         }
     }
 
-    private fun getSongList(context: Context?) {
-        songList = Shared.getSongList(Constants.ableSongDir)
-        songList.addAll(Shared.getLocalSongs(context!!))
-        songList = ArrayList(songList.sortedBy {
-            it.name.uppercase(Locale.getDefault())
-        })
-    }
-
     fun onLeftClicked(context: Context?, position: Int) {
         when {
             mode.isEmpty() -> {
-                getSongList(context!!)
+                val current = Home.songAdapter?.getSong(position) ?: return
                 val playlists = Shared.getPlaylists()
                 val names = playlists.run {
                     ArrayList<String>().also {
@@ -72,9 +61,8 @@ class SwipeControllerActions(
                     }
                 }
 
-                names.add(0, context.getString(R.string.pq))
+                names.add(0, context!!.getString(R.string.pq))
                 names.add(1, context.getString(R.string.crp))
-                val current = songList[position]
                 MaterialDialog(context).show {
                     listItems(items = names) { _, index, _ ->
                         when (index) {
@@ -111,12 +99,12 @@ class SwipeControllerActions(
     fun onRightClicked(context: Context?, position: Int) {
         when {
             mode.isEmpty() -> {
-                getSongList(context!!)
-                val current = songList[position]
-                MaterialDialog(context).show {
-                    title(text = context.getString(R.string.confirmation))
+                val ctx = context ?: return
+                val current = Home.songAdapter?.getSong(position) ?: return
+                MaterialDialog(ctx).show {
+                    title(text = ctx.getString(R.string.confirmation))
                     message(
-                        text = context.getString(R.string.res_confirm_txt)
+                        text = ctx.getString(R.string.res_confirm_txt)
                             .format(current.name, current.filePath)
                     )
                     positiveButton(text = "Delete") {
@@ -136,14 +124,13 @@ class SwipeControllerActions(
                                 e.printStackTrace()
                             }
                         }
-                        songList.removeAt(position)
-                        Home.songAdapter?.update(songList)
+                        Home.songAdapter?.removeAt(position)
                         MediaScannerConnection.scanFile(
-                            context,
+                            ctx,
                             arrayOf(current.filePath), null, null
                         )
                     }
-                    negativeButton(text = context.getString(R.string.cancel))
+                    negativeButton(text = ctx.getString(R.string.cancel))
                 }
             }
 

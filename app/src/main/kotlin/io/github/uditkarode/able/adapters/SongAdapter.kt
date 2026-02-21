@@ -305,6 +305,14 @@ class SongAdapter(
         fun getContext(): Context = itemView.context
     }
 
+    fun getSong(position: Int): Song = songList[position]
+
+    fun removeAt(position: Int) {
+        songList.removeAt(position)
+        notifyItemRemoved(position)
+        notifyItemRangeChanged(position, songList.size - position)
+    }
+
     fun update(newSongList: ArrayList<Song>) {
         val diffResult = DiffUtil.calculateDiff(SongDiffCallback(this.songList, newSongList))
         this.songList = newSongList

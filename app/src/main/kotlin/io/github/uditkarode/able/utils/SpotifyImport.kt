@@ -168,6 +168,21 @@ object SpotifyImport {
         val searchResult = items[0] as StreamInfoItem
         val thumbnailUrl = Shared.getBestThumbnail(searchResult.thumbnails, searchResult.url)
         val songId = Shared.getIdFromLink(searchResult.url)
+
+        // Skip if already downloaded
+        val existingFile = File(Constants.ableSongDir, "$songId.mp3")
+        if (existingFile.exists()) {
+            Log.i(TAG, "Skipping already downloaded: $songId")
+            currentTrackStatus = "Already exists"
+            return Song(
+                name = searchResult.name,
+                artist = searchResult.uploaderName,
+                youtubeLink = searchResult.url,
+                filePath = existingFile.absolutePath,
+                ytmThumbnail = thumbnailUrl
+            )
+        }
+
         val displayName = searchResult.name.run {
             if (length > 30) substring(0, 30) + "..." else this
         }
@@ -289,12 +304,23 @@ object SpotifyImport {
                 }
             }
 
-            val entity = pageProps
-                .getJSONObject("state")
+            val state = pageProps.getJSONObject("state")
+            val entity = state
                 .getJSONObject("data")
                 .getJSONObject("entity")
 
             val playlistName = entity.getString("name")
+
+            // Try to get all tracks via Spotify Web API using the embed's access token
+            val accessToken = state.optJSONObject("session")?.optString("accessToken", "")
+            if (!accessToken.isNullOrBlank()) {
+                val apiTracks = fetchAllTracksFromApi(playId, accessToken)
+                if (apiTracks != null && apiTracks.isNotEmpty()) {
+                    return EmbedResult.Success(playlistName, apiTracks)
+                }
+            }
+
+            // Fallback: use the embedded trackList (limited to ~100)
             val trackList = entity.getJSONArray("trackList")
             val tracks = mutableListOf<SpotifyTrack>()
 
@@ -314,6 +340,52 @@ object SpotifyImport {
             Log.e(TAG, "Failed to fetch playlist from embed page", e)
             EmbedResult.Error("Failed to load playlist")
         }
+    }
+
+    private fun fetchAllTracksFromApi(playId: String, accessToken: String): List<SpotifyTrack>? {
+        val tracks = mutableListOf<SpotifyTrack>()
+        var offset = 0
+        val limit = 100
+
+        try {
+            while (true) {
+                val request = Request.Builder()
+                    .url("https://api.spotify.com/v1/playlists/$playId/tracks?limit=$limit&offset=$offset&fields=items(track(name,artists(name))),total")
+                    .addHeader("Authorization", "Bearer $accessToken")
+                    .build()
+                val response = okClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    Log.e(TAG, "Spotify API returned ${response.code}")
+                    return null
+                }
+
+                val body = JSONObject(response.body.string())
+                val items = body.getJSONArray("items")
+                val total = body.getInt("total")
+
+                for (i in 0 until items.length()) {
+                    val item = items.getJSONObject(i)
+                    val track = item.optJSONObject("track") ?: continue
+                    val title = track.optString("name", "")
+                    if (title.isBlank()) continue
+                    val artists = track.optJSONArray("artists")
+                    val artist = if (artists != null && artists.length() > 0) {
+                        (0 until artists.length()).joinToString(", ") {
+                            artists.getJSONObject(it).optString("name", "")
+                        }
+                    } else ""
+                    tracks.add(SpotifyTrack(title, artist))
+                }
+
+                offset += limit
+                if (offset >= total) break
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch tracks from Spotify API", e)
+            return null
+        }
+
+        return tracks
     }
 
     private fun showFailureNotification(

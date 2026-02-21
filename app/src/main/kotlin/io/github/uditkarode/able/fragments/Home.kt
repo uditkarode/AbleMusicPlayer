@@ -145,11 +145,11 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         })
 
         if (songList.isEmpty()) {
+            val ctx = requireContext()
             launch(Dispatchers.IO) {
-                val loadedSongs = Shared.getSongList(Constants.ableSongDir)
+                val loadedSongs = Shared.getSongList(Constants.ableSongDir, ctx)
                 if (isAdded) {
-                    val ctx = context
-                    if (ctx != null && androidx.core.content.ContextCompat.checkSelfPermission(
+                    if (androidx.core.content.ContextCompat.checkSelfPermission(
                             ctx, android.Manifest.permission.READ_MEDIA_AUDIO
                         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     ) {
@@ -193,17 +193,15 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     }
 
     fun bindEvent() {
-        if (Shared.serviceRunning(MusicService::class.java, requireContext())) {
-            try {
-                requireContext().bindService(
-                    Intent(
-                        requireContext(),
-                        MusicService::class.java
-                    ), serviceConn, 0
-                )
-            } catch (e: Exception) {
-                Log.e("ERR>", e.toString())
-            }
+        try {
+            requireContext().bindService(
+                Intent(
+                    requireContext(),
+                    MusicService::class.java
+                ), serviceConn, 0
+            )
+        } catch (e: Exception) {
+            Log.e("ERR>", e.toString())
         }
     }
 
@@ -303,10 +301,10 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
     }
 
     fun updateSongList() {
+        val ctx = context ?: return
         launch(Dispatchers.IO) {
-            val newList = Shared.getSongList(Constants.ableSongDir)
-            val ctx = context
-            if (ctx != null) newList.addAll(Shared.getLocalSongs(ctx))
+            val newList = Shared.getSongList(Constants.ableSongDir, ctx)
+            newList.addAll(Shared.getLocalSongs(ctx))
             val sorted = ArrayList(newList.sortedBy {
                 it.name.uppercase(Locale.getDefault())
             })

@@ -32,6 +32,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.graphics.drawable.toDrawable
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.input.getInputLayout
@@ -277,7 +278,8 @@ class SongAdapter(
                         context,
                         arrayOf(current.filePath), null, null
                     )
-                    notifyDataSetChanged()
+                    notifyItemRemoved(position)
+                    notifyItemRangeChanged(position, songList.size - position)
                 }
                 negativeButton(text = holder.itemView.context.getString(R.string.cancel))
             }
@@ -303,10 +305,31 @@ class SongAdapter(
         fun getContext(): Context = itemView.context
     }
 
-    fun update(songList: ArrayList<Song>) {
-        this.songList = songList
-        originalLength = songList.size
-        notifyDataSetChanged()
+    fun update(newSongList: ArrayList<Song>) {
+        val diffResult = DiffUtil.calculateDiff(SongDiffCallback(this.songList, newSongList))
+        this.songList = newSongList
+        originalLength = newSongList.size
+        diffResult.dispatchUpdatesTo(this)
+    }
+
+    private class SongDiffCallback(
+        private val oldList: List<Song>,
+        private val newList: List<Song>
+    ) : DiffUtil.Callback() {
+        override fun getOldListSize() = oldList.size
+        override fun getNewListSize() = newList.size
+        override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean {
+            val old = oldList[oldPos]
+            val new = newList[newPos]
+            return if (old.filePath.isNotEmpty() && new.filePath.isNotEmpty())
+                old.filePath == new.filePath
+            else old.youtubeLink == new.youtubeLink && old.name == new.name
+        }
+        override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+            val old = oldList[oldPos]
+            val new = newList[newPos]
+            return old.name == new.name && old.artist == new.artist && old.filePath == new.filePath
+        }
     }
 
     override fun playStateChanged(state: SongState) {}

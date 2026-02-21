@@ -132,18 +132,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
         bindEvent()
 
-        if (songList.isEmpty()) {
-            songList = Shared.getSongList(Constants.ableSongDir)
-            if (androidx.core.content.ContextCompat.checkSelfPermission(
-                    requireContext(), android.Manifest.permission.READ_MEDIA_AUDIO
-                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-            ) {
-                songList.addAll(Shared.getLocalSongs(requireContext()))
-            }
-            if (songList.isNotEmpty()) songList = ArrayList(songList.sortedBy {
-                it.name.uppercase(Locale.getDefault())
-            })
-        }
         songAdapter = SongAdapter(songList, WeakReference(this@Home), true)
         val lam = LinearLayoutManager(requireContext())
         lam.initialPrefetchItemCount = 12
@@ -155,6 +143,29 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
         songAdapter?.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onChanged() { updateEmptyState() }
         })
+
+        if (songList.isEmpty()) {
+            launch(Dispatchers.IO) {
+                val loadedSongs = Shared.getSongList(Constants.ableSongDir)
+                if (isAdded) {
+                    val ctx = context
+                    if (ctx != null && androidx.core.content.ContextCompat.checkSelfPermission(
+                            ctx, android.Manifest.permission.READ_MEDIA_AUDIO
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    ) {
+                        loadedSongs.addAll(Shared.getLocalSongs(ctx))
+                    }
+                }
+                val sorted = if (loadedSongs.isNotEmpty()) ArrayList(loadedSongs.sortedBy {
+                    it.name.uppercase(Locale.getDefault())
+                }) else loadedSongs
+                launch(Dispatchers.Main) {
+                    songList = sorted
+                    songAdapter?.update(songList)
+                    updateEmptyState()
+                }
+            }
+        }
         updateEmptyState()
     }
 

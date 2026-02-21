@@ -220,6 +220,28 @@ class DownloadService : Service() {
             when {
                 ReturnCode.isSuccess(session.returnCode) -> {
                     tempFile.delete()
+                    val mp3File = File(Constants.ableSongDir, "$id.mp3")
+
+                    // Embed album art into MP3 metadata
+                    try {
+                        Shared.addThumbnails(mp3File.absolutePath, song.name, this@DownloadService)
+                    } catch (e: Exception) {
+                        Log.e("ERR>", "Failed to embed album art: $e")
+                    }
+
+                    // Rename file from YouTube ID to song name
+                    val sanitizedName = sanitizeFileName(song.name)
+                    val targetFile = File(Constants.ableSongDir, "$sanitizedName.mp3")
+                    val finalFile = if (targetFile.exists()) {
+                        File(Constants.ableSongDir, "$sanitizedName ($id).mp3")
+                    } else targetFile
+                    mp3File.renameTo(finalFile)
+                    // Also rename sidecar album art to match
+                    val artFile = File(Constants.albumArtDir, id)
+                    if (artFile.exists()) {
+                        artFile.renameTo(File(Constants.albumArtDir, finalFile.nameWithoutExtension))
+                    }
+
                     Log.d("DL>", "FFmpeg success, notifying Home")
                     downloadCompletedSinceLastCheck = true
                     mainHandler.post { onDownloadComplete?.invoke() }
@@ -244,8 +266,22 @@ class DownloadService : Service() {
         }
 
         if (queue.isEmpty()) {
-            notificationManager.cancel(NOTIF_ID)
+            builder.setContentTitle(getString(R.string.app_name))
+            builder.setContentText("Downloads complete")
+            builder.setOngoing(false)
+            builder.setProgress(0, 0, false)
+            updateNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_DETACH)
+            }
         }
+    }
+
+    private fun sanitizeFileName(name: String): String {
+        return name.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(100)
     }
 
     private fun showError(message: String) {

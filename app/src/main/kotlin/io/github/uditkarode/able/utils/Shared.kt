@@ -429,10 +429,7 @@ object Shared {
                  * Hence, if the filename of a file is not 11 or 17 chars long, skip it.
                  * also skip if the extension is tmp or not mp3.
                  */
-                if (f.extension == "tmp" ||
-                    (f.nameWithoutExtension.length != 11 && f.nameWithoutExtension.length != 17)
-                    || f.extension != "mp3"
-                ) {
+                if (f.extension != "mp3" || f.name.contains(".tmp")) {
                     continue
                 }
                 val mediaInfo = FFprobeKit.getMediaInformation(f.absolutePath).mediaInformation

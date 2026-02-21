@@ -122,6 +122,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         private var isInstantiated = false
         private var onShuffle = false
         private var onRepeat = false
+        @Volatile private var consecutiveStreamFailures = 0
     }
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
@@ -198,7 +199,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         })
 
-        mediaPlayer.setOnErrorListener { _, _, _ ->
+        mediaPlayer.setOnErrorListener { _, what, extra ->
+            Log.e("ERR>", "MediaPlayer error: what=$what extra=$extra")
+            isLoading = false
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.isLoading(false) }
+            }
+            previousIndex = currentIndex
+            nextSong()
             true
         }
 
@@ -411,9 +419,19 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * changes to the next song
      */
     private fun nextSong() {
-        if (onRepeat) seekTo(0)
+        if (onRepeat) {
+            try {
+                mediaPlayer.seekTo(0)
+                mediaPlayer.start()
+                mediaSessionPlay()
+            } catch (e: Exception) {
+                Log.e("ERR>", "Repeat seekTo failed: $e")
+                songChanged()
+            }
+            return
+        }
         if (currentIndex + 1 < playQueue.size) {
-            if (!onRepeat) currentIndex++
+            currentIndex++
             songChanged()
         } else {
             currentIndex = 0
@@ -519,11 +537,22 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 return
             }
 
+            consecutiveStreamFailures = 0
             playQueue[index].filePath = tempFile.absolutePath
             launch(Dispatchers.Main) { playSongFromFile() }
         } catch (e: Exception) {
             Log.e("ERR>", "resolveAndDownloadStream failed: $e")
-            launch(Dispatchers.Main) { nextSong() }
+            consecutiveStreamFailures++
+            if (consecutiveStreamFailures < playQueue.size) {
+                launch(Dispatchers.Main) { nextSong() }
+            } else {
+                consecutiveStreamFailures = 0
+                isLoading = false
+                launch(Dispatchers.Default) {
+                    registeredClients.forEach { it.isLoading(false) }
+                }
+                Log.e("ERR>", "All songs failed stream resolution, stopping.")
+            }
         }
     }
 

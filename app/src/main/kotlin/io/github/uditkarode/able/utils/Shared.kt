@@ -123,8 +123,10 @@ object Shared {
                 if (changed) modifyPlaylist(playlist.name, songs)
             }
 
+            // Scan old paths (removes stale entries) and new paths (adds them)
+            val allPaths = pathMap.keys + pathMap.values
             MediaScannerConnection.scanFile(
-                context, pathMap.values.toTypedArray(), null, null
+                context, allPaths.toTypedArray(), null, null
             )
         }
 
@@ -522,7 +524,7 @@ object Shared {
         cursor?.use {
             while (it.moveToNext()) {
                 val path = it.getString(2)
-                if (path.endsWith(".mp3") && !path.contains(".tmp")) {
+                if (path.endsWith(".mp3") && !path.contains(".tmp") && File(path).exists()) {
                     songs.add(Song(
                         name = it.getString(0) ?: File(path).nameWithoutExtension,
                         artist = it.getString(1) ?: "",

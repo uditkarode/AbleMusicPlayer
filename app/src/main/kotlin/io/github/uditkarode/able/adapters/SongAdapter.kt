@@ -162,35 +162,28 @@ class SongAdapter(
                     freshStart = true
                 }
 
-                launch(Dispatchers.Default) {
+                launch(Dispatchers.Main) {
                     var mService: MutableStateFlow<MusicService?> =
                         MutableStateFlow(mServiceFromPlayer)
                     if (wr?.get() != null)
                         mService = wr.get()!!.mService
 
-                    val playSong = fun() {
-                        if (currentIndex != position) {
-                            currentIndex = position
-                            launch(Dispatchers.Default) {
-                                if (onShuffle) {
-                                    mService.value?.addToQueue(current)
-                                    mService.value?.setNextPrevious(next = true)
-                                } else {
-                                    currentIndex = position
-                                    mService.value?.setQueue(songList)
-                                    mService.value?.setIndex(position)
-                                }
-
-                                if (freshStart)
-                                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
-                            }
-                        }
+                    if (mService.value == null) {
+                        mService.first { it != null }
                     }
 
-                    if (mService.value != null) playSong()
-                    else {
-                        mService.first { it != null }
-                        playSong()
+                    if (currentIndex != position) {
+                        currentIndex = position
+                        if (onShuffle) {
+                            mService.value?.addToQueue(current)
+                            mService.value?.setNextPrevious(next = true)
+                        } else {
+                            mService.value?.setQueue(songList)
+                            mService.value?.setIndex(position)
+                        }
+
+                        if (freshStart)
+                            MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
                     }
                 }
             }

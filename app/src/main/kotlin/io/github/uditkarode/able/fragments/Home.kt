@@ -288,17 +288,18 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 }
 
                 song.filePath = tempFile.absolutePath
-                mService.value?.setQueue(arrayListOf(song))
-                mService.value?.setIndex(0)
-                if (freshStart)
-                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
+                launch(Dispatchers.Main) {
+                    mService.value?.setQueue(arrayListOf(song))
+                    mService.value?.setIndex(0)
+                    if (freshStart)
+                        MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
+                }
             }
 
-            if (mService.value != null) playSong()
-            else {
+            if (mService.value == null) {
                 mService.first { it != null }
-                playSong()
             }
+            playSong()
         }
     }
 

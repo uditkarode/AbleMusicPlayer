@@ -23,6 +23,8 @@ import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.Shared
+import kotlin.concurrent.thread
 
 class AbleApplication : Application() {
     companion object {
@@ -33,6 +35,7 @@ class AbleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Constants.init(this)
+        thread { Shared.migrateFileNames(this) }
         viewPump = ViewPump.builder()
             .addInterceptor(
                 CalligraphyInterceptor(

@@ -65,6 +65,73 @@ object Shared {
         }
     }
 
+    private val youtubeIdPattern = Regex("^[A-Za-z0-9_-]{11,}$")
+
+    fun migrateFileNames(context: Context) {
+        val prefs = context.getSharedPreferences("able_migrations", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("filenames_migrated", false)) return
+
+        val songDir = Constants.ableSongDir
+        if (!songDir.exists()) {
+            prefs.edit().putBoolean("filenames_migrated", true).apply()
+            return
+        }
+
+        val pathMap = mutableMapOf<String, String>() // old path -> new path
+
+        for (f in songDir.listFiles() ?: arrayOf()) {
+            if (f.isDirectory || f.extension != "mp3" || f.name.contains(".tmp")) continue
+            val baseName = f.nameWithoutExtension
+            if (!youtubeIdPattern.matches(baseName)) continue
+
+            val mmr = android.media.MediaMetadataRetriever()
+            var title: String? = null
+            try {
+                mmr.setDataSource(f.absolutePath)
+                title = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_TITLE)
+            } catch (_: Exception) {
+            } finally {
+                mmr.release()
+            }
+
+            if (title.isNullOrBlank() || title == baseName) continue
+
+            val newFile = uniqueFile(songDir, sanitizeFileName(title), "mp3")
+            val oldPath = f.absolutePath
+            if (f.renameTo(newFile)) {
+                pathMap[oldPath] = newFile.absolutePath
+                // Rename sidecar album art
+                val oldArt = File(Constants.albumArtDir, baseName)
+                if (oldArt.exists()) {
+                    oldArt.renameTo(File(Constants.albumArtDir, newFile.nameWithoutExtension))
+                }
+            }
+        }
+
+        // Update playlist file paths
+        if (pathMap.isNotEmpty()) {
+            for (playlist in getPlaylists()) {
+                val songs = getSongsFromPlaylist(playlist)
+                var changed = false
+                for (song in songs) {
+                    val newPath = pathMap[song.filePath]
+                    if (newPath != null) {
+                        song.filePath = newPath
+                        changed = true
+                    }
+                }
+                if (changed) modifyPlaylist(playlist.name, songs)
+            }
+
+            MediaScannerConnection.scanFile(
+                context, pathMap.values.toTypedArray(), null, null
+            )
+        }
+
+        prefs.edit().putBoolean("filenames_migrated", true).apply()
+        Log.i("Shared", "Migration complete: renamed ${pathMap.size} files")
+    }
+
     /** To only show the splash screen on the first launch of
      *  the MainActivity in a session.
      * */

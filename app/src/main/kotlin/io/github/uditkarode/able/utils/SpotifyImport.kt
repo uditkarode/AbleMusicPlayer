@@ -169,10 +169,18 @@ object SpotifyImport {
         val thumbnailUrl = Shared.getBestThumbnail(searchResult.thumbnails, searchResult.url)
         val songId = Shared.getIdFromLink(searchResult.url)
 
-        // Skip if already downloaded
-        val existingFile = File(Constants.ableSongDir, "$songId.mp3")
-        if (existingFile.exists()) {
-            Log.i(TAG, "Skipping already downloaded: $songId")
+        val sanitizedName = Shared.sanitizeFileName(searchResult.name)
+
+        // Skip if already downloaded (check both old ID-based and new title-based naming)
+        val oldFile = File(Constants.ableSongDir, "$songId.mp3")
+        val titleFile = File(Constants.ableSongDir, "$sanitizedName.mp3")
+        val existingFile = when {
+            oldFile.exists() -> oldFile
+            titleFile.exists() -> titleFile
+            else -> null
+        }
+        if (existingFile != null) {
+            Log.i(TAG, "Skipping already downloaded: ${existingFile.name}")
             currentTrackStatus = "Already exists"
             return Song(
                 name = searchResult.name,
@@ -185,20 +193,6 @@ object SpotifyImport {
 
         val displayName = searchResult.name.run {
             if (length > 30) substring(0, 30) + "..." else this
-        }
-
-        // Save album art
-        if (thumbnailUrl.isNotBlank()) {
-            try {
-                val drw = Glide.with(context)
-                    .load(thumbnailUrl)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .skipMemoryCache(true)
-                    .submit().get()
-                Shared.saveAlbumArtToDisk(drw.toBitmap(), File(Constants.albumArtDir, songId))
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to save album art for $songId", e)
-            }
         }
 
         // Resolve stream
@@ -224,25 +218,45 @@ object SpotifyImport {
             )
         }
 
-        // FFmpeg transcode + metadata
+        // FFmpeg transcode + metadata (store YouTube ID in comment tag)
         currentTrackStatus = "Saving…"
         updateNotification(builder, context, displayName, "${trackIndex + 1} of $totalTracks — saving", totalTracks, trackIndex + 1, true)
 
         val mp3Bitrate = maxOf(bitrate, 128)
-        val finalFile = File(Constants.ableSongDir, "$songId.mp3")
+        val tmpMp3 = File(Constants.ableSongDir, "$songId.mp3")
         val command = "-i \"${tempFile.absolutePath}\" -c copy " +
                 "-metadata title=\"${searchResult.name}\" " +
-                "-metadata artist=\"${searchResult.uploaderName}\" -y " +
+                "-metadata artist=\"${searchResult.uploaderName}\" " +
+                "-metadata comment=\"$songId\" -y " +
                 "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 " +
-                "\"${finalFile.absolutePath}\""
+                "\"${tmpMp3.absolutePath}\""
 
         val session = FFmpegKit.execute(command)
         tempFile.delete()
 
         if (!ReturnCode.isSuccess(session.returnCode)) {
             Log.e(TAG, "FFmpeg failed for $songId with rc=${session.returnCode}")
-            finalFile.delete()
+            tmpMp3.delete()
             return null
+        }
+
+        // Rename to song title
+        val finalFile = Shared.uniqueFile(Constants.ableSongDir, sanitizedName, "mp3")
+        tmpMp3.renameTo(finalFile)
+
+        // Save album art (keyed by final filename)
+        if (thumbnailUrl.isNotBlank()) {
+            try {
+                val drw = Glide.with(context)
+                    .load(thumbnailUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                    .skipMemoryCache(true)
+                    .submit().get()
+                if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
+                Shared.saveAlbumArtToDisk(drw.toBitmap(), File(Constants.albumArtDir, finalFile.nameWithoutExtension))
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to save album art for ${finalFile.name}", e)
+            }
         }
 
         return Song(

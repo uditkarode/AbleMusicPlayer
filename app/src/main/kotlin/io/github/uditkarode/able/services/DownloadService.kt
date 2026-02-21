@@ -255,7 +255,8 @@ class DownloadService : Service() {
             var command = "-i " +
                     "\"${tempFile.absolutePath}\" -c copy " +
                     "-metadata title=\"${song.name}\" " +
-                    "-metadata artist=\"${song.artist}\" -y "
+                    "-metadata artist=\"${song.artist}\" " +
+                    "-metadata comment=\"$id\" -y "
 
             val mp3Bitrate = maxOf(bitrate, 128)
             command += "-vn -ab ${mp3Bitrate}k -c:a mp3 -ar 44100 "
@@ -278,11 +279,8 @@ class DownloadService : Service() {
                     }
 
                     // Rename file from YouTube ID to song name
-                    val sanitizedName = sanitizeFileName(song.name)
-                    val targetFile = File(Constants.ableSongDir, "$sanitizedName.mp3")
-                    val finalFile = if (targetFile.exists()) {
-                        File(Constants.ableSongDir, "$sanitizedName ($id).mp3")
-                    } else targetFile
+                    val sanitizedName = Shared.sanitizeFileName(song.name)
+                    val finalFile = Shared.uniqueFile(Constants.ableSongDir, sanitizedName, "mp3")
                     mp3File.renameTo(finalFile)
                     // Also rename sidecar album art to match
                     val artFile = File(Constants.albumArtDir, id)
@@ -359,13 +357,6 @@ class DownloadService : Service() {
         } catch (e: Exception) {
             Log.e("ERR>", "Failed to restore queue: $e")
         }
-    }
-
-    private fun sanitizeFileName(name: String): String {
-        return name.replace(Regex("[\\\\/:*?\"<>|]"), "_")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-            .take(100)
     }
 
     private fun showError(message: String) {

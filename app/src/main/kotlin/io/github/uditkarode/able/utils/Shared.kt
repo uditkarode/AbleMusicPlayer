@@ -47,6 +47,24 @@ import java.io.*
 import java.util.*
 
 object Shared {
+    fun sanitizeFileName(name: String): String {
+        return name.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(100)
+    }
+
+    fun uniqueFile(dir: File, baseName: String, ext: String): File {
+        val target = File(dir, "$baseName.$ext")
+        if (!target.exists()) return target
+        var n = 2
+        while (true) {
+            val candidate = File(dir, "$baseName ($n).$ext")
+            if (!candidate.exists()) return candidate
+            n++
+        }
+    }
+
     /** To only show the splash screen on the first launch of
      *  the MainActivity in a session.
      * */
@@ -448,12 +466,20 @@ object Shared {
             }
         }
 
-        // Pick up any files not yet in MediaStore (use filename as name)
+        // Pick up any files not yet in MediaStore (use filename as title)
+        val unindexedPaths = mutableListOf<String>()
         for (f in musicFolder.listFiles() ?: arrayOf()) {
             if (!f.isDirectory && f.extension == "mp3" && !f.name.contains(".tmp")
                 && f.absolutePath !in indexedPaths) {
                 songs.add(Song(name = f.nameWithoutExtension, artist = "", filePath = f.absolutePath))
+                unindexedPaths.add(f.absolutePath)
             }
+        }
+        // Trigger MediaStore scan so they're instant next time
+        if (unindexedPaths.isNotEmpty()) {
+            MediaScannerConnection.scanFile(
+                context, unindexedPaths.toTypedArray(), null, null
+            )
         }
 
         return songs

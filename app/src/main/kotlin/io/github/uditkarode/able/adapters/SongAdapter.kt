@@ -53,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -188,11 +189,8 @@ class SongAdapter(
 
                     if (mService.value != null) playSong()
                     else {
-                        mService.collect {
-                            if (it != null) {
-                                playSong()
-                            }
-                        }
+                        mService.first { it != null }
+                        playSong()
                     }
                 }
             }

@@ -54,6 +54,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -295,7 +296,8 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
 
             if (mService.value != null) playSong()
             else {
-                mService.collect { if (it != null) playSong() }
+                mService.first { it != null }
+                playSong()
             }
         }
     }

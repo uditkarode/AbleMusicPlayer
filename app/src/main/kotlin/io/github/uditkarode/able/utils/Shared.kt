@@ -533,12 +533,22 @@ object Shared {
             }
         }
 
-        // Pick up any files not yet in MediaStore (use filename as title)
+        // Pick up any files not yet in MediaStore (title from filename, artist from metadata)
         val unindexedPaths = mutableListOf<String>()
         for (f in musicFolder.listFiles() ?: arrayOf()) {
             if (!f.isDirectory && f.extension == "mp3" && !f.name.contains(".tmp")
                 && f.absolutePath !in indexedPaths) {
-                songs.add(Song(name = f.nameWithoutExtension, artist = "", filePath = f.absolutePath))
+                var artist = ""
+                val mmr = android.media.MediaMetadataRetriever()
+                try {
+                    mmr.setDataSource(f.absolutePath)
+                    mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                        ?.takeIf { it.isNotBlank() }?.let { artist = it }
+                } catch (_: Exception) {
+                } finally {
+                    mmr.release()
+                }
+                songs.add(Song(name = f.nameWithoutExtension, artist = artist, filePath = f.absolutePath))
                 unindexedPaths.add(f.absolutePath)
             }
         }

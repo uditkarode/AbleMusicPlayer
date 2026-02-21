@@ -22,6 +22,17 @@
         />
 
     <Preference
+        android:title="@string/downloads_title"
+        app:iconSpaceReserved="false"
+        android:summary="@string/downloads_pref_summary">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.uditkarode.able"
+            android:targetClass="io.github.uditkarode.able.activities.Downloads"
+            />
+    </Preference>
+
+    <Preference
         android:title="@string/about"
         app:iconSpaceReserved="false"
         android:summary="@string/pref_about">

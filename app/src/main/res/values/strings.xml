@@ -103,4 +103,11 @@ or via the UPI address %2$s</string>
     <string name="grant">Grant</string>
     <string name="granted">Granted</string>
     <string name="welcome_continue">Continue</string>
+    <string name="downloads_title">Downloads</string>
+    <string name="downloads_pref_summary">View active and queued downloads</string>
+    <string name="downloads_section_title">YouTube Downloads</string>
+    <string name="downloads_empty">No active downloads</string>
+    <string name="downloads_waiting">Waiting…</string>
+    <string name="downloads_spotify_title">Spotify Import</string>
+    <string name="downloads_spotify_idle">No import in progress</string>
 </resources>

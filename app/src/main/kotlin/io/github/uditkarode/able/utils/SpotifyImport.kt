@@ -58,6 +58,12 @@ object SpotifyImport {
     @Volatile
     var isImporting = false
 
+    // UI-observable state for Downloads screen
+    @Volatile var totalTracks: Int = 0
+    @Volatile var currentTrackIndex: Int = 0
+    @Volatile var currentTrackName: String = ""
+    @Volatile var currentTrackStatus: String = ""
+
     data class SpotifyTrack(val title: String, val artist: String)
 
     sealed class EmbedResult {
@@ -85,6 +91,7 @@ object SpotifyImport {
 
             val songArr = ArrayList<Song>()
             val totalTracks = tracks.size
+            this.totalTracks = totalTracks
 
             if (!Constants.ableSongDir.exists()) Constants.ableSongDir.mkdirs()
             if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
@@ -96,6 +103,9 @@ object SpotifyImport {
                 val displayName = "${track.title} - ${track.artist}".run {
                     if (length > 30) substring(0, 30) + "..." else this
                 }
+                currentTrackIndex = i + 1
+                currentTrackName = "${track.title} - ${track.artist}"
+                currentTrackStatus = "Searching…"
 
                 updateNotification(builder, context, displayName, "${i + 1} of $totalTracks", totalTracks, i, true)
 
@@ -127,6 +137,10 @@ object SpotifyImport {
             return false
         } finally {
             isImporting = false
+            totalTracks = 0
+            currentTrackIndex = 0
+            currentTrackName = ""
+            currentTrackStatus = ""
             mainHandler.post {
                 MusicService.registeredClients.forEach { it.spotifyImportChange(false) }
             }
@@ -183,9 +197,11 @@ object SpotifyImport {
         // Download to temp file
         val tempFile = File(Constants.ableSongDir, "$songId.tmp.$ext")
 
+        currentTrackStatus = "0%"
         updateNotification(builder, context, displayName, "${trackIndex + 1} of $totalTracks — 0%", totalTracks, trackIndex, false)
 
         ChunkedDownloader.download(url, tempFile) { progress ->
+            currentTrackStatus = "$progress%"
             updateNotification(
                 builder, context, displayName,
                 "${trackIndex + 1} of $totalTracks — $progress%",
@@ -194,6 +210,7 @@ object SpotifyImport {
         }
 
         // FFmpeg transcode + metadata
+        currentTrackStatus = "Saving…"
         updateNotification(builder, context, displayName, "${trackIndex + 1} of $totalTracks — saving", totalTracks, trackIndex + 1, true)
 
         val mp3Bitrate = maxOf(bitrate, 128)

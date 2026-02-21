@@ -47,6 +47,8 @@
         <activity android:name=".activities.AlbumPlaylist" />
         <activity android:name=".activities.Settings" android:theme="@style/SettingsTheme"
             android:parentActivityName=".activities.MainActivity" />
+        <activity android:name=".activities.Downloads" android:theme="@style/SettingsTheme"
+            android:parentActivityName=".activities.Settings" />
 
         <service
             android:name="io.github.uditkarode.able.services.MusicService"

@@ -55,6 +55,12 @@ class DownloadService : Service() {
         var onDownloadComplete: (() -> Unit)? = null
         @Volatile var downloadCompletedSinceLastCheck = false
 
+        // UI-observable state for Downloads screen
+        @Volatile var currentDownload: DownloadableSong? = null
+        @Volatile var currentProgress: Int = -1
+        @Volatile var currentStatus: String = ""
+        @Volatile var pendingQueue: List<DownloadableSong> = emptyList()
+
         fun isAlreadyQueued(youtubeLink: String): Boolean {
             synchronized(activeLinks) {
                 return activeLinks.contains(youtubeLink)
@@ -95,6 +101,10 @@ class DownloadService : Service() {
 
     override fun onDestroy() {
         persistQueue()
+        currentDownload = null
+        currentProgress = -1
+        currentStatus = ""
+        pendingQueue = emptyList()
         super.onDestroy()
     }
 
@@ -149,12 +159,18 @@ class DownloadService : Service() {
     private fun processQueue() {
         while (true) {
             val song = queue.poll() ?: break
+            currentDownload = song
+            pendingQueue = queue.toList()
             download(song)
             synchronized(activeLinks) {
                 activeLinks.remove(song.youtubeLink)
             }
             persistQueue()
         }
+        currentDownload = null
+        currentProgress = -1
+        currentStatus = ""
+        pendingQueue = emptyList()
     }
 
     private fun updateNotification() {
@@ -173,6 +189,8 @@ class DownloadService : Service() {
         builder.setContentText(getString(R.string.init_dl))
         builder.setProgress(0, 0, true)
         updateNotification()
+        currentStatus = getString(R.string.init_dl)
+        currentProgress = -1
 
         // Save album art
         if (song.ytmThumbnailLink.isNotBlank()) {
@@ -216,17 +234,23 @@ class DownloadService : Service() {
             builder.setContentText("0%")
             builder.setProgress(100, 0, false)
             updateNotification()
+            currentStatus = "0%"
+            currentProgress = 0
 
             ChunkedDownloader.download(url, tempFile) { progress ->
                 builder.setProgress(100, progress, false)
                 builder.setContentText("$progress%")
                 updateNotification()
+                currentStatus = "$progress%"
+                currentProgress = progress
             }
 
             // FFmpeg transcode / metadata
             builder.setContentText(getString(R.string.saving))
             builder.setProgress(100, 100, true)
             updateNotification()
+            currentStatus = getString(R.string.saving)
+            currentProgress = -1
 
             var command = "-i " +
                     "\"${tempFile.absolutePath}\" -c copy " +
@@ -273,18 +297,21 @@ class DownloadService : Service() {
 
                 ReturnCode.isCancel(session.returnCode) -> {
                     Log.e("ERR>", "FFmpeg cancelled.")
+                    currentStatus = "Download cancelled"
                     showError("Download cancelled")
                     return
                 }
 
                 else -> {
                     Log.e("ERR>", "FFmpeg failed with rc=${session.returnCode}")
+                    currentStatus = "Conversion failed"
                     showError("Conversion failed")
                     return
                 }
             }
         } catch (e: Exception) {
             Log.e("ERR>", "Download failed: $e")
+            currentStatus = "Download failed"
             showError("Download failed")
             return
         }

@@ -126,6 +126,12 @@ class Playlists : Fragment(), MusicService.MusicClient {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        (_binding?.playlistsRv?.adapter as? PlaylistAdapter)?.update(Shared.getPlaylists())
+        updateEmptyState()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         MusicService.unregisterClient(this)

@@ -58,7 +58,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
@@ -89,7 +88,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         @Volatile var isServiceRunning = false
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
-        val mediaPlayer = MediaPlayer()
+        var mediaPlayer = MediaPlayer()
         var previousIndex = -1
         var currentIndex = -1
 
@@ -460,12 +459,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     private fun songChanged() {
         if (!isInstantiated) isInstantiated = true
         else {
-            // Nullify listeners BEFORE stop/reset to prevent spurious
-            // onCompletion/onError callbacks that cause song looping
-            mediaPlayer.setOnCompletionListener(null)
-            mediaPlayer.setOnErrorListener(null)
-            if (mediaPlayer.isPlaying) mediaPlayer.stop()
-            mediaPlayer.reset()
+            // Release and recreate instead of reset() to avoid
+            // INVALID_OPERATION (-38) errors from prepareAsync
+            mediaPlayer.release()
+            mediaPlayer = MediaPlayer()
         }
 
         isLoading = true
@@ -473,7 +470,6 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             registeredClients.forEach { it.isLoading(true) }
         }
 
-        // Set up all listeners fresh for this song change
         mediaPlayer.setOnErrorListener { _, what, extra ->
             Log.e("ERR>", "MediaPlayer error: what=$what extra=$extra")
             isLoading = false
@@ -490,22 +486,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             nextSong()
         }
 
-        mediaPlayer.setOnPreparedListener {
-            isLoading = false
-            launch(Dispatchers.Default) {
-                registeredClients.forEach { it.isLoading(false) }
-            }
-            mediaSessionPlay()
-            setPlayPause(SongState.playing)
-
-            val dur = mediaPlayer.duration
-            launch(Dispatchers.Default) {
-                registeredClients.forEach { it.durationChanged(dur) }
-            }
-        }
-
         if (playQueue[currentIndex].filePath == "") {
-            // Needs stream resolution + download
+            // Needs stream resolution + download (uses prepareAsync)
+            mediaPlayer.setOnPreparedListener {
+                isLoading = false
+                launch(Dispatchers.Default) {
+                    registeredClients.forEach { it.isLoading(false) }
+                }
+                mediaSessionPlay()
+                setPlayPause(SongState.playing)
+
+                val dur = mediaPlayer.duration
+                launch(Dispatchers.Default) {
+                    registeredClients.forEach { it.durationChanged(dur) }
+                }
+            }
             launch(Dispatchers.IO) {
                 resolveAndDownloadStream(currentIndex)
             }
@@ -567,7 +562,19 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     private fun playSongFromFile() {
         try {
             mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
-            mediaPlayer.prepareAsync()
+            mediaPlayer.prepare()
+
+            isLoading = false
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.isLoading(false) }
+            }
+            mediaSessionPlay()
+            setPlayPause(SongState.playing)
+
+            val dur = mediaPlayer.duration
+            launch(Dispatchers.Default) {
+                registeredClients.forEach { it.durationChanged(dur) }
+            }
             launch(Dispatchers.Default) {
                 registeredClients.forEach(MusicClient::songChanged)
             }
@@ -575,7 +582,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 registeredClients.forEach { it.indexChanged(currentIndex) }
             }
         } catch (e: Exception) {
-            Log.e("ERR>", "$e")
+            Log.e("ERR>", "playSongFromFile: $e")
         }
     }
 

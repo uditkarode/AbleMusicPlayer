@@ -21,7 +21,7 @@ jobs:
         id: check
         run: |
           # Current version from version catalog
-          CURRENT=$(grep '^newpipeextractor' gradle/libs.versions.toml \
+          CURRENT=$(grep '^newpipeextractor = "' gradle/libs.versions.toml \
             | sed 's/.*= *"\(.*\)"/\1/')
           echo "current=$CURRENT"
 

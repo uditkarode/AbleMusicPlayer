@@ -1,0 +1,67 @@
+name: Update NewPipeExtractor
+
+on:
+  schedule:
+    # Every day at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch: # allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for NewPipeExtractor update
+        id: check
+        run: |
+          # Current version from version catalog
+          CURRENT=$(grep '^newpipeextractor' gradle/libs.versions.toml \
+            | sed 's/.*= *"\(.*\)"/\1/')
+          echo "current=$CURRENT"
+
+          # Latest release tag from GitHub
+          LATEST=$(curl -sf https://api.github.com/repos/TeamNewPipe/NewPipeExtractor/releases/latest \
+            | jq -r '.tag_name')
+          echo "latest=$LATEST"
+
+          if [ "$LATEST" = "null" ] || [ -z "$LATEST" ]; then
+            echo "Failed to fetch latest release tag"
+            exit 1
+          fi
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "Already up to date ($CURRENT)"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Update available: $CURRENT -> $LATEST"
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update version catalog
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          LATEST="${{ steps.check.outputs.latest }}"
+          sed -i "s/^newpipeextractor = \".*\"/newpipeextractor = \"${LATEST}\"/" \
+            gradle/libs.versions.toml
+          echo "Updated libs.versions.toml:"
+          grep newpipeextractor gradle/libs.versions.toml
+
+      - name: Commit and push
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          CURRENT="${{ steps.check.outputs.current }}"
+          LATEST="${{ steps.check.outputs.latest }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gradle/libs.versions.toml
+          git commit -m "build(deps): bump NewPipeExtractor from $CURRENT to $LATEST"
+          git push

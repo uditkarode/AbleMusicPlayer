@@ -457,6 +457,10 @@ class Player : MusicClientActivity() {
         playing = if (mService!!.getMediaPlayer().isPlaying) SongState.playing else SongState.paused
         playPauseEvent(playing)
 
+        // Sync shuffle/repeat button state with the service (which may have
+        // restored these flags from SharedPreferences on a fresh start).
+        mService?.let { shuffleRepeatChanged(it.getShuffle(), it.getRepeat()) }
+
         songChangeEvent()
     }
 

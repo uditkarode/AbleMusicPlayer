@@ -85,6 +85,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     }
 
     companion object {
+        private const val PREFS_NAME = "able_prefs"
+        private const val PREF_SHUFFLE = "playback_shuffle"
+        private const val PREF_REPEAT = "playback_repeat"
+
         @Volatile var isServiceRunning = false
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
@@ -152,6 +156,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     override fun onCreate() {
         super.onCreate()
         isServiceRunning = true
+
+        // Restore persisted shuffle/repeat flags. Queue is empty at this point
+        // so we only set the flags — actual queue manipulation happens later
+        // when setQueue/setIndex is called by a client.
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        onShuffle = prefs.getBoolean(PREF_SHUFFLE, false)
+        onRepeat = prefs.getBoolean(PREF_REPEAT, false)
+
         registerReceiver(
             receiver,
             IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
@@ -321,10 +333,24 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun setShuffleRepeat(shuffle: Boolean, repeat: Boolean) {
         setShuffle(shuffle)
         onRepeat = repeat
+
+        // Persist so the toggles are remembered across service restarts.
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_SHUFFLE, onShuffle)
+            .putBoolean(PREF_REPEAT, onRepeat)
+            .apply()
+
         launch(Dispatchers.Default) {
             registeredClients.forEach { it.shuffleRepeatChanged(onShuffle, onRepeat) }
         }
     }
+
+    /** Current shuffle state. Clients can query on bind to sync UI. */
+    fun getShuffle() = onShuffle
+
+    /** Current repeat state. Clients can query on bind to sync UI. */
+    fun getRepeat() = onRepeat
 
     /**
      * @param index sets the new index to play from the queue.

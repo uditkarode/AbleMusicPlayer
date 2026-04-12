@@ -170,13 +170,17 @@ class SongAdapter(
                     mService.first { it != null }
                 }
 
-                if (onShuffle) {
-                    mService.value?.addToQueue(songList[clickPosition])
-                    mService.value?.setNextPrevious(next = true)
-                } else {
-                    // Pass a COPY to prevent shared mutation between adapter and service
-                    mService.value?.setQueue(ArrayList(songList))
-                    mService.value?.setIndex(clickPosition)
+                // Always replace the queue with the tapped list. Service is
+                // the source of truth for shuffle state (may have been
+                // restored from prefs on a fresh service start).
+                // Pass a COPY to prevent shared mutation between adapter and service
+                val svc = mService.value
+                svc?.setQueue(ArrayList(songList))
+                svc?.setIndex(clickPosition)
+                if (svc?.getShuffle() == true) {
+                    // Reapply shuffle so the freshly-set queue is randomized
+                    // with the tapped song kept at position 0.
+                    svc.setShuffleRepeat(shuffle = true, repeat = svc.getRepeat())
                 }
 
                 if (freshStart)

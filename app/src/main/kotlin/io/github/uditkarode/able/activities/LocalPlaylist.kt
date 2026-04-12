@@ -97,6 +97,8 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                     val mService = mService.value!!
                     mService.setQueue(resultArray)
                     mService.setIndex(0)
+                    if (mService.getShuffle())
+                        mService.setShuffleRepeat(shuffle = true, repeat = mService.getRepeat())
 
                     if (freshStart)
                         MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
@@ -175,6 +177,8 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 val mService = mService.value!!
                 mService.setQueue(array)
                 mService.setIndex(index)
+                if (mService.getShuffle())
+                    mService.setShuffleRepeat(shuffle = true, repeat = mService.getRepeat())
                 if (freshStart)
                     MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
             }

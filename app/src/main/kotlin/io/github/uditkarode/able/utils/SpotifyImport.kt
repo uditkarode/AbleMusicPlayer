@@ -332,13 +332,20 @@ object SpotifyImport {
 
             val playlistName = entity.getString("name")
 
-            // Try to get all tracks via Spotify Web API using the embed's access token
-            val accessToken = state.optJSONObject("session")?.optString("accessToken", "")
+            // Try to get all tracks via Spotify Web API using the embed's access token.
+            // Spotify has moved this field around over time — probe the known paths in
+            // order so we keep working if they shuffle it again.
+            val accessToken = extractAccessToken(state)
             if (!accessToken.isNullOrBlank()) {
                 val apiTracks = fetchAllTracksFromApi(playId, accessToken)
                 if (apiTracks != null && apiTracks.isNotEmpty()) {
+                    Log.i(TAG, "Imported ${apiTracks.size} tracks via Spotify API")
                     return EmbedResult.Success(playlistName, apiTracks)
+                } else {
+                    Log.w(TAG, "Spotify API fetch failed, falling back to embed trackList")
                 }
+            } else {
+                Log.w(TAG, "No accessToken found in embed JSON, falling back to embed trackList")
             }
 
             // Fallback: use the embedded trackList (limited to ~100)
@@ -361,6 +368,48 @@ object SpotifyImport {
             Log.e(TAG, "Failed to fetch playlist from embed page", e)
             EmbedResult.Error("Failed to load playlist")
         }
+    }
+
+    /**
+     * Walks the embed page state JSON looking for an `accessToken` field.
+     * Spotify has moved this around over time (e.g. `state.session.accessToken`
+     * → `state.settings.session.accessToken`), so we probe the known paths in
+     * order and also do a last-ditch recursive scan to stay resilient if they
+     * move it again.
+     */
+    private fun extractAccessToken(state: JSONObject): String? {
+        // Known paths, most-recent first.
+        val candidates = sequenceOf(
+            { state.optJSONObject("settings")?.optJSONObject("session")?.optString("accessToken", "") },
+            { state.optJSONObject("session")?.optString("accessToken", "") },
+            { state.optJSONObject("settings")?.optString("accessToken", "") }
+        )
+        for (probe in candidates) {
+            val token = probe()
+            if (!token.isNullOrBlank()) return token
+        }
+        // Last resort: walk the tree until we find any "accessToken" key.
+        return findAccessTokenRecursive(state)
+    }
+
+    private fun findAccessTokenRecursive(node: Any?): String? {
+        when (node) {
+            is JSONObject -> {
+                val direct = node.optString("accessToken", "")
+                if (direct.isNotBlank()) return direct
+                val keys = node.keys()
+                while (keys.hasNext()) {
+                    val k = keys.next()
+                    findAccessTokenRecursive(node.opt(k))?.let { return it }
+                }
+            }
+            is org.json.JSONArray -> {
+                for (i in 0 until node.length()) {
+                    findAccessTokenRecursive(node.opt(i))?.let { return it }
+                }
+            }
+        }
+        return null
     }
 
     private fun fetchAllTracksFromApi(playId: String, accessToken: String): List<SpotifyTrack>? {

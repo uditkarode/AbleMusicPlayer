@@ -26,5 +26,6 @@ class Song(
     var placeholder: Boolean = false,
     var ytmThumbnail: String = "",
     val albumId: Long = -1,
+    var album: String = "",
     var isLocal: Boolean = false,
 )

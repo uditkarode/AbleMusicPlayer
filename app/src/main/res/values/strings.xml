@@ -8,6 +8,13 @@
     <string name="search">Search</string>
     <string name="home">Home</string>
     <string name="playlists">Playlists</string>
+    <string name="library">Library</string>
+    <string name="artists">Artists</string>
+    <string name="albums">Albums</string>
+    <string name="no_artists">No artists yet.</string>
+    <string name="no_albums">No albums yet.</string>
+    <string name="song_count">%1$d songs</string>
+    <string name="one_song">1 song</string>
     <string name="settings">Settings</string>
     <string name="welcome">Welcome to %1$s!</string>
     <string name="storage_perm">The storage permission is required to proceed. This is needed for Able to download songs to your storage.</string>

@@ -12,6 +12,12 @@
         />
 
     <item
+        android:id="@+id/library_menu"
+        android:title="@string/library"
+        android:icon="@drawable/ic_music_note_black_24dp"
+        />
+
+    <item
         android:id="@+id/settings_menu"
         android:title="@string/playlists"
         android:icon="@drawable/ic_library_music_black_24dp"

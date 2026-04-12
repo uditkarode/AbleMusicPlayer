@@ -513,7 +513,9 @@ object Shared {
         @Suppress("DEPRECATION") val projection = arrayOf(
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.DATA
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.ALBUM,
+            MediaStore.Audio.Media.ALBUM_ID
         )
         val selection = "${MediaStore.Audio.Media.DATA} LIKE ?"
         val selectionArgs = arrayOf("$folderPath/%")
@@ -528,29 +530,34 @@ object Shared {
                     songs.add(Song(
                         name = it.getString(0) ?: File(path).nameWithoutExtension,
                         artist = it.getString(1) ?: "",
-                        filePath = path
+                        filePath = path,
+                        album = it.getString(3) ?: "",
+                        albumId = it.getLong(4)
                     ))
                     indexedPaths.add(path)
                 }
             }
         }
 
-        // Pick up any files not yet in MediaStore (title from filename, artist from metadata)
+        // Pick up any files not yet in MediaStore (title from filename, artist/album from metadata)
         val unindexedPaths = mutableListOf<String>()
         for (f in musicFolder.listFiles() ?: arrayOf()) {
             if (!f.isDirectory && f.extension == "mp3" && !f.name.contains(".tmp")
                 && f.absolutePath !in indexedPaths) {
                 var artist = ""
+                var album = ""
                 val mmr = android.media.MediaMetadataRetriever()
                 try {
                     mmr.setDataSource(f.absolutePath)
                     mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)
                         ?.takeIf { it.isNotBlank() }?.let { artist = it }
+                    mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                        ?.takeIf { it.isNotBlank() }?.let { album = it }
                 } catch (_: Exception) {
                 } finally {
                     mmr.release()
                 }
-                songs.add(Song(name = f.nameWithoutExtension, artist = artist, filePath = f.absolutePath))
+                songs.add(Song(name = f.nameWithoutExtension, artist = artist, filePath = f.absolutePath, album = album))
                 unindexedPaths.add(f.absolutePath)
             }
         }
@@ -576,7 +583,8 @@ object Shared {
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.DATA,
-            MediaStore.Audio.Media.ALBUM_ID
+            MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.ALBUM
         )
         val songCursor: Cursor? = contentResolver.query(
             songUri,
@@ -598,6 +606,7 @@ object Shared {
                                     artist = songCursor.getString(1),
                                     filePath = path,
                                     albumId = songCursor.getLong(3),
+                                    album = songCursor.getString(4) ?: "",
                                     isLocal = true
                                 )
                             )

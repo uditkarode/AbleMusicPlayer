@@ -267,9 +267,24 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
                 }
 
                 val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
-                    ?: streamInfo.audioStreams[0]
+                    ?: streamInfo.audioStreams.firstOrNull()
+                if (stream == null) {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "No audio streams available", Toast.LENGTH_SHORT).show()
+                        MusicService.registeredClients.forEach { it.isLoading(false) }
+                    }
+                    Log.e("ERR>", "No audio streams for ${song.youtubeLink}")
+                    return
+                }
                 val url = stream.content
-                val ext = stream.getFormat()!!.suffix
+                val ext = stream.getFormat()?.suffix ?: run {
+                    launch(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Unknown stream format", Toast.LENGTH_SHORT).show()
+                        MusicService.registeredClients.forEach { it.isLoading(false) }
+                    }
+                    Log.e("ERR>", "Stream has no format for ${song.youtubeLink}")
+                    return
+                }
                 val songId = Shared.getIdFromLink(song.youtubeLink)
 
                 // Save album art

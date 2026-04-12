@@ -391,6 +391,14 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * @param enabled enables or disables shuffle.
      */
     private fun setShuffle(enabled: Boolean) {
+        // Guard against toggling before a queue exists (e.g. state restored
+        // from prefs on fresh service start). Just update the flag and bail;
+        // the queue will be arranged when the user actually plays something.
+        if (playQueue.isEmpty() || currentIndex < 0 || currentIndex >= playQueue.size) {
+            onShuffle = enabled
+            return
+        }
+
         if (enabled) {
             val detachedSong = playQueue[currentIndex]
             playQueue.removeAt(currentIndex)
@@ -418,6 +426,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * changes to the previous song
      */
     private fun previousSong() {
+        if (playQueue.isEmpty()) return
         if (mediaPlayer.currentPosition > 2000) {
             seekTo(0)
         } else {
@@ -431,6 +440,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * changes to the next song
      */
     private fun nextSong() {
+        if (playQueue.isEmpty()) return
         if (onRepeat) {
             try {
                 mediaPlayer.seekTo(0)
@@ -483,6 +493,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * changes the current song to playQueue[currentIndex] and starts playing it.
      */
     private fun songChanged() {
+        if (playQueue.isEmpty() || currentIndex < 0 || currentIndex >= playQueue.size) {
+            Log.w("ERR>", "songChanged called with empty/invalid queue state")
+            return
+        }
         if (!isInstantiated) isInstantiated = true
         else {
             // Release and recreate instead of reset() to avoid
@@ -540,7 +554,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             val song = playQueue[index]
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
             val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
-                ?: streamInfo.audioStreams[0]
+                ?: streamInfo.audioStreams.firstOrNull()
+                ?: throw IllegalStateException("No audio streams available for ${song.youtubeLink}")
             val url = stream.content
             val songId = Shared.getIdFromLink(song.youtubeLink)
 
@@ -787,6 +802,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         nameOverride: String? = null,
         artistOverride: String? = null
     ) {
+        if (playQueue.isEmpty() || currentIndex < 0 || currentIndex >= playQueue.size) {
+            Log.w("ERR>", "showNotification called with empty/invalid queue state")
+            return
+        }
         songCoverArt = null
         try {
             if (image == null) {

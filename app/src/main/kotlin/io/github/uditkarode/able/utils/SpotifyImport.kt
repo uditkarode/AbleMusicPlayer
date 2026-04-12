@@ -198,10 +198,17 @@ object SpotifyImport {
         // Resolve stream
         val streamInfo = StreamInfo.getInfo(searchResult.url)
         val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
-            ?: streamInfo.audioStreams[0]
+            ?: streamInfo.audioStreams.firstOrNull()
+        if (stream == null) {
+            Log.w(TAG, "No audio streams available for ${searchResult.url}")
+            return null
+        }
         val url = stream.content
         val bitrate = stream.averageBitrate
-        val ext = stream.getFormat()!!.suffix
+        val ext = stream.getFormat()?.suffix ?: run {
+            Log.w(TAG, "Stream has no known format for ${searchResult.url}")
+            return null
+        }
 
         // Download to temp file
         val tempFile = File(Constants.ableSongDir, "$songId.tmp.$ext")

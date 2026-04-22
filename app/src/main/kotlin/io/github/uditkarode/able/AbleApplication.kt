@@ -35,7 +35,10 @@ class AbleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Constants.init(this)
-        thread { Shared.migrateFileNames(this) }
+        thread {
+            Shared.migrateFileNames(this)
+            Shared.migrateAlbumTags(this)
+        }
         viewPump = ViewPump.builder()
             .addInterceptor(
                 CalligraphyInterceptor(

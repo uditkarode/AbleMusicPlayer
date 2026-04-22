@@ -273,7 +273,7 @@ class DownloadService : Service() {
 
                     // Embed album art into MP3 metadata
                     try {
-                        Shared.addThumbnails(mp3File.absolutePath, song.name, this@DownloadService)
+                        Shared.addThumbnails(mp3File.absolutePath, context = this@DownloadService)
                     } catch (e: Exception) {
                         Log.e("ERR>", "Failed to embed album art: $e")
                     }

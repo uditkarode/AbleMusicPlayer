@@ -134,6 +134,50 @@ object Shared {
         Log.i("Shared", "Migration complete: renamed ${pathMap.size} files")
     }
 
+    /**
+     * Older builds wrote the song title into the MP3 ALBUM tag, which made
+     * Library > Albums show one "album" per track. Clear any ALBUM tag that
+     * equals the TITLE tag (or the filename) so grouping works again.
+     */
+    fun migrateAlbumTags(context: Context) {
+        val prefs = context.getSharedPreferences("able_migrations", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("album_tags_migrated", false)) return
+
+        val songDir = Constants.ableSongDir
+        if (!songDir.exists()) {
+            prefs.edit().putBoolean("album_tags_migrated", true).apply()
+            return
+        }
+
+        val fixedPaths = mutableListOf<String>()
+        for (f in songDir.listFiles() ?: arrayOf()) {
+            if (f.isDirectory || f.extension != "mp3" || f.name.contains(".tmp")) continue
+            try {
+                val audioFile = AudioFileIO.read(f)
+                val tag = audioFile.tag ?: continue
+                val album = tag.getFirst(FieldKey.ALBUM) ?: ""
+                if (album.isBlank()) continue
+                val title = tag.getFirst(FieldKey.TITLE) ?: ""
+                if (album == title || album == f.nameWithoutExtension) {
+                    tag.deleteField(FieldKey.ALBUM)
+                    audioFile.commit()
+                    fixedPaths.add(f.absolutePath)
+                }
+            } catch (e: Exception) {
+                Log.e("Shared", "Album-tag migration skipped ${f.name}: $e")
+            }
+        }
+
+        if (fixedPaths.isNotEmpty()) {
+            MediaScannerConnection.scanFile(
+                context, fixedPaths.toTypedArray(), null, null
+            )
+        }
+
+        prefs.edit().putBoolean("album_tags_migrated", true).apply()
+        Log.i("Shared", "Album-tag migration complete: fixed ${fixedPaths.size} files")
+    }
+
     /** To only show the splash screen on the first launch of
      *  the MainActivity in a session.
      * */
@@ -207,28 +251,26 @@ object Shared {
      */
     fun addThumbnails(imageFile: String, albumName: String = "", context: Context) {
         try {
-            var id = imageFile.substringAfterLast("/")
-            id = id.substringBeforeLast(".")
+            val id = imageFile.substringAfterLast("/").substringBeforeLast(".")
             val albumArt = File(Constants.albumArtDir, id)
             val audioFile: AudioFile = AudioFileIO.read(File(imageFile))
-            if (albumName.isNotEmpty())
-                id = albumName
             when {
                 imageFile.contains(".mp3") -> {
-                    audioFile.tag.deleteField(FieldKey.ALBUM)
                     audioFile.tag.deleteArtworkField()
-                    audioFile.tag.setField(
-                        FieldKey.ALBUM,
-                        id
-                    )
+                    if (albumName.isNotEmpty()) {
+                        audioFile.tag.deleteField(FieldKey.ALBUM)
+                        audioFile.tag.setField(FieldKey.ALBUM, albumName)
+                    }
                     audioFile.tag.setField(AndroidArtwork.createArtworkFromFile(albumArt))
                 }
 
                 imageFile.contains(".m4a") -> {
                     val mp4tag = audioFile.tag as Mp4Tag
                     mp4tag.deleteField(Mp4FieldKey.ARTWORK)
-                    mp4tag.deleteField(Mp4FieldKey.ALBUM)
-                    mp4tag.setField(FieldKey.ALBUM, id)
+                    if (albumName.isNotEmpty()) {
+                        mp4tag.deleteField(Mp4FieldKey.ALBUM)
+                        mp4tag.setField(FieldKey.ALBUM, albumName)
+                    }
                     val bitmap = Glide
                         .with(context)
                         .asBitmap()

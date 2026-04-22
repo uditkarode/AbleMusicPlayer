@@ -19,14 +19,22 @@
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/artists" />
+            android:text="@string/artists"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/library_toggle_bg"
+            app:rippleColor="#33ffffff"
+            app:strokeColor="@color/white" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/library_btn_albums"
             style="?attr/materialButtonOutlinedStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/albums" />
+            android:text="@string/albums"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/library_toggle_bg"
+            app:rippleColor="#33ffffff"
+            app:strokeColor="@color/white" />
 
     </com.google.android.material.button.MaterialButtonToggleGroup>
 

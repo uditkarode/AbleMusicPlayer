@@ -26,19 +26,6 @@ jobs:
           java-version: 25
           cache: gradle
 
-      # ---------- Notify build started ----------
-
-      - name: Telegram — build started
-        env:
-          TG_BOT_KEY: ${{ secrets.TG_BOT_KEY }}
-        run: |
-          SHORT_SHA="${GITHUB_SHA::8}"
-          curl -sf -X POST "https://api.telegram.org/bot${TG_BOT_KEY}/sendMessage" \
-            -d chat_id="-1001415196670" \
-            -d disable_web_page_preview=true \
-            -d parse_mode=markdown \
-            -d text="🤖 \`building with HEAD as\` [${SHORT_SHA}](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA}) 🤖"
-
       # ---------- Prepare build ----------
 
       # Inject API keys into source (replaced at compile time)

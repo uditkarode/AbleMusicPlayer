@@ -144,6 +144,9 @@ or via the UPI address %2$s</string>
     <string name="disc_yt_fail">Couldn\'t find this track on YouTube</string>
     <string name="disc_added_to_queue">Up next: %1$s</string>
     <string name="disc_back_to_playlists">‹ My playlists</string>
+    <string name="disc_back_to_artists">‹ All artists</string>
+    <string name="disc_singles">Singles</string>
+    <string name="disc_no_discography">Couldn\'t load the discography</string>
     <string name="disc_pick_playlist">Discover from a playlist</string>
     <string name="disc_no_playlists">Create a playlist first to get suggestions</string>
     <string name="disc_playlist_unusable">No usable tracks in this playlist</string>

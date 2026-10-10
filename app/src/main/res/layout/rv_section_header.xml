@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/section_title"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="18dp"
+    android:layout_marginBottom="4dp"
+    android:paddingHorizontal="8dp"
+    android:text="@string/disc_singles"
+    android:textColor="#94BCE3"
+    android:textSize="18sp" />

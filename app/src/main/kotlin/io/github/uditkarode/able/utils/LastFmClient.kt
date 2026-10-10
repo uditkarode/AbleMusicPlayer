@@ -23,6 +23,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import io.github.uditkarode.able.model.discovery.AlbumSuggestion
 import io.github.uditkarode.able.model.discovery.ArtistSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import okhttp3.OkHttpClient
@@ -50,6 +51,9 @@ object LastFmClient {
 
     /** Cache TTL for artwork lookups (track/artist getInfo): 7 days. */
     private const val ART_TTL_MS = 7L * 24 * 60 * 60 * 1000
+
+    /** Cache TTL for album track lists + release dates: 1 day. */
+    private const val ALBUM_TTL_MS = 24L * 60 * 60 * 1000
 
     /** Min interval between artwork lookups (rate limit is 5 req/s). */
     private const val ART_MIN_INTERVAL_MS = 220L
@@ -96,6 +100,56 @@ object LastFmClient {
     fun artistTopTracks(artist: String): List<TrackSuggestion> =
         callTracks("artist.gettoptracks", "artist" to artist)
 
+    /**
+     * artist.getTopAlbums — the album side of the discography drill-down
+     * (cover art included; release dates come from [albumTracks]).
+     */
+    fun artistTopAlbums(artist: String, limit: Int = 10): List<AlbumSuggestion> {
+        val root = cachedJson("artist.gettopalbums", listOf("artist" to artist))
+            ?: return emptyList()
+        return findArray(root, "album")
+            .mapNotNull { it.asObjectOrNull() }
+            .mapNotNull { entry ->
+                val name = entry.stringField("name") ?: return@mapNotNull null
+                if (name.isBlank() || name == "(null)") return@mapNotNull null
+                AlbumSuggestion(
+                    name = name,
+                    artist = artist,
+                    image = entry.bestImage()
+                )
+            }
+            .take(limit)
+    }
+
+    /**
+     * album.getInfo — full track list + release date for one album. The
+     * album image (usually real art) is attached to every track so rows
+     * don't need extra lookups.
+     */
+    fun albumTracks(artist: String, album: String, fallbackImage: String): AlbumSuggestion? {
+        val root = infoObject(
+            "album.getinfo", listOf("artist" to artist, "album" to album), ALBUM_TTL_MS
+        ) ?: return null
+        val image = root.bestImage().ifBlank { fallbackImage }
+        val rawDate = root.stringField("releasedate").orEmpty()
+        val year = Regex("\\b\\d{4}\\b").find(rawDate)?.value?.toIntOrNull() ?: 0
+        val tracks = findArray(root, "track")
+            .mapNotNull { it.asObjectOrNull() }
+            .mapNotNull { entry ->
+                val name = entry.stringField("name") ?: return@mapNotNull null
+                if (name.isBlank()) return@mapNotNull null
+                TrackSuggestion(name = name, artist = artist, image = image)
+            }
+        return AlbumSuggestion(
+            name = root.stringField("name") ?: album,
+            artist = artist,
+            image = image,
+            releaseDate = rawDate,
+            year = year,
+            tracks = tracks
+        )
+    }
+
     /** chart.getTopArtists — most-played artists globally. */
     fun topArtists(): List<ArtistSuggestion> = callArtists("chart.gettopartists")
 
@@ -121,7 +175,7 @@ object LastFmClient {
         ArtworkCache.trackImage(artist, track)?.let { return it }
         rateLimitArt()
         val url = trackInfoImage(artist, track)
-        if (url.isNotBlank()) ArtworkCache.putTrack(artist, track, url)
+        ArtworkCache.putTrack(artist, track, url) // real URL or "no art" marker
         return url
     }
 
@@ -135,7 +189,7 @@ object LastFmClient {
         ArtworkCache.artistImage(name)?.let { return it }
         rateLimitArt()
         val url = artistInfoImage(name)
-        if (url.isNotBlank()) ArtworkCache.putArtist(name, url)
+        ArtworkCache.putArtist(name, url) // real URL or "no art" marker
         return url
     }
 
@@ -169,13 +223,19 @@ object LastFmClient {
     fun isPlaceholderImage(url: String): Boolean =
         PLACEHOLDER_HASHES.any { url.contains(it) }
 
-    /** Fetches a getInfo response and returns the wrapped track/artist object. */
-    private fun infoObject(method: String, params: List<Pair<String, String>>): JsonObject? {
-        val json = cachedJson(method, params, ART_TTL_MS) ?: return null
+    /** Fetches a getInfo response and returns the wrapped track/artist/album object. */
+    private fun infoObject(
+        method: String,
+        params: List<Pair<String, String>>,
+        ttlMs: Long = ART_TTL_MS
+    ): JsonObject? {
+        val json = cachedJson(method, params, ttlMs) ?: return null
         val root = try { JsonParser.parseString(json) } catch (_: Exception) { return null }
         if (!root.isJsonObject) return null
         val obj = root.asJsonObject
-        return (obj.get("track") as? JsonObject) ?: (obj.get("artist") as? JsonObject)
+        return (obj.get("track") as? JsonObject)
+            ?: (obj.get("artist") as? JsonObject)
+            ?: (obj.get("album") as? JsonObject)
     }
 
     // region internals

@@ -32,6 +32,9 @@ object ArtworkCache {
     private const val KEY_ORDER = "keys_order"
     private const val MAX_ENTRIES = 500
 
+    /** Marker stored for items Last.fm has no real artwork for. */
+    private const val MISSING = "\u0000missing"
+
     private lateinit var prefs: SharedPreferences
 
     /** Insertion order of the cache keys (oldest first), for FIFO eviction. */
@@ -60,11 +63,17 @@ object ArtworkCache {
     private fun key(vararg parts: String) =
         parts.joinToString("|") { it.trim().lowercase() }
 
-    private fun get(key: String): String? = prefs.getString(key, null)
+    /**
+     * Returns the cached URL, `""` for a known "no artwork" entry (negative
+     * caching — avoids re-querying items without art) or `null` when unknown.
+     */
+    private fun get(key: String): String? {
+        val stored = prefs.getString(key, null) ?: return null
+        return if (stored == MISSING) "" else stored
+    }
 
     private fun put(key: String, url: String) {
-        if (url.isBlank()) return
-        prefs.edit().putString(key, url).apply()
+        prefs.edit().putString(key, url.ifBlank { MISSING }).apply()
         synchronized(order) {
             order.remove(key)
             order.add(key)

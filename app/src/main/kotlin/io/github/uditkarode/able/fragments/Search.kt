@@ -18,6 +18,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -27,6 +28,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
@@ -38,10 +40,12 @@ import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
 import com.afollestad.materialdialogs.list.listItems
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.adapters.DiscographyAdapter
 import io.github.uditkarode.able.adapters.DiscoverResultAdapter
 import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.databinding.SearchBinding
+import io.github.uditkarode.able.model.discovery.AlbumSuggestion
 import io.github.uditkarode.able.model.discovery.ArtistSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
@@ -72,6 +76,8 @@ class Search : Fragment(), CoroutineScope {
     private lateinit var sp: SharedPreferences
 
     companion object {
+        const val TAG = "Search"
+
         val resultArray = ArrayList<Song>()
 
         /** Last.fm suggestions (TrackSuggestion / ArtistSuggestion) shown in Discover mode. */
@@ -87,6 +93,12 @@ class Search : Fragment(), CoroutineScope {
 
     /** Active swipe controller for YT/YTM results; detached for discovery lists. */
     private var searchItemTouchHelper: ItemTouchHelper? = null
+
+    /** True while the artist discography drill-down is on screen. */
+    private var inDrillDown = false
+
+    /** Back handler: enabled only during the discography drill-down. */
+    private var backCallback: OnBackPressedCallback? = null
 
     private val binding get() = _binding!!
 
@@ -200,6 +212,16 @@ class Search : Fragment(), CoroutineScope {
         _binding!!.loadingView.progress = 0.3080229f
         getItems(view.findViewById(R.id.search_bar), view.findViewById(R.id.search_rv))
         setupDiscoveryChips()
+
+        // System back: during the artist drill-down it returns to the previous
+        // list instead of leaving the app.
+        backCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { exitDrill() }
+        }.also { cb ->
+            requireActivity().onBackPressedDispatcher
+                .addCallback(viewLifecycleOwner, cb)
+        }
+        _binding!!.searchBack.setOnClickListener { exitDrill() }
 
         _binding!!.searchViewMode.apply {
             setImageResource(ViewMode.toggleIcon(requireContext()))
@@ -605,35 +627,93 @@ class Search : Fragment(), CoroutineScope {
         }
     }
 
-    /** Drill-down: shows an artist's top tracks as new suggestions. */
-    private fun onDiscoverArtistPressed(artist: ArtistSuggestion) {
-        _binding?.let {
-            it.loadingView.progress = 0.3080229f
-            it.loadingView.visibility = View.VISIBLE
-            it.loadingView.playAnimation()
+    /**
+     * Drill-down: the artist's discography from Last.fm — albums newest first
+     * (with release year), then a "Singles" section with leftover top tracks.
+     */
+    private fun onDiscoverArtistPressed(artist: ArtistSuggestion) = showDiscography(artist)
+
+    private fun showDiscography(artist: ArtistSuggestion) {
+        if (!ApiKeyProvider.hasLastFmKey) { LastFmKeyPrompt.showIfMissing(requireContext()); return }
+        setDiscoverLoading(true)
+        inDrillDown = true
+        backCallback?.isEnabled = true
+        _binding?.searchBack?.apply {
+            text = getString(R.string.disc_back_to_artists)
+            visibility = View.VISIBLE
         }
         launch(Dispatchers.IO) {
-            val tracks = try { LastFmClient.artistTopTracks(artist.name) } catch (e: Exception) { emptyList() }
+            val albums = try { LastFmClient.artistTopAlbums(artist.name) }
+                catch (e: Exception) { Log.e(TAG, "Top albums failed", e); emptyList<AlbumSuggestion>() }
+            val loaded = albums.mapNotNull { album ->
+                try { LastFmClient.albumTracks(artist.name, album.name, album.image) }
+                catch (e: Exception) { Log.e(TAG, "Album tracks failed for ${album.name}", e); null }
+            }
+            val albumTrackNames = loaded.flatMap { it.tracks }
+                .map { it.name.lowercase() }
+                .toSet()
+            val singles = try { LastFmClient.artistTopTracks(artist.name) }
+                catch (e: Exception) { emptyList<TrackSuggestion>() }
+                .filter { it.name.lowercase() !in albumTrackNames }
+            // Albums first, newest first; undated albums last (popularity order).
+            val ordered = loaded.sortedWith(
+                compareByDescending<AlbumSuggestion> { it.year != 0 }
+                    .thenByDescending { it.year }
+            )
+
             launch(Dispatchers.Main) {
-                _binding?.let {
-                    it.loadingView.pauseAnimation()
-                    it.loadingView.visibility = View.GONE
-                }
-                if (tracks.isEmpty())
+                if (!inDrillDown) return@launch // user went back in the meantime
+                setDiscoverLoading(false)
+                val rv = _binding?.searchRv ?: return@launch
+                if (ordered.isEmpty() && singles.isEmpty()) {
                     Toast.makeText(
-                        requireContext(),
-                        getString(R.string.disc_no_artist_tracks, artist.name),
-                        Toast.LENGTH_SHORT
+                        requireContext(), R.string.disc_no_discography, Toast.LENGTH_SHORT
                     ).show()
-                suggestArray.clear()
-                suggestArray.addAll(tracks)
-                view?.findViewById<RecyclerView>(R.id.search_rv)?.adapter = DiscoverResultAdapter(
-                    suggestArray,
-                    onTrackPressed = { onDiscoverTrackPressed(it) },
-                    onArtistPressed = { onDiscoverArtistPressed(it) }
-                )
+                    exitDrill()
+                    return@launch
+                }
+                searchItemTouchHelper?.attachToRecyclerView(null)
+                rv.adapter = DiscographyAdapter(ordered, singles) {
+                    onDiscoverTrackPressed(it)
+                }
+                rv.layoutManager = LinearLayoutManager(requireContext())
+                rv.alpha = 0f
+                rv.visibility = View.VISIBLE
+                rv.animate().alpha(1f).duration = 200
             }
         }
+    }
+
+    /** Leaves the drill-down and restores the previous suggestions list. */
+    private fun exitDrill() {
+        inDrillDown = false
+        backCallback?.isEnabled = false
+        _binding?.searchBack?.visibility = View.GONE
+        if (suggestArray.isEmpty()) return
+        // Render from a copy: showDiscoverSuggestions clears its input first.
+        val restored = ArrayList<Any>(suggestArray)
+        val rv = _binding?.searchRv ?: return
+        searchItemTouchHelper?.attachToRecyclerView(null)
+        rv.adapter = DiscoverResultAdapter(
+            restored,
+            onTrackPressed = { onDiscoverTrackPressed(it) },
+            onArtistPressed = { onDiscoverArtistPressed(it) }
+        )
+        rv.layoutManager =
+            if (ViewMode.isGrid(requireContext())) GridLayoutManager(requireContext(), 2)
+            else LinearLayoutManager(requireContext())
+        rv.alpha = 0f
+        rv.visibility = View.VISIBLE
+        rv.animate().alpha(1f).duration = 200
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // The back callback is registered per-view-lifecycle; drop the drill
+        // state so returning to the tab starts clean.
+        inDrillDown = false
+        backCallback?.isEnabled = false
+        _binding?.searchBack?.visibility = View.GONE
     }
 
     private fun hideKeyboard(activity: Activity) {

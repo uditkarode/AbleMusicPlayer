@@ -86,10 +86,24 @@
 
     </HorizontalScrollView>
 
+    <TextView
+        android:id="@+id/search_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/search_chips_scroll"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="15dp"
+        android:layout_marginTop="8dp"
+        android:padding="8dp"
+        android:text="@string/disc_back_to_artists"
+        android:textColor="#94BCE3"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/search_rv"
         android:visibility="gone"
-        android:layout_below="@+id/search_chips_scroll"
+        android:layout_below="@+id/search_back"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fadingEdge="vertical"

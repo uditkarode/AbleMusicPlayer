@@ -144,6 +144,7 @@ or via the UPI address %2$s</string>
     <string name="disc_unknown_artist">Unknown artist — can\'t find similar tracks</string>
     <string name="disc_no_artist_tracks">No tracks for %1$s</string>
     <string name="disc_yt_fail">Couldn\'t find this track on YouTube</string>
+    <string name="disc_play_failed">Couldn\'t play this track</string>
     <string name="disc_added_to_queue">Up next: %1$s</string>
     <string name="disc_play_now">Play now</string>
     <string name="disc_add_to_queue">Add to queue</string>

@@ -1037,8 +1037,7 @@ class Player : MusicClientActivity() {
     /** Choice menu for a tapped suggestion: play now / add to queue / download. */
     private fun showTrackActionMenu(suggestion: TrackSuggestion) {
         MaterialDialog(this).show {
-            title(text = suggestion.name)
-            message(text = suggestion.artist)
+            title(text = "${suggestion.name} - ${suggestion.artist}")
             listItems(items = listOf(
                 getString(R.string.disc_play_now),
                 getString(R.string.disc_add_to_queue),

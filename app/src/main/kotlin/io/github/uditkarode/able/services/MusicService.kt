@@ -45,6 +45,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
@@ -589,6 +590,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             launch(Dispatchers.Main) { playSongFromFile() }
         } catch (e: Exception) {
             Log.e("ERR>", "resolveAndDownloadStream failed: $e")
+            launch(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MusicService,
+                    getString(R.string.disc_play_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
             consecutiveStreamFailures++
             if (consecutiveStreamFailures < playQueue.size) {
                 launch(Dispatchers.Main) { nextSong() }
@@ -627,6 +635,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         } catch (e: Exception) {
             Log.e("ERR>", "playSongFromFile: $e")
+            launch(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MusicService,
+                    getString(R.string.disc_play_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 

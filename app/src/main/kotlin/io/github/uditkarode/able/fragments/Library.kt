@@ -24,8 +24,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LibraryDetail
 import io.github.uditkarode.able.adapters.LibraryGroupAdapter
@@ -129,9 +127,7 @@ class Library : Fragment(), CoroutineScope {
         binding.libraryViewMode.setImageResource(
             ViewMode.toggleIcon(requireContext())
         )
-        binding.libraryRv.layoutManager =
-            if (ViewMode.isGrid(requireContext())) GridLayoutManager(requireContext(), 2)
-            else LinearLayoutManager(requireContext())
+        binding.libraryRv.layoutManager = ViewMode.layoutManagerFor(requireContext())
         adapter = LibraryGroupAdapter(lastGroups) { group ->
             openDetail(group.label)
         }

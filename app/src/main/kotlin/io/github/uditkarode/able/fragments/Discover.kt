@@ -42,6 +42,7 @@ import io.github.uditkarode.able.utils.LastFmClient
 import io.github.uditkarode.able.utils.LastFmKeyPrompt
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.TrackResolver
+import io.github.uditkarode.able.utils.ViewMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -57,6 +58,9 @@ class Discover : Fragment(), CoroutineScope {
     private lateinit var itemPressed: Search.SongCallback
     private var _binding: DiscoverBinding? = null
     private val binding get() = _binding!!
+
+    /** Last rendered suggestions, used to rebuild the list on view-mode toggle. */
+    private var suggestions: List<TrackSuggestion> = emptyList()
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
 
@@ -102,6 +106,14 @@ class Discover : Fragment(), CoroutineScope {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.discoverBack.setOnClickListener { showPlaylists() }
+        binding.discoverViewMode.apply {
+            setImageResource(ViewMode.toggleIcon(requireContext()))
+            setOnClickListener {
+                ViewMode.toggle(requireContext())
+                setImageResource(ViewMode.toggleIcon(requireContext()))
+                applySuggestionViewMode()
+            }
+        }
         showPlaylists()
     }
 
@@ -110,6 +122,7 @@ class Discover : Fragment(), CoroutineScope {
     private fun showPlaylists() {
         val playlists = Shared.getPlaylists()
         binding.discoverBack.visibility = View.GONE
+        binding.discoverViewMode.visibility = View.GONE
         if (playlists.isEmpty()) {
             showEmpty(getString(R.string.disc_no_playlists))
             return
@@ -188,17 +201,32 @@ class Discover : Fragment(), CoroutineScope {
 
     private fun showSuggestions(items: List<TrackSuggestion>) {
         setLoading(false)
+        suggestions = items
         val rv = binding.discoverRv
         binding.discoverEmpty.visibility = View.GONE
+        binding.discoverViewMode.visibility = View.VISIBLE
         rv.adapter = DiscoverResultAdapter(
             ArrayList<Any>(items),
             onTrackPressed = ::onTrackPressed,
             onArtistPressed = { }
         )
-        rv.layoutManager = LinearLayoutManager(requireContext())
+        rv.layoutManager = ViewMode.layoutManagerFor(requireContext())
         rv.alpha = 0f
         rv.visibility = View.VISIBLE
         rv.animate().alpha(1f).duration = 200
+    }
+
+    /** (Re)builds the suggestions adapter + layout manager for the current view mode. */
+    private fun applySuggestionViewMode() {
+        if (_binding == null || suggestions.isEmpty()) return
+        val rv = binding.discoverRv
+        if (rv.visibility != View.VISIBLE) return
+        rv.layoutManager = ViewMode.layoutManagerFor(requireContext())
+        rv.adapter = DiscoverResultAdapter(
+            ArrayList<Any>(suggestions),
+            onTrackPressed = ::onTrackPressed,
+            onArtistPressed = { }
+        )
     }
 
     private fun showEmpty(message: String) {

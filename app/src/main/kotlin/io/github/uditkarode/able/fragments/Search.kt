@@ -33,7 +33,6 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
@@ -238,9 +237,7 @@ class Search : Fragment(), CoroutineScope {
         val rv = _binding?.searchRv ?: return
         if (rv.visibility != View.VISIBLE) return
         val ctx = requireContext()
-        val grid = ViewMode.isGrid(ctx)
-        rv.layoutManager =
-            if (grid) GridLayoutManager(ctx, 2) else LinearLayoutManager(ctx)
+        rv.layoutManager = ViewMode.layoutManagerFor(ctx)
         when {
             suggestArray.isNotEmpty() ->
                 rv.adapter = DiscoverResultAdapter(
@@ -375,9 +372,7 @@ class Search : Fragment(), CoroutineScope {
             onTrackPressed = { onDiscoverTrackPressed(it) },
             onArtistPressed = { onDiscoverArtistPressed(it) }
         )
-        rv.layoutManager =
-            if (ViewMode.isGrid(requireContext())) GridLayoutManager(requireContext(), 2)
-            else LinearLayoutManager(requireContext())
+        rv.layoutManager = ViewMode.layoutManagerFor(requireContext())
         rv.alpha = 0f
         rv.visibility = View.VISIBLE
         rv.animate().alpha(1f).duration = 200
@@ -561,9 +556,7 @@ class Search : Fragment(), CoroutineScope {
                                     searchRv.adapter =
                                         YtResultAdapter(resultArray, WeakReference(this@Search))
                                 searchRv.layoutManager =
-                                    if (ViewMode.isGrid(requireContext()))
-                                        GridLayoutManager(requireContext(), 2)
-                                    else LinearLayoutManager(requireContext())
+                                    ViewMode.layoutManagerFor(requireContext())
                                 _binding!!.loadingView.visibility = View.GONE
                                 _binding!!.loadingView.pauseAnimation()
                                 searchRv.alpha = 0f
@@ -699,9 +692,7 @@ class Search : Fragment(), CoroutineScope {
             onTrackPressed = { onDiscoverTrackPressed(it) },
             onArtistPressed = { onDiscoverArtistPressed(it) }
         )
-        rv.layoutManager =
-            if (ViewMode.isGrid(requireContext())) GridLayoutManager(requireContext(), 2)
-            else LinearLayoutManager(requireContext())
+        rv.layoutManager = ViewMode.layoutManagerFor(requireContext())
         rv.alpha = 0f
         rv.visibility = View.VISIBLE
         rv.animate().alpha(1f).duration = 200

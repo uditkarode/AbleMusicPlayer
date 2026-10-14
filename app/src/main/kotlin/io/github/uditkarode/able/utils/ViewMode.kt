@@ -33,6 +33,10 @@ import androidx.recyclerview.widget.RecyclerView
 object ViewMode {
     private const val KEY = "view_mode_grid"
 
+    /** Settings key for the grid column count (ListPreference, stored as string). */
+    private const val KEY_COLUMNS = "grid_column_count"
+    private const val DEFAULT_COLUMNS = 2
+
     fun isGrid(context: Context): Boolean =
         PreferenceManager.getDefaultSharedPreferences(context).getBoolean(KEY, false)
 
@@ -47,9 +51,20 @@ object ViewMode {
         return grid
     }
 
-    /** Layout manager matching the current preference (2 columns in grid mode). */
+    /**
+     * Number of columns used by every grid screen in the app; editable from
+     * Settings ("Grid columns"). Read as string because it is written by a
+     * ListPreference, which always persists strings.
+     */
+    fun gridColumnCount(context: Context): Int =
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(KEY_COLUMNS, null)?.toIntOrNull()?.coerceIn(1, 4)
+            ?: DEFAULT_COLUMNS
+
+    /** Layout manager matching the current preference (grid = configured columns). */
     fun layoutManagerFor(context: Context): RecyclerView.LayoutManager =
-        if (isGrid(context)) GridLayoutManager(context, 2) else LinearLayoutManager(context)
+        if (isGrid(context)) GridLayoutManager(context, gridColumnCount(context))
+        else LinearLayoutManager(context)
 
     /** Icon a toggle should show: it reflects the *currently active* view. */
     fun toggleIcon(context: Context): Int =

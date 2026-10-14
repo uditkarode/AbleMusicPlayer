@@ -27,8 +27,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.WhichButton
@@ -77,9 +75,7 @@ class Playlists : Fragment(), MusicService.MusicClient {
         _binding!!.playlistsViewMode.setImageResource(
             ViewMode.toggleIcon(requireContext())
         )
-        _binding!!.playlistsRv.layoutManager =
-            if (ViewMode.isGrid(requireContext())) GridLayoutManager(requireContext(), 2)
-            else LinearLayoutManager(requireContext())
+        _binding!!.playlistsRv.layoutManager = ViewMode.layoutManagerFor(requireContext())
         _binding!!.playlistsRv.adapter = PlaylistAdapter(Shared.getPlaylists())
         _binding!!.playlistsRv.adapter?.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
             override fun onChanged() { updateEmptyState() }

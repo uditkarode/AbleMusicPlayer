@@ -123,6 +123,8 @@ or via the UPI address %2$s</string>
     <string name="txt_view_mode">Switch list / grid view</string>
     <string name="pref_view_mode">Grid view</string>
     <string name="pref_view_mode_sum">Show lists as a cover grid by default</string>
+    <string name="pref_grid_columns">Grid columns</string>
+    <string name="pref_grid_columns_sum">Columns used by every grid view in the app</string>
     <string name="lastfm_key_title">Last.fm API key</string>
     <string name="lastfm_key_message">Discovery needs a free Last.fm API key. Create one at https://www.last.fm/api/account/create and paste it here.</string>
     <string name="lastfm_key_hint">API key</string>

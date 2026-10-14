@@ -29,6 +29,16 @@
         android:summary="@string/pref_view_mode_sum"
         />
 
+    <ListPreference
+        android:key="grid_column_count"
+        android:defaultValue="2"
+        android:entries="@array/grid_columns"
+        android:entryValues="@array/grid_columns_values"
+        app:iconSpaceReserved="false"
+        android:title="@string/pref_grid_columns"
+        android:summary="@string/pref_grid_columns_sum"
+        />
+
     <Preference
         android:title="@string/downloads_title"
         app:iconSpaceReserved="false"

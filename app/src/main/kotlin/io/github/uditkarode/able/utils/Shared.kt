@@ -298,13 +298,26 @@ object Shared {
 
 
     /**
-     * @param link a URL.
-     * @return YouTube ID of the video from the link param.
+     * @param link a YouTube / YouTube Music URL.
+     * @return the YouTube video ID. Handles watch?v=ID links carrying extra
+     * tracking params (&si=...), youtu.be short links, shorts and embed URLs.
+     * Returns "" when no known pattern matches. Never returns the value of a
+     * non-ID query parameter (the old lastIndexOf("=") logic did, colliding
+     * file/cover names of different videos).
      */
     fun getIdFromLink(link: String): String {
-        return link.run {
-            substring(lastIndexOf("=") + 1)
+        val markers = listOf("?v=", "&v=", "youtu.be/", "/shorts/", "/embed/")
+        val start = markers.firstOrNull { link.contains(it) }
+            ?.let { link.indexOf(it) + it.length }
+            ?: return ""
+        if (start >= link.length) return ""
+        var end = start
+        while (end < link.length) {
+            val c = link[end]
+            if (c == '&' || c == '/' || c == '?' || c == '#') break
+            end++
         }
+        return link.substring(start, end)
     }
 
     /**
@@ -345,6 +358,18 @@ object Shared {
         }
         return url
     }
+
+    /**
+     * Downgrades a thumbnail URL to a variant more likely to exist:
+     * maxresdefault/sddefault are not available for every video,
+     * hqdefault always is.
+     */
+    fun thumbnailFallbackUrl(url: String): String =
+        when {
+            url.contains("maxresdefault") -> url.replace("maxresdefault", "hqdefault")
+            url.contains("sddefault") -> url.replace("sddefault", "hqdefault")
+            else -> url
+        }
 
     /**
      * Returns a small thumbnail URL suitable for list items.

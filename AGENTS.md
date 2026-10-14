@@ -49,6 +49,11 @@ The core communication mechanism. `MusicService` is a foreground service managin
 | `ChunkedDownloader` | Downloads audio via 256KB Range-header chunks to bypass YouTube throttling |
 | `DownloadService` | `JobIntentService` for downloads (download body is commented out / WIP) |
 | `AbleApplication` | `Application` subclass, initializes `Constants` and `ViewPump` |
+| `ViewMode` | Global list/grid preference + grid column count; `layoutManagerFor()` is the single source for layout managers |
+| `LastFmClient` | Last.fm API client for discovery: similar tracks/artists, artwork resolution, rate limiting |
+| `TrackResolver` | Resolves a Last.fm `TrackSuggestion` to a playable `Song` via YouTube Music |
+| `Discover` (fragment) | Tab 5. Playlist-based discovery (Last.fm similar tracks aggregated across seeds) |
+| `DiscoverResultAdapter` | Renders discovery suggestions in list or grid rows (used by Search chips, Discover tab, Player sheet) |
 
 ### Data Models (`:core:model`)
 
@@ -59,6 +64,25 @@ The core communication mechanism. `MusicService` is a foreground service managin
 - **`Format`** — `MODE_MP3` / `MODE_WEBM`
 - **`Playlist`** — `name` + `JSONArray` of songs
 - **`DownloadableSong`** — Intent payload for DownloadService
+
+## View Mode & Grid Columns
+
+All list/grid screens share one global preference managed by `utils/ViewMode.kt`:
+
+- `view_mode_grid` (boolean, default `false`) — grid instead of list
+- `grid_column_count` (string `"1"`..`"4"`, default `"2"`) — columns for **every** grid in the app; editable in Settings as "Grid columns" (`ListPreference`, which is why it is stored as string; parsed with `toIntOrNull().coerceIn(1, 4)`)
+
+Rules:
+
+- Never hardcode `GridLayoutManager(context, 2)` — always use `ViewMode.layoutManagerFor(context)`.
+- Screens with a list: Library, Playlists, Search (YT/YTM/chips/drill-down), LibraryDetail, LocalPlaylist, AlbumPlaylist, Discover tab, and the Player's similar-tracks bottom sheet. Most have an inline toggle icon bound to `ViewMode.toggleIcon`.
+- Adapters choose the item layout themselves (`ViewMode.isGrid(parent.context)` → `rv_grid_result` vs row layout).
+
+### Discovery (Last.fm)
+
+- Requires a Last.fm API key, entered in-app on first use (`ApiKeyProvider` + `LastFmKeyPrompt`).
+- Entry points: Search chips (tracks/artists), Discover tab (seeded by playlist tracks), Player → Discovery button (similar tracks in a `BottomSheetDialog` with per-track play/queue/download actions).
+- `MusicService.addToPlayQueue` notifies clients via `queueChanged` on `Dispatchers.Default`.
 
 ## NewPipeExtractor Integration
 
@@ -87,6 +111,12 @@ Initialized once in `MainActivity.onCreate()` via `NewPipe.init(CustomDownloader
 
 ```bash
 ./gradlew :app:assembleDebug
+```
+
+ABI splits are enabled: the debug APKs land in `app/build/outputs/apk/debug/` as `app-arm64-v8a-debug.apk` / `app-armeabi-v7a-debug.apk` (no plain `app-debug.apk`). Install the matching one, e.g.:
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
 ```
 
 ## Storage

@@ -503,8 +503,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
         if (!isInstantiated) isInstantiated = true
         else {
-            // Release and recreate instead of reset() to avoid
-            // INVALID_OPERATION (-38) errors from prepareAsync
+            // Detach listeners BEFORE releasing: a player released during
+            // playback can deliver a spurious INVALID_OPERATION (-38) event
+            // afterwards, which the still-attached error handler turned into
+            // a nextSong() skip (the "plays the wrong song" bug).
+            mediaPlayer.setOnErrorListener(null)
+            mediaPlayer.setOnCompletionListener(null)
+            mediaPlayer.setOnPreparedListener(null)
             mediaPlayer.release()
             mediaPlayer = MediaPlayer()
         }
@@ -516,9 +521,21 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
         mediaPlayer.setOnErrorListener { _, what, extra ->
             Log.e("ERR>", "MediaPlayer error: what=$what extra=$extra")
+            if (what == -38) {
+                // INVALID_OPERATION: lifecycle race (stale/ghost event), not
+                // a media failure — never skip because of it.
+                return@setOnErrorListener true
+            }
             isLoading = false
             launch(Dispatchers.Default) {
                 registeredClients.forEach { it.isLoading(false) }
+            }
+            launch(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MusicService,
+                    getString(R.string.disc_play_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             previousIndex = currentIndex
             nextSong()

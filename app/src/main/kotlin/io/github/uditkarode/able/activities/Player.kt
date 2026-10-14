@@ -19,7 +19,7 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
 import android.media.MediaScannerConnection
@@ -72,6 +72,7 @@ import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.ApiKeyProvider
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.DeezerClient
 import io.github.uditkarode.able.utils.LastFmClient
 import io.github.uditkarode.able.utils.LastFmKeyPrompt
 import io.github.uditkarode.able.utils.MusicClientActivity
@@ -84,10 +85,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import okhttp3.CacheControl
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -606,216 +603,192 @@ class Player : MusicClientActivity() {
         }
     }
 
-    private fun updateAlbumArt(customSongName: String? = null, forceDeezer: Boolean = false) {
-        if (mService != null) {
-            val mService = mService as MusicService
+    private fun updateAlbumArt(customSongName: String? = null, forceWeb: Boolean = false) {
+        if (mService == null) return
+        val mService = mService as MusicService
 
-            binding.imgAlbart.visibility = View.GONE
-            binding.notePh.visibility = View.VISIBLE
-            var didGetArt = false
-            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            val img = File(
-                Constants.ableSongDir.absolutePath + "/album_art",
-                File(current.filePath).nameWithoutExtension
-            )
-            val cacheImg = File(
-                Constants.ableSongDir.absolutePath + "/cache",
-                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
-            )
+        binding.imgAlbart.visibility = View.GONE
+        binding.notePh.visibility = View.VISIBLE
+        var didGetArt = false
+        val current = mService.getPlayQueue()[mService.getCurrentIndex()]
 
-            launch(Dispatchers.IO) {
-                /*
-                Check priority:
-                1) Album art from metadata (if the song is a local song)
-                2) Album art from disk (if the song is not a local song)
-                3) Album art from Deezer (regardless of song being local or not)
+        // Cover stored beside downloaded files. Only meaningful for real
+        // downloaded files: streamed/unknown paths ("", "<id>.stream.tmp")
+        // resolve to bogus targets — including the album_art directory
+        // itself, which exists() and made the lookup believe it had found
+        // art, leaving the previous song's cover on screen.
+        val isDownloaded = !current.isLocal && current.filePath.isNotBlank() &&
+                !current.filePath.endsWith(".tmp")
+        val img = if (isDownloaded)
+            File(Constants.albumArtDir, File(current.filePath).nameWithoutExtension)
+        else null
 
-                in case (3), if the song is local, the album art should be added
-                to the song metadata, and if not, it should be stored in the Able
-                album art folder.
-                */
+        // Streaming cover cache, keyed by the YouTube video id.
+        val streamId = Shared.getIdFromLink(current.youtubeLink)
+        val cacheImg = if (streamId.isNotBlank())
+            File(Constants.cacheDir, "sCache$streamId")
+        else null
 
+        launch(Dispatchers.IO) {
+            /*
+            Check priority:
+            1) Album art from metadata (local songs only)
+            2) Album art saved by the app (downloaded → album_art/<name>,
+               streamed → cache/sCache<videoId>)
+            3) Last.fm track.getInfo — exact artist+track match (~300px),
+               also returning the album the track belongs to
+            4) Deezer — high-res cover (1400px) of that identified album
 
-                /* (1) Check albumart in song metadata (if the song is a local song) */
-                if (current.isLocal && !forceDeezer) {
-                    Log.i("INFO>", "Fetching from metadata")
+            The previous song's cover is never left on screen: every level
+            repaints through showArtBitmap and failed loads simply fall
+            through to the next level instead of keeping stale pixels.
+            */
+
+            /* (1) Check albumart in song metadata (if the song is a local song) */
+            if (current.isLocal && !forceWeb) {
+                Log.i("INFO>", "Fetching from metadata")
+                try {
+                    val sArtworkUri =
+                        Uri.parse("content://media/external/audio/albumart")
+
+                    val bmp = Glide
+                        .with(this@Player)
+                        .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                        .signature(ObjectKey("player"))
+                        .submit()
+                        .get().toBitmap()
+                    Shared.bmp = bmp
+
+                    showArtBitmap(bmp)
+                    didGetArt = true
+                } catch (e: java.lang.Exception) {
+                    didGetArt = false
+                }
+            }
+
+            /* (2) Cover files saved by the app */
+            if (!didGetArt && !forceWeb) {
+                val imgToLoad = img?.takeIf { it.exists() }
+                    ?: cacheImg?.takeIf { it.exists() }
+                if (imgToLoad != null) {
+                    Log.i("INFO>", "Fetching app-stored cover: ${imgToLoad.name}")
                     try {
-                        binding.notePh.visibility = View.GONE
-                        val sArtworkUri =
-                            Uri.parse("content://media/external/audio/albumart")
-
-                        Shared.bmp = Glide
-                            .with(this@Player)
-                            .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                        val bmp = Glide.with(this@Player)
+                            .asBitmap()
+                            .load(imgToLoad)
                             .signature(ObjectKey("player"))
                             .submit()
-                            .get().toBitmap()
-
-                        launch(Dispatchers.Main) {
-                            binding.imgAlbart.setImageBitmap(Shared.bmp)
-                            binding.imgAlbart.visibility = View.VISIBLE
-                            binding.notePh.visibility = View.GONE
-                            Palette.from(Shared.getSharedBitmap()).generate {
-                                setBgColor(
-                                    it?.getDominantColor(0x002171) ?: 0x002171,
-                                    it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                    it
-                                )
-                            }
-                        }
+                            .get()
+                        showArtBitmap(bmp)
                         didGetArt = true
-                    } catch (e: java.lang.Exception) {
-                        didGetArt = false
-                    }
-                }
-
-                /* (2) Album art from disk (if the song is not a local song) */
-                if (!didGetArt && !forceDeezer) {
-                    if (!current.isLocal) {
-                        Log.i("INFO>", "Fetching from Able folder")
-                        val imgToLoad = if (img.exists()) img else cacheImg
-                        if (imgToLoad.exists()) {
-                            launch(Dispatchers.Main) {
-                                binding.imgAlbart.visibility = View.VISIBLE
-                                binding.notePh.visibility = View.GONE
-                                Glide.with(this@Player)
-                                    .load(imgToLoad)
-                                    .centerCrop()
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .into(binding.imgAlbart)
-                                try {
-                                    Shared.bmp?.recycle()
-                                    Shared.bmp = BitmapFactory.decodeFile(imgToLoad.absolutePath)
-                                    Palette.from(Shared.getSharedBitmap()).generate {
-                                        setBgColor(
-                                            it?.getDominantColor(0x002171) ?: 0x002171,
-                                            it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                            it // causes transparent bar
-                                        )
-
-                                        Shared.clearBitmap()
-                                    }
-                                } catch (e: java.lang.Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-                            didGetArt = true
-                        }
-                    }
-                }
-
-                /* (3) Album art from Deezer (regardless of song being local or not) */
-                if (!didGetArt && Shared.isInternetConnected(this@Player)) {
-                    Log.i("INFO>", "Fetching from Deezer")
-                    val albumArtRequest = if (customSongName == null) {
-                        Request.Builder()
-                            .url(Constants.DEEZER_API + current.name)
-                            .get()
-                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                            .cacheControl(CacheControl.FORCE_NETWORK)
-                            .build()
-                    } else {
-                        Request.Builder()
-                            .url(Constants.DEEZER_API + customSongName)
-                            .get()
-                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                            .build()
-                    }
-
-                    val response = OkHttpClient().newCall(albumArtRequest).execute()
-
-                    try {
-                        run {
-                            val json = JSONObject(response.body.string()).getJSONArray("data")
-                                .getJSONObject(0).getJSONObject("album")
-                            val imgLink = json.getString("cover_xl")
-                            val albumName = json.getString("title")
-
-                            try {
-                                Shared.bmp = Glide
-                                    .with(this@Player)
-                                    .load(imgLink)
-                                    .centerCrop()
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .submit()
-                                    .get().toBitmap()
-
-                                Palette.from(Shared.getSharedBitmap()).generate {
-                                    setBgColor(
-                                        it?.getDominantColor(0x002171) ?: 0x002171,
-                                        it?.getLightVibrantColor(0x002171) ?: 0x002171,
-                                        it
-                                    )
-                                }
-
-                                if (img.exists()) img.delete()
-                                Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
-
-                                launch(Dispatchers.Main) {
-                                    binding.imgAlbart.setImageBitmap(Shared.getSharedBitmap())
-                                    binding.imgAlbart.visibility = View.VISIBLE
-                                    binding.notePh.visibility = View.GONE
-                                    if (mService.getMediaPlayer().isPlaying) {
-                                        mService.showNotification(
-                                            mService.generateAction(
-                                                R.drawable.notif_pause,
-                                                "Pause",
-                                                "ACTION_PAUSE"
-                                            ), Shared.getSharedBitmap()
-                                        )
-                                    } else {
-                                        mService.showNotification(
-                                            mService.generateAction(
-                                                R.drawable.notif_play,
-                                                "Play",
-                                                "ACTION_PLAY"
-                                            ), Shared.getSharedBitmap()
-                                        )
-                                    }
-                                }
-                                Shared.addThumbnails(
-                                    current.filePath,
-                                    albumName,
-                                    this@Player
-                                )
-                                didGetArt = true
-                                launch(Dispatchers.Main) {
-                                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
-                                }
-                            } catch (e: Exception) {
-                                didGetArt = false
-                                Log.e("ERR>", e.toString())
-                            }
-                        }
                     } catch (e: Exception) {
-                        Log.e("ERR>", e.toString())
+                        Log.e("ERR>", "Stored cover load failed: $e")
                     }
                 }
+            }
 
-                if (!didGetArt) {
-                    launch(Dispatchers.Main) {
-                        binding.imgAlbart.visibility = View.GONE
-                        binding.notePh.visibility = View.VISIBLE
-                        setBgColor(0x002171)
-                        binding.playerSeekbar.progressDrawable.setTint(
-                            ContextCompat.getColor(
-                                this@Player,
-                                R.color.thatAccent
-                            )
-                        )
-                        binding.playerSeekbar.thumb.setTint(
-                            ContextCompat.getColor(
-                                this@Player,
-                                R.color.colorPrimary
-                            )
-                        )
-                        tintControls(0x002171)
+            /* (3) Last.fm — exact artist+track identity, cached */
+            var albumName: String? = null
+            val webTitle = customSongName ?: current.name
+            if (!didGetArt &&
+                Shared.isInternetConnected(this@Player) &&
+                current.artist.isNotBlank() && webTitle.isNotBlank()
+            ) {
+                try {
+                    val identity =
+                        LastFmClient.resolveTrackIdentity(current.artist, webTitle)
+                    if (identity != null) {
+                        Log.i("INFO>", "Fetching from Last.fm")
+                        albumName = identity.album.takeIf { it.isNotBlank() }
+                        if (identity.image.isNotBlank()) {
+                            val bmp = Glide.with(this@Player)
+                                .asBitmap()
+                                .load(identity.image)
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
+                                .submit()
+                                .get()
+                            showArtBitmap(bmp)
+                            didGetArt = true
+                            // Persist so the next play loads straight from disk
+                            (cacheImg ?: img)?.let { Shared.saveAlbumArtToDisk(bmp, it) }
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e("ERR>", "Last.fm cover failed: $e")
                 }
+            }
+
+            /* (4) Deezer — hi-res cover of the album Last.fm identified */
+            if (albumName != null && Shared.isInternetConnected(this@Player)) {
+                try {
+                    val hiRes = DeezerClient.albumCover(current.artist, albumName)
+                    if (hiRes.isNotBlank()) {
+                        Log.i("INFO>", "Upgrading cover from Deezer")
+                        val bmp = Glide.with(this@Player)
+                            .asBitmap()
+                            .load(hiRes)
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .submit()
+                            .get()
+                        showArtBitmap(bmp)
+                        didGetArt = true
+                        // Keep the best art we have for the next play
+                        (cacheImg ?: img)?.let { Shared.saveAlbumArtToDisk(bmp, it) }
+                    }
+                } catch (e: Exception) {
+                    Log.e("ERR>", "Deezer cover upgrade failed: $e")
+                }
+            }
+
+            /* Metadata-edit flow: persist the fetched cover into the song */
+            if (didGetArt && forceWeb && isDownloaded) {
+                img?.let { file ->
+                    Shared.getSharedBitmap()?.let { Shared.saveAlbumArtToDisk(it, file) }
+                    Shared.addThumbnails(current.filePath, albumName ?: "", this@Player)
+                }
+                launch(Dispatchers.Main) {
+                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
+                }
+            }
+
+            if (!didGetArt) {
+                launch(Dispatchers.Main) {
+                    binding.imgAlbart.visibility = View.GONE
+                    binding.notePh.visibility = View.VISIBLE
+                    setBgColor(0x002171)
+                    binding.playerSeekbar.progressDrawable.setTint(
+                        ContextCompat.getColor(
+                            this@Player,
+                            R.color.thatAccent
+                        )
+                    )
+                    binding.playerSeekbar.thumb.setTint(
+                        ContextCompat.getColor(
+                            this@Player,
+                            R.color.colorPrimary
+                        )
+                    )
+                    tintControls(0x002171)
+                }
+            }
+        }
+    }
+
+    /** Shows a freshly fetched cover and re-derives the palette colors. */
+    private fun showArtBitmap(bitmap: Bitmap) {
+        Shared.bmp = bitmap
+        launch(Dispatchers.Main) {
+            binding.imgAlbart.setImageBitmap(bitmap)
+            binding.imgAlbart.visibility = View.VISIBLE
+            binding.notePh.visibility = View.GONE
+            Palette.from(bitmap).generate {
+                setBgColor(
+                    it?.getDominantColor(0x002171) ?: 0x002171,
+                    it?.getLightMutedColor(0x002171) ?: 0x002171,
+                    it
+                )
             }
         }
     }

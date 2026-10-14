@@ -394,13 +394,18 @@ object Shared {
      */
     fun saveStreamingAlbumArt(image: Bitmap, id: String) {
         val outputDir = Constants.cacheDir
-        if ((outputDir.listFiles() ?: arrayOf()).size > 10) {
-            for (child in outputDir.listFiles() ?: arrayOf()) {
-                child.delete()
-            }
-        }
-
         outputDir.run { if (!exists()) mkdirs() }
+
+        // Keep at most 10 stream covers and delete only the OLDEST ones.
+        // Never touch other files: cacheDir also holds in-flight audio
+        // downloads (<videoId>.stream.tmp) that wiping the whole folder
+        // used to kill mid-playback.
+        val covers = outputDir.listFiles { _, name -> name.startsWith("sCache") }
+            ?: arrayOf()
+        if (covers.size >= 10) {
+            covers.sortBy { it.lastModified() }
+            for (i in 0..covers.size - 10) covers[i].delete()
+        }
 
         try {
             val fOut: OutputStream = FileOutputStream(File(outputDir, "sCache$id"))

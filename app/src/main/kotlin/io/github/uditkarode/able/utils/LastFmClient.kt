@@ -180,6 +180,28 @@ object LastFmClient {
     }
 
     /**
+     * Full track identity from one cached `track.getInfo` call: the album the
+     * track belongs to plus its real artwork. Used by the Player as the
+     * authoritative cover source (Deezer upgrades use [TrackIdentity.album]
+     * to fetch the high-res version of the *right* album).
+     * Blocks the calling thread — invoke from a background dispatcher.
+     */
+    fun resolveTrackIdentity(artist: String, track: String): TrackIdentity? {
+        if (artist.isBlank() || track.isBlank()) return null
+        val cachedImage = ArtworkCache.trackImage(artist, track)
+        val cachedAlbum = ArtworkCache.trackAlbum(artist, track)
+        if (cachedImage != null && cachedAlbum != null) {
+            return TrackIdentity(cachedAlbum, cachedImage)
+                .takeIf { it.image.isNotBlank() || it.album.isNotBlank() }
+        }
+        rateLimitArt()
+        val identity = trackIdentityInfo(artist, track)
+        ArtworkCache.putTrack(artist, track, identity?.image ?: "")
+        ArtworkCache.putTrackAlbum(artist, track, identity?.album ?: "")
+        return identity?.takeIf { it.image.isNotBlank() || it.album.isNotBlank() }
+    }
+
+    /**
      * Real artwork URL for an artist, persistent-cache aware and
      * rate-limited. Blocks the calling thread — invoke from a background
      * dispatcher.
@@ -210,6 +232,20 @@ object LastFmClient {
         val best = if (fromAlbum.isNotBlank() && !isPlaceholderImage(fromAlbum))
             fromAlbum else root.bestImage()
         return if (isPlaceholderImage(best)) "" else best
+    }
+
+    /** track.getInfo — album title + real album art in one cached call. */
+    private fun trackIdentityInfo(artist: String, track: String): TrackIdentity? {
+        val root = infoObject("track.getinfo", listOf("artist" to artist, "track" to track))
+            ?: return null
+        val albumJson = root.get("album") as? JsonObject
+        val albumName = albumJson?.stringField("title").orEmpty()
+        val fromAlbum = albumJson?.bestImage().orEmpty()
+        val best = if (fromAlbum.isNotBlank() && !isPlaceholderImage(fromAlbum))
+            fromAlbum else root.bestImage()
+        val image = if (isPlaceholderImage(best)) "" else best
+        if (image.isBlank() && albumName.isBlank()) return null
+        return TrackIdentity(albumName, image)
     }
 
     /** artist.getInfo — real artist artwork. */
@@ -390,3 +426,6 @@ object LastFmClient {
 
     // endregion
 }
+
+/** What one cached `track.getInfo` call identifies about a track. */
+data class TrackIdentity(val album: String, val image: String)

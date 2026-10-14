@@ -580,15 +580,24 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             val url = stream.content
             val songId = Shared.getIdFromLink(song.youtubeLink)
 
-            // Fetch album art
+            // Fetch album art; maxresdefault 404s for many topic videos, so
+            // retry with a lower-res variant before giving up.
             if (song.ytmThumbnail.isNotBlank()) {
-                try {
-                    val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
-                    val bitmap = Glide.with(this@MusicService)
-                        .asBitmap().load(thumbUrl)
-                        .signature(ObjectKey("save")).submit().get()
-                    Shared.saveStreamingAlbumArt(bitmap, songId)
-                } catch (_: Exception) {}
+                var saved = false
+                val primary = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
+                for (url in arrayOf(primary, Shared.thumbnailFallbackUrl(primary))) {
+                    try {
+                        val bitmap = Glide.with(this@MusicService)
+                            .asBitmap().load(url)
+                            .signature(ObjectKey("save")).submit().get()
+                        Shared.saveStreamingAlbumArt(bitmap, songId)
+                        saved = true
+                        break
+                    } catch (e: Exception) {
+                        Log.e("ERR>", "Album art fetch failed for $url: $e")
+                    }
+                }
+                if (!saved) Log.e("ERR>", "No streaming cover saved for ${song.name}")
             }
 
             // Download audio using chunked Range requests

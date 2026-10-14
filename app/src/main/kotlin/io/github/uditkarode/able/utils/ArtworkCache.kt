@@ -55,10 +55,17 @@ object ArtworkCache {
     /** Artwork URL for an artist, or null when not cached. */
     fun artistImage(name: String): String? = get("a:${key(name)}")
 
+    /** Album title of a track (from track.getInfo), or null when not cached. */
+    fun trackAlbum(artist: String, track: String): String? =
+        get("ta:${key(artist, track)}")
+
     fun putTrack(artist: String, track: String, url: String) =
         put("t:${key(artist, track)}", url)
 
     fun putArtist(name: String, url: String) = put("a:${key(name)}", url)
+
+    fun putTrackAlbum(artist: String, track: String, album: String) =
+        put("ta:${key(artist, track)}", album)
 
     private fun key(vararg parts: String) =
         parts.joinToString("|") { it.trim().lowercase() }

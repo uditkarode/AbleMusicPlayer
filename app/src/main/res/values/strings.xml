@@ -143,6 +143,11 @@ or via the UPI address %2$s</string>
     <string name="disc_no_artist_tracks">No tracks for %1$s</string>
     <string name="disc_yt_fail">Couldn\'t find this track on YouTube</string>
     <string name="disc_added_to_queue">Up next: %1$s</string>
+    <string name="disc_play_now">Play now</string>
+    <string name="disc_add_to_queue">Add to queue</string>
+    <string name="disc_add_to_download">Download</string>
+    <string name="disc_dl_added">Added to downloads</string>
+    <string name="disc_dl_already">Already downloading</string>
     <string name="disc_back_to_playlists">‹ My playlists</string>
     <string name="disc_back_to_artists">‹ All artists</string>
     <string name="disc_singles">Singles</string>

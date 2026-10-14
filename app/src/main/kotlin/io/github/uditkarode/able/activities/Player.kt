@@ -24,6 +24,7 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -48,22 +49,26 @@ import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.customListAdapter
+import com.afollestad.materialdialogs.list.listItems
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.makeramen.roundedimageview.RoundedImageView
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.AbleApplication
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.databinding.PlayerBinding
+import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.adapters.DiscoverResultAdapter
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
+import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.ApiKeyProvider
 import io.github.uditkarode.able.utils.Constants
@@ -72,6 +77,7 @@ import io.github.uditkarode.able.utils.LastFmKeyPrompt
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.TrackResolver
+import io.github.uditkarode.able.utils.ViewMode
 import androidx.activity.OnBackPressedCallback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -989,44 +995,109 @@ class Player : MusicClientActivity() {
                     Toast.makeText(this@Player, R.string.disc_no_suggestions, Toast.LENGTH_SHORT).show()
                     return@launch
                 }
-                MaterialDialog(this@Player, BottomSheet()).show {
-                    title(R.string.disc_similar)
-                    customListAdapter(
-                        DiscoverResultAdapter(
-                            ArrayList<Any>(tracks),
-                            onTrackPressed = { suggestion -> addToQueue(suggestion) },
-                            onArtistPressed = { }
-                        )
-                    )
+                showSimilarSheet(tracks)
+            }
+        }
+    }
+
+    /**
+     * Compact bottom sheet for the suggestions: RecyclerView with the global
+     * list/grid preference and an inline toggle, instead of the default
+     * full-screen MaterialDialog list. Opens collapsed at ~45% of the screen
+     * and can be dragged to full height.
+     */
+    private fun showSimilarSheet(tracks: List<TrackSuggestion>) {
+        val sheet = BottomSheetDialog(this)
+        val content = layoutInflater.inflate(R.layout.sheet_similar, null)
+        sheet.setContentView(content)
+        sheet.behavior.peekHeight =
+            (resources.displayMetrics.heightPixels * 0.45f).toInt()
+        val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
+        val toggle = content.findViewById<ImageView>(R.id.sheet_view_mode)
+
+        fun render() {
+            toggle.setImageResource(ViewMode.toggleIcon(this))
+            rv.layoutManager = ViewMode.layoutManagerFor(this)
+            rv.adapter = DiscoverResultAdapter(
+                ArrayList<Any>(tracks),
+                onTrackPressed = { suggestion ->
+                    showTrackActionMenu(suggestion)
+                },
+                onArtistPressed = { }
+            )
+        }
+        render()
+        toggle.setOnClickListener {
+            ViewMode.toggle(this)
+            render()
+        }
+        sheet.show()
+    }
+
+    /** Choice menu for a tapped suggestion: play now / add to queue / download. */
+    private fun showTrackActionMenu(suggestion: TrackSuggestion) {
+        MaterialDialog(this).show {
+            title(text = suggestion.name)
+            message(text = suggestion.artist)
+            listItems(items = listOf(
+                getString(R.string.disc_play_now),
+                getString(R.string.disc_add_to_queue),
+                getString(R.string.disc_add_to_download)
+            )) { _, index, _ ->
+                when (index) {
+                    0 -> resolveSuggestion(suggestion) { song ->
+                        val svc = mService ?: return@resolveSuggestion
+                        svc.addToPlayQueue(song)
+                        svc.setIndex(MusicService.currentIndex + 1) // starts playing
+                    }
+                    1 -> resolveSuggestion(suggestion) { song ->
+                        mService?.addToPlayQueue(song) // now notifies queueChanged
+                        Toast.makeText(
+                            this@Player,
+                            getString(R.string.disc_added_to_queue, song.name),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    2 -> resolveSuggestion(suggestion) { song -> enqueueDownload(song) }
                 }
             }
         }
     }
 
-    /** Resolves a suggestion on YouTube Music and inserts it right after the current song. */
-    private fun addToQueue(suggestion: TrackSuggestion) {
-        val svc = mService
-        if (svc == null) {
-            Toast.makeText(this, R.string.disc_yt_fail, Toast.LENGTH_SHORT).show()
-            return
-        }
+    /** Resolves a suggestion on YouTube Music, then runs the action with the Song. */
+    private fun resolveSuggestion(suggestion: TrackSuggestion, action: (Song) -> Unit) {
         launch(Dispatchers.IO) {
             val song = try { TrackResolver.resolve(suggestion) } catch (e: Exception) {
                 Log.e("Player", "Resolution failed for ${suggestion.name}", e); null
             }
             launch(Dispatchers.Main) {
-                if (song == null) {
+                if (song == null)
                     Toast.makeText(this@Player, R.string.disc_yt_fail, Toast.LENGTH_SHORT).show()
-                } else {
-                    svc.addToPlayQueue(song)
-                    Toast.makeText(
-                        this@Player,
-                        getString(R.string.disc_added_to_queue, song.name),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                else
+                    action(song)
             }
         }
+    }
+
+    /** Adds a resolved song to the DownloadService queue (same flow as MainActivity). */
+    private fun enqueueDownload(song: Song) {
+        if (DownloadService.isAlreadyQueued(song.youtubeLink)) {
+            Toast.makeText(this, R.string.disc_dl_already, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val list = ArrayList<String>().apply {
+            add(song.name)
+            add(song.youtubeLink)
+            add(song.artist)
+            add(Shared.upscaleThumbnailUrl(song.ytmThumbnail))
+        }
+        val intent = Intent(this, DownloadService::class.java)
+            .putStringArrayListExtra("song", list)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            startForegroundService(intent)
+        else
+            startService(intent)
+        Toast.makeText(this, R.string.disc_dl_added, Toast.LENGTH_SHORT).show()
     }
 
     override fun spotifyImportChange(starting: Boolean) {}

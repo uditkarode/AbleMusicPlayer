@@ -467,6 +467,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun addToPlayQueue(song: Song) {
         if (currentIndex != playQueue.size - 1) playQueue.add(currentIndex + 1, song)
         else playQueue.add(song)
+        launch(Dispatchers.Default) {
+            registeredClients.forEach { it.queueChanged(playQueue) }
+        }
     }
 
     /**

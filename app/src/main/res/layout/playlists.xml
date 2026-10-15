@@ -16,6 +16,29 @@
         android:src="@drawable/ic_grid"
         android:contentDescription="@string/txt_view_mode" />
 
+    <!-- Below the toggle: a full-size RecyclerView drawn after the toggle
+         used to overlap it, eating its taps and hiding it under cards. -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/playlists_rv"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/playlists_view_mode"
+        android:orientation="vertical"
+        android:padding="15dp">
+
+    </androidx.recyclerview.widget.RecyclerView>
+
+    <TextView
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="@string/no_playlists"
+        android:textColor="#88ffffff"
+        android:textSize="16sp"
+        android:visibility="gone" />
+
+    <!-- Last so it draws above the RecyclerView and stays tappable. -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/spotbut"
         android:layout_width="wrap_content"
@@ -31,25 +54,4 @@
         app:fabCustomSize="38dp"
         app:maxImageSize="36dp"
         app:tint="#1DB954" />
-
-    <TextView
-        android:id="@+id/empty_state"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="@string/no_playlists"
-        android:textColor="#88ffffff"
-        android:textSize="16sp"
-        android:visibility="gone" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/playlists_rv"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:orientation="vertical"
-        android:padding="15dp">
-
-    </androidx.recyclerview.widget.RecyclerView>
 </RelativeLayout>

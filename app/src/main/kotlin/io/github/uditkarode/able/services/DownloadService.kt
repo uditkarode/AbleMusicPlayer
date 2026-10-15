@@ -42,6 +42,8 @@ import io.github.uditkarode.able.utils.Shared
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.jaudiotagger.audio.AudioFileIO
+import org.jaudiotagger.tag.FieldKey
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.LinkedBlockingQueue
@@ -278,6 +280,17 @@ class DownloadService : Service() {
                 ReturnCode.isSuccess(session.returnCode) -> {
                     tempFile.delete()
                     val mp3File = File(Constants.ableSongDir, "$id.mp3")
+
+                    // Persist the video ID as a canonical COMM frame so the
+                    // download stays identifiable for dedup checks even if
+                    // other metadata is edited later.
+                    try {
+                        val audio = AudioFileIO.read(mp3File)
+                        audio.tagOrCreateDefault.setField(FieldKey.COMMENT, id)
+                        audio.commit()
+                    } catch (e: Exception) {
+                        Log.e("ERR>", "Failed to write video ID tag: $e")
+                    }
 
                     // Embed album art into MP3 metadata
                     try {

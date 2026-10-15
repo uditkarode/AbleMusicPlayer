@@ -38,6 +38,10 @@ import io.github.uditkarode.able.model.song.Song
 import org.jaudiotagger.audio.AudioFile
 import org.jaudiotagger.audio.AudioFileIO
 import org.jaudiotagger.tag.FieldKey
+import org.jaudiotagger.tag.Tag
+import org.jaudiotagger.tag.id3.AbstractID3v2Frame
+import org.jaudiotagger.tag.id3.AbstractID3v2Tag
+import org.jaudiotagger.tag.id3.framebody.FrameBodyTXXX
 import org.jaudiotagger.tag.images.AndroidArtwork
 import org.jaudiotagger.tag.mp4.Mp4FieldKey
 import org.jaudiotagger.tag.mp4.Mp4Tag
@@ -320,6 +324,90 @@ object Shared {
         return link.substring(start, end)
     }
 
+    /** Matches a bare YouTube video ID: 11 chars, URL-safe alphabet. */
+    private val VIDEO_ID_REGEX = Regex("^[A-Za-z0-9_-]{11}$")
+
+    /** Video ID per already-parsed local file path; avoids re-parsing tags on every scan. */
+    private val pathIdCache = HashMap<String, String>()
+
+    /** Video IDs of the songs currently in the Able library; rebuilt on every scan. */
+    private val localIds = HashSet<String>()
+
+    /**
+     * Reads the YouTube video ID that DownloadService embeds in the file's
+     * `comment` tag at download time. Returns "" when absent or invalid.
+     * Matching by this ID is rename-proof: title/artist may change, the
+     * embedded ID cannot.
+     */
+    private fun readVideoId(file: File): String {
+        pathIdCache[file.absolutePath]?.let { return it }
+        val id = try {
+            val tag: Tag? = AudioFileIO.read(file).tag
+            if (tag == null) ""
+            else tag.getFirst(FieldKey.COMMENT)?.trim()
+                ?.takeIf { VIDEO_ID_REGEX.matches(it) }
+                ?: findTxxxVideoId(tag)
+        } catch (_: Exception) {
+            ""
+        }
+        if (id.isNotBlank()) pathIdCache[file.absolutePath] = id
+        return id
+    }
+
+    /**
+     * Legacy downloads (before the canonical COMM frame) store the video ID
+     * as a TXXX frame with description "comment", the way FFmpeg maps
+     * `-metadata comment=` when transcoding.
+     */
+    private fun findTxxxVideoId(tag: Tag): String {
+        if (tag !is AbstractID3v2Tag) return ""
+        for (field in tag.getFields("TXXX")) {
+            val frame = field as? AbstractID3v2Frame ?: continue
+            val body = frame.body as? FrameBodyTXXX ?: continue
+            if (body.description.equals("comment", ignoreCase = true)) {
+                val text = body.text.trim()
+                if (VIDEO_ID_REGEX.matches(text)) return text
+            }
+        }
+        return ""
+    }
+
+    /** Atomically swaps the library ID registry for [ids]. */
+    private fun replaceLocalIds(ids: Set<String>) {
+        synchronized(localIds) {
+            localIds.clear()
+            localIds.addAll(ids)
+        }
+    }
+
+    /** Rebuilds the library ID registry straight from the Able song directory. */
+    fun refreshLocalIds() {
+        val ids = HashSet<String>()
+        Constants.ableSongDir.listFiles()?.forEach { f ->
+            if (f.extension == "mp3" && !f.name.contains(".tmp")) {
+                val id = readVideoId(f)
+                if (id.isNotBlank()) ids.add(id)
+            }
+        }
+        replaceLocalIds(ids)
+    }
+
+    /** True when a song with this YouTube video ID is already in the local library. */
+    fun isInLibrary(videoId: String): Boolean =
+        videoId.isNotBlank() && synchronized(localIds) { videoId in localIds }
+
+    fun watchLink(videoId: String): String = "https://www.youtube.com/watch?v=$videoId"
+
+    /**
+     * Identity used for playlist membership checks: the YouTube video ID when
+     * known (rename-proof), otherwise the file path. Blank when the song has
+     * neither, in which case no duplicate detection is possible.
+     */
+    private fun songKey(song: Song): String {
+        val id = getIdFromLink(song.youtubeLink)
+        return if (id.isNotBlank()) "yt:$id" else song.filePath.trim()
+    }
+
     /**
      * Picks the best available thumbnail URL from a list of NewPipe Image objects.
      * For ytimg URLs, constructs a maxresdefault URL.
@@ -510,15 +598,11 @@ object Shared {
      */
     fun removeFromPlaylist(playlist: Playlist, delTarget: Song) {
         val songs = getSongsFromPlaylist(playlist)
-        var targetIndex = -1
-        for (i in 0 until songs.size) {
-            val song = songs[i]
-            if (song.filePath == delTarget.filePath)
-                targetIndex = i
-        }
-
-        if (targetIndex != -1)
-            songs.removeAt(targetIndex)
+        val key = songKey(delTarget)
+        // Identity is the YouTube ID when known (rename-proof), else the file
+        // path. A blank key cannot be matched safely, so nothing is removed.
+        if (key.isNotBlank())
+            songs.removeAll { songKey(it) == key }
 
         modifyPlaylist(playlist.name, songs)
     }
@@ -580,6 +664,7 @@ object Shared {
         val songs = ArrayList<Song>()
         val folderPath = musicFolder.absolutePath
         val indexedPaths = mutableSetOf<String>()
+        val videoIds = HashSet<String>()
 
         // Query MediaStore for songs already scanned in this folder (instant)
         @Suppress("DEPRECATION") val projection = arrayOf(
@@ -599,9 +684,12 @@ object Shared {
             while (it.moveToNext()) {
                 val path = it.getString(2)
                 if (path.endsWith(".mp3") && !path.contains(".tmp") && File(path).exists()) {
+                    val videoId = readVideoId(File(path))
+                    if (videoId.isNotBlank()) videoIds.add(videoId)
                     songs.add(Song(
                         name = it.getString(0) ?: File(path).nameWithoutExtension,
                         artist = it.getString(1) ?: "",
+                        youtubeLink = if (videoId.isNotBlank()) watchLink(videoId) else "",
                         filePath = path,
                         album = it.getString(3) ?: "",
                         albumId = it.getLong(4)
@@ -629,7 +717,15 @@ object Shared {
                 } finally {
                     mmr.release()
                 }
-                songs.add(Song(name = f.nameWithoutExtension, artist = artist, filePath = f.absolutePath, album = album))
+                val videoId = readVideoId(f)
+                if (videoId.isNotBlank()) videoIds.add(videoId)
+                songs.add(Song(
+                    name = f.nameWithoutExtension,
+                    artist = artist,
+                    youtubeLink = if (videoId.isNotBlank()) watchLink(videoId) else "",
+                    filePath = f.absolutePath,
+                    album = album
+                ))
                 unindexedPaths.add(f.absolutePath)
             }
         }
@@ -639,6 +735,9 @@ object Shared {
                 context, unindexedPaths.toTypedArray(), null, null
             )
         }
+
+        // Publish the ID registry for download-dedup checks
+        replaceLocalIds(videoIds)
 
         return songs
     }
@@ -731,17 +830,12 @@ object Shared {
      */
     fun addToPlaylist(playlist: Playlist, song: Song, context: Context) {
         val songs = getSongsFromPlaylist(playlist)
-        var targetIndex = -1
-        for (i in 0 until songs.size) {
-            val sng = songs[i]
-            if (sng.filePath == song.filePath)
-                targetIndex = i
-        }
-
-        if (targetIndex == -1)
+        val key = songKey(song)
+        if (key.isNotBlank() && songs.any { songKey(it) == key })
+            Toast.makeText(context, context.getString(R.string.playlist_dup), Toast.LENGTH_SHORT)
+                .show()
+        else
             songs.add(song)
-        else Toast.makeText(context, context.getString(R.string.playlist_dup), Toast.LENGTH_SHORT)
-            .show()
         modifyPlaylist(
             playlist.name,
             ArrayList(songs.sortedBy { it.name.uppercase(Locale.getDefault()) })

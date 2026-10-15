@@ -23,6 +23,7 @@
     <string name="pos">Submit</string>
     <string name="playlist_created">Playlist created</string>
     <string name="playlist_addto">Add To Playlist</string>
+    <string name="playlist_added">Added to %1$s</string>
     <string name="playlist_empty">Playlist name cannot be empty!</string>
     <string name="playlist_fail">Couldn\'t create playlist :(</string>
     <string name="playlist_namei">"Enter the name of your new playlist"</string>

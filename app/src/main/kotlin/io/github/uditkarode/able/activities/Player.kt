@@ -44,6 +44,8 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
+import com.afollestad.materialdialogs.input.getInputLayout
+import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.customListAdapter
 import com.afollestad.materialdialogs.list.listItems
 import com.bumptech.glide.Glide
@@ -60,6 +62,7 @@ import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.databinding.PlayerBinding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import io.github.uditkarode.able.model.Playlist
 import io.github.uditkarode.able.model.discovery.AlbumSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
@@ -202,6 +205,12 @@ class Player : MusicClientActivity() {
             val svc = mService ?: return@setOnClickListener
             val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex()) ?: return@setOnClickListener
             enqueueDownload(current)
+        }
+
+        binding.playerSave.setOnClickListener {
+            val svc = mService ?: return@setOnClickListener
+            val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex()) ?: return@setOnClickListener
+            showAddToPlaylistSheet(current)
         }
 
         (binding.shuffleButton.parent as View).post {
@@ -916,6 +925,99 @@ class Player : MusicClientActivity() {
             showTrackActionMenu(suggestion)
         }
         sheet.show()
+    }
+
+    /**
+     * Save the current song into one of the user's playlists: a bottom sheet
+     * listing the playlists with a trailing "+" row that creates a new one
+     * on the fly (the only row when no playlist exists yet). Saving stores
+     * the song reference (name, artist, link, artwork) — never a download.
+     */
+    private fun showAddToPlaylistSheet(song: Song) {
+        val sheet = BottomSheetDialog(this)
+        val content = layoutInflater.inflate(R.layout.sheet_add_to_playlist, null)
+        sheet.setContentView(content)
+        sheet.behavior.peekHeight =
+            (resources.displayMetrics.heightPixels * 0.55f).toInt()
+        val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
+
+        fun render() {
+            rv.layoutManager = LinearLayoutManager(this)
+            rv.adapter = PlaylistPickerAdapter(
+                Shared.getPlaylists(),
+                onPick = { playlist ->
+                    Shared.addToPlaylist(playlist, song, this)
+                    Toast.makeText(
+                        this,
+                        getString(R.string.playlist_added, playlist.name.replace(".json", "")),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    sheet.dismiss()
+                },
+                onCreate = {
+                    MaterialDialog(this).show {
+                        title(text = this@Player.getString(R.string.playlist_namei))
+                        input(this@Player.getString(R.string.name_s)) { _, charSequence ->
+                            val name = charSequence.toString().trim()
+                            if (name.isBlank()) return@input
+                            // createPlaylist overwrites; only create when new.
+                            if (!Shared.playlistExists("$name.json"))
+                                Shared.createPlaylist(name, this@Player)
+                            Shared.getPlaylists().firstOrNull { it.name == "$name.json" }
+                                ?.let { playlist ->
+                                    Shared.addToPlaylist(playlist, song, this@Player)
+                                    Toast.makeText(
+                                        this@Player,
+                                        getString(R.string.playlist_added, name),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            render() // sheet stays open with the updated list
+                        }
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+                    }
+                }
+            )
+        }
+        render()
+        sheet.show()
+    }
+
+    /**
+     * Rows of the add-to-playlist sheet: one entry per user playlist, then a
+     * final "+" row to create a new playlist. With no playlists at all, the
+     * "+" row is the only content.
+     */
+    private inner class PlaylistPickerAdapter(
+        private val playlists: List<Playlist>,
+        private val onPick: (Playlist) -> Unit,
+        private val onCreate: () -> Unit
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        private val typePlaylist = 0
+        private val typeCreate = 1
+
+        override fun getItemCount(): Int = playlists.size + 1
+
+        override fun getItemViewType(position: Int): Int =
+            if (position < playlists.size) typePlaylist else typeCreate
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val view = layoutInflater.inflate(R.layout.row_playlist_picker, parent, false)
+            return object : RecyclerView.ViewHolder(view) {}
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            val creating = getItemViewType(position) == typeCreate
+            holder.itemView.findViewById<ImageView>(R.id.row_icon)
+                .setImageResource(if (creating) R.drawable.ic_add else R.drawable.pl_playlist)
+            holder.itemView.findViewById<TextView>(R.id.row_text).text =
+                if (creating) getString(R.string.crp)
+                else playlists[position].name.replace(".json", "")
+            holder.itemView.setOnClickListener {
+                if (creating) onCreate() else onPick(playlists[position])
+            }
+        }
     }
 
     /** Choice menu for a tapped suggestion: play now / add to queue / download. */

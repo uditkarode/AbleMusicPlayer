@@ -32,6 +32,14 @@ object ArtworkCache {
     private const val KEY_ORDER = "keys_order"
     private const val MAX_ENTRIES = 500
 
+    /**
+     * Bump to invalidate every stored entry: v2 drops entries written while
+     * the API key was broken and by the old artist.getinfo flow (Last.fm no
+     * longer serves artist photos, so those "no photo" markers are wrong).
+     */
+    private const val CACHE_VERSION = 2
+    private const val VERSION_KEY = "cache_version"
+
     /** Marker stored for items Last.fm has no real artwork for. */
     private const val MISSING = "\u0000missing"
 
@@ -42,6 +50,9 @@ object ArtworkCache {
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
+        if (prefs.getInt(VERSION_KEY, 0) != CACHE_VERSION) {
+            prefs.edit().clear().putInt(VERSION_KEY, CACHE_VERSION).apply()
+        }
         synchronized(order) {
             order.clear()
             order.addAll(prefs.getStringSet(KEY_ORDER, emptySet()).orEmpty())

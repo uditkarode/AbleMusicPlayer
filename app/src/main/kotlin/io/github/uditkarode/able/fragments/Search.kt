@@ -58,7 +58,9 @@ import io.github.uditkarode.able.utils.ViewMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.ServiceList.YouTube
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
@@ -639,43 +641,54 @@ class Search : Fragment(), CoroutineScope {
             visibility = View.VISIBLE
         }
         launch(Dispatchers.IO) {
-            val albums = try { LastFmClient.artistTopAlbums(artist.name) }
-                catch (e: Exception) { Log.e(TAG, "Top albums failed", e); emptyList<AlbumSuggestion>() }
-            val loaded = albums.mapNotNull { album ->
-                try { LastFmClient.albumTracks(artist.name, album.name, album.image) }
-                catch (e: Exception) { Log.e(TAG, "Album tracks failed for ${album.name}", e); null }
-            }
-            val albumTrackNames = loaded.flatMap { it.tracks }
-                .map { it.name.lowercase() }
-                .toSet()
-            val singles = try { LastFmClient.artistTopTracks(artist.name) }
-                catch (e: Exception) { emptyList<TrackSuggestion>() }
-                .filter { it.name.lowercase() !in albumTrackNames }
-            // Albums first, newest first; undated albums last (popularity order).
-            val ordered = loaded.sortedWith(
-                compareByDescending<AlbumSuggestion> { it.year != 0 }
-                    .thenByDescending { it.year }
-            )
+            coroutineScope {
+                // Artist photo (Deezer-backed) runs next to the discography
+                // fetches so it doesn't add latency to the drill-down.
+                val imageDeferred = async {
+                    try { LastFmClient.resolveArtistImage(artist.name) }
+                    catch (e: Exception) { Log.e(TAG, "Artist image failed", e); "" }
+                }
+                val albums = try { LastFmClient.artistTopAlbums(artist.name) }
+                    catch (e: Exception) { Log.e(TAG, "Top albums failed", e); emptyList<AlbumSuggestion>() }
+                val loaded = albums.mapNotNull { album ->
+                    try { LastFmClient.albumTracks(artist.name, album.name, album.image) }
+                    catch (e: Exception) { Log.e(TAG, "Album tracks failed for ${album.name}", e); null }
+                }
+                val albumTrackNames = loaded.flatMap { it.tracks }
+                    .map { it.name.lowercase() }
+                    .toSet()
+                val singles = try { LastFmClient.artistTopTracks(artist.name) }
+                    catch (e: Exception) { emptyList<TrackSuggestion>() }
+                    .filter { it.name.lowercase() !in albumTrackNames }
+                // Albums first, newest first; undated albums last (popularity order).
+                val ordered = loaded.sortedWith(
+                    compareByDescending<AlbumSuggestion> { it.year != 0 }
+                        .thenByDescending { it.year }
+                )
+                val artistImage = imageDeferred.await()
 
-            launch(Dispatchers.Main) {
-                if (!inDrillDown) return@launch // user went back in the meantime
-                setDiscoverLoading(false)
-                val rv = _binding?.searchRv ?: return@launch
-                if (ordered.isEmpty() && singles.isEmpty()) {
-                    Toast.makeText(
-                        requireContext(), R.string.disc_no_discography, Toast.LENGTH_SHORT
-                    ).show()
-                    exitDrill()
-                    return@launch
+                launch(Dispatchers.Main) {
+                    if (!inDrillDown) return@launch // user went back in the meantime
+                    setDiscoverLoading(false)
+                    val rv = _binding?.searchRv ?: return@launch
+                    if (ordered.isEmpty() && singles.isEmpty()) {
+                        Toast.makeText(
+                            requireContext(), R.string.disc_no_discography, Toast.LENGTH_SHORT
+                        ).show()
+                        exitDrill()
+                        return@launch
+                    }
+                    searchItemTouchHelper?.attachToRecyclerView(null)
+                    rv.adapter = DiscographyAdapter(
+                        artist.name, artistImage, ordered, singles
+                    ) {
+                        onDiscoverTrackPressed(it)
+                    }
+                    rv.layoutManager = LinearLayoutManager(requireContext())
+                    rv.alpha = 0f
+                    rv.visibility = View.VISIBLE
+                    rv.animate().alpha(1f).duration = 200
                 }
-                searchItemTouchHelper?.attachToRecyclerView(null)
-                rv.adapter = DiscographyAdapter(ordered, singles) {
-                    onDiscoverTrackPressed(it)
-                }
-                rv.layoutManager = LinearLayoutManager(requireContext())
-                rv.alpha = 0f
-                rv.visibility = View.VISIBLE
-                rv.animate().alpha(1f).duration = 200
             }
         }
     }

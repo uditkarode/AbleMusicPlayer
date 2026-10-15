@@ -73,6 +73,38 @@ object DeezerClient {
         }
     }
 
+    /**
+     * Real artist photo via Deezer's keyless `search/artist` — `picture_xl`
+     * is a genuine 1000x1000 photo. Needed because Last.fm's artist.getinfo
+     * no longer serves artist photos (every size comes back as the gray
+     * placeholder).
+     *
+     * Returns null when the call failed transiently (the caller should NOT
+     * cache that), "" when Deezer simply has no match (safe to cache as
+     * "no photo"). Blocking.
+     */
+    fun artistPhoto(name: String): String? {
+        if (name.isBlank()) return ""
+        return try {
+            val query = URLEncoder.encode(name, "UTF-8")
+            val data = http.newCall(
+                Request.Builder().url("$BASE/search/artist?q=$query").build()
+            ).execute().use { resp ->
+                if (!resp.isSuccessful) return null
+                val body = resp.body?.string() ?: return null
+                JsonParser.parseString(body).asJsonObject.getAsJsonArray("data")
+            }
+            val first = data?.firstOrNull()?.asJsonObject ?: return ""
+            val pic = first.get("picture_xl")?.takeIf { it.isJsonPrimitive }?.asString
+                ?: first.get("picture_big")?.takeIf { it.isJsonPrimitive }?.asString
+                ?: ""
+            if (pic.isBlank()) "" else pic
+        } catch (e: Exception) {
+            Log.e(TAG, "Artist photo lookup failed for $name", e)
+            null
+        }
+    }
+
     private fun headOk(url: String): Boolean = try {
         http.newCall(Request.Builder().url(url).head().build())
             .execute().use { it.isSuccessful }

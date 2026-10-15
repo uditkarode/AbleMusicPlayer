@@ -81,6 +81,8 @@ import io.github.uditkarode.able.utils.ViewMode
 import androidx.activity.OnBackPressedCallback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -912,38 +914,49 @@ class Player : MusicClientActivity() {
         }
         showLoading()
         launch(Dispatchers.IO) {
-            val albums = try { LastFmClient.artistTopAlbums(artistName) }
-                catch (e: Exception) { Log.e("Player", "Top albums failed", e); emptyList<AlbumSuggestion>() }
-            val loaded = albums.mapNotNull { album ->
-                try { LastFmClient.albumTracks(artistName, album.name, album.image) }
-                catch (e: Exception) { Log.e("Player", "Album tracks failed for ${album.name}", e); null }
-            }
-            val albumTrackNames = loaded.flatMap { it.tracks }
-                .map { it.name.lowercase() }
-                .toSet()
-            val singles = try { LastFmClient.artistTopTracks(artistName) }
-                catch (e: Exception) { emptyList<TrackSuggestion>() }
-                .filter { it.name.lowercase() !in albumTrackNames }
-            // Albums first, newest first; undated albums last (popularity order).
-            val ordered = loaded.sortedWith(
-                compareByDescending<AlbumSuggestion> { it.year != 0 }
-                    .thenByDescending { it.year }
-            )
-            launch(Dispatchers.Main) {
-                hideLoading()
-                if (ordered.isEmpty() && singles.isEmpty()) {
-                    Toast.makeText(this@Player, R.string.disc_no_discography, Toast.LENGTH_SHORT).show()
-                    return@launch
+            coroutineScope {
+                // Artist photo (artist.getinfo) runs next to the discography
+                // fetches so it doesn't add latency to the sheet.
+                val imageDeferred = async {
+                    try { LastFmClient.resolveArtistImage(artistName) }
+                    catch (e: Exception) { Log.e("Player", "Artist image failed", e); "" }
                 }
-                showDiscographySheet(artistName, ordered, singles)
+                val albums = try { LastFmClient.artistTopAlbums(artistName) }
+                    catch (e: Exception) { Log.e("Player", "Top albums failed", e); emptyList<AlbumSuggestion>() }
+                val loaded = albums.mapNotNull { album ->
+                    try { LastFmClient.albumTracks(artistName, album.name, album.image) }
+                    catch (e: Exception) { Log.e("Player", "Album tracks failed for ${album.name}", e); null }
+                }
+                val albumTrackNames = loaded.flatMap { it.tracks }
+                    .map { it.name.lowercase() }
+                    .toSet()
+                val singles = try { LastFmClient.artistTopTracks(artistName) }
+                    catch (e: Exception) { emptyList<TrackSuggestion>() }
+                    .filter { it.name.lowercase() !in albumTrackNames }
+                // Albums first, newest first; undated albums last (popularity order).
+                val ordered = loaded.sortedWith(
+                    compareByDescending<AlbumSuggestion> { it.year != 0 }
+                        .thenByDescending { it.year }
+                )
+                val artistImage = imageDeferred.await()
+                launch(Dispatchers.Main) {
+                    hideLoading()
+                    if (ordered.isEmpty() && singles.isEmpty()) {
+                        Toast.makeText(this@Player, R.string.disc_no_discography, Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                    showDiscographySheet(artistName, artistImage, ordered, singles)
+                }
             }
         }
     }
 
-    /** Bottom sheet hosting the discography list; track taps reuse the
+    /** Bottom sheet hosting the artist header (photo + name, rendered by
+     *  the adapter) and the discography list; track taps reuse the
      *  suggestion action menu (play now / add to queue / download). */
     private fun showDiscographySheet(
         artistName: String,
+        artistImage: String,
         albums: List<AlbumSuggestion>,
         singles: List<TrackSuggestion>
     ) {
@@ -952,10 +965,9 @@ class Player : MusicClientActivity() {
         sheet.setContentView(content)
         sheet.behavior.peekHeight =
             (resources.displayMetrics.heightPixels * 0.55f).toInt()
-        content.findViewById<TextView>(R.id.sheet_title).text = artistName
         val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
         rv.layoutManager = LinearLayoutManager(this)
-        rv.adapter = DiscographyAdapter(albums, singles) { suggestion ->
+        rv.adapter = DiscographyAdapter(artistName, artistImage, albums, singles) { suggestion ->
             showTrackActionMenu(suggestion)
         }
         sheet.show()

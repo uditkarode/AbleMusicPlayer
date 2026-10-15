@@ -174,7 +174,7 @@ object LastFmClient {
         if (artist.isBlank() || track.isBlank()) return ""
         ArtworkCache.trackImage(artist, track)?.let { return it }
         rateLimitArt()
-        val url = trackInfoImage(artist, track)
+        val url = trackInfoImage(artist, track) ?: return "" // failed: don't cache
         ArtworkCache.putTrack(artist, track, url) // real URL or "no art" marker
         return url
     }
@@ -195,23 +195,25 @@ object LastFmClient {
                 .takeIf { it.image.isNotBlank() || it.album.isNotBlank() }
         }
         rateLimitArt()
-        val identity = trackIdentityInfo(artist, track)
-        ArtworkCache.putTrack(artist, track, identity?.image ?: "")
-        ArtworkCache.putTrackAlbum(artist, track, identity?.album ?: "")
-        return identity?.takeIf { it.image.isNotBlank() || it.album.isNotBlank() }
+        val identity = trackIdentityInfo(artist, track) ?: return null // failed: don't cache
+        ArtworkCache.putTrack(artist, track, identity.image)
+        ArtworkCache.putTrackAlbum(artist, track, identity.album)
+        return identity.takeIf { it.image.isNotBlank() || it.album.isNotBlank() }
     }
 
     /**
      * Real artwork URL for an artist, persistent-cache aware and
-     * rate-limited. Blocks the calling thread — invoke from a background
-     * dispatcher.
+     * rate-limited. Last.fm's artist.getinfo no longer serves artist photos
+     * (every size comes back as the gray placeholder), so the photo comes
+     * from Deezer's keyless artist search. Blocks the calling thread —
+     * invoke from a background dispatcher.
      */
     fun resolveArtistImage(name: String): String {
         if (name.isBlank()) return ""
         ArtworkCache.artistImage(name)?.let { return it }
         rateLimitArt()
-        val url = artistInfoImage(name)
-        ArtworkCache.putArtist(name, url) // real URL or "no art" marker
+        val url = DeezerClient.artistPhoto(name) ?: return "" // failed: don't cache
+        ArtworkCache.putArtist(name, url) // real URL or "no photo" marker
         return url
     }
 
@@ -224,17 +226,24 @@ object LastFmClient {
         }
     }
 
-    /** track.getInfo — richer metadata incl. the real album art. */
-    private fun trackInfoImage(artist: String, track: String): String {
+    /** track.getInfo — richer metadata incl. the real album art. Returns
+     *  null when the lookup FAILED (no key / network / API error): the
+     *  caller must not cache that as "no art". */
+    private fun trackInfoImage(artist: String, track: String): String? {
         val root = infoObject("track.getinfo", listOf("artist" to artist, "track" to track))
-            ?: return ""
+            ?: return null
         val fromAlbum = (root.get("album") as? JsonObject)?.bestImage().orEmpty()
         val best = if (fromAlbum.isNotBlank() && !isPlaceholderImage(fromAlbum))
             fromAlbum else root.bestImage()
         return if (isPlaceholderImage(best)) "" else best
     }
 
-    /** track.getInfo — album title + real album art in one cached call. */
+    /**
+     * track.getInfo — album title + real album art in one cached call.
+     * Returns null only when the lookup FAILED (no key / network / API
+     * error); a successful response with nothing to show comes back as an
+     * empty [TrackIdentity], which is a legitimate cacheable "no art".
+     */
     private fun trackIdentityInfo(artist: String, track: String): TrackIdentity? {
         val root = infoObject("track.getinfo", listOf("artist" to artist, "track" to track))
             ?: return null
@@ -244,15 +253,7 @@ object LastFmClient {
         val best = if (fromAlbum.isNotBlank() && !isPlaceholderImage(fromAlbum))
             fromAlbum else root.bestImage()
         val image = if (isPlaceholderImage(best)) "" else best
-        if (image.isBlank() && albumName.isBlank()) return null
         return TrackIdentity(albumName, image)
-    }
-
-    /** artist.getInfo — real artist artwork. */
-    private fun artistInfoImage(artist: String): String {
-        val root = infoObject("artist.getinfo", listOf("artist" to artist)) ?: return ""
-        val best = root.bestImage()
-        return if (isPlaceholderImage(best)) "" else best
     }
 
     /** Last.fm sometimes returns a generic gray-star placeholder instead of art. */

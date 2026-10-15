@@ -91,6 +91,10 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         private const val PREF_REPEAT = "playback_repeat"
 
         @Volatile var isServiceRunning = false
+
+        /** Live instance for callers without a binding (e.g. fragments
+         *  adding to the queue); null while the service isn't running. */
+        @Volatile var instance: MusicService? = null
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
         var mediaPlayer = MediaPlayer()
@@ -157,6 +161,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     override fun onCreate() {
         super.onCreate()
         isServiceRunning = true
+        instance = this
 
         // Restore persisted shuffle/repeat flags. Queue is empty at this point
         // so we only set the flags — actual queue manipulation happens later
@@ -251,6 +256,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
 
     override fun onDestroy() {
         isServiceRunning = false
+        instance = null
         super.onDestroy()
         coroutineContext.cancelChildren()
         unregisterReceiver(receiver)

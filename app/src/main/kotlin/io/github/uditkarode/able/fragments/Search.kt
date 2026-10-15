@@ -44,10 +44,12 @@ import io.github.uditkarode.able.adapters.DiscoverResultAdapter
 import io.github.uditkarode.able.adapters.YtResultAdapter
 import io.github.uditkarode.able.adapters.YtmResultAdapter
 import io.github.uditkarode.able.databinding.SearchBinding
+import io.github.uditkarode.able.model.MusicMode
 import io.github.uditkarode.able.model.discovery.AlbumSuggestion
 import io.github.uditkarode.able.model.discovery.ArtistSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.ApiKeyProvider
 import io.github.uditkarode.able.utils.LastFmClient
 import io.github.uditkarode.able.utils.LastFmKeyPrompt
@@ -625,6 +627,69 @@ class Search : Fragment(), CoroutineScope {
         }
     }
 
+    /** Resolves a suggestion on YouTube Music, then runs the action with the
+     *  resolved Song (loading spinner while the resolution runs). */
+    private fun resolveFor(track: TrackSuggestion, action: (Song) -> Unit) {
+        _binding?.let {
+            it.loadingView.progress = 0.3080229f
+            it.loadingView.visibility = View.VISIBLE
+            it.loadingView.playAnimation()
+        }
+        launch(Dispatchers.IO) {
+            val song = try { TrackResolver.resolve(track) } catch (e: Exception) { null }
+            launch(Dispatchers.Main) {
+                _binding?.let {
+                    it.loadingView.pauseAnimation()
+                    it.loadingView.visibility = View.GONE
+                }
+                if (song == null)
+                    Toast.makeText(requireContext(), R.string.disc_yt_fail, Toast.LENGTH_SHORT).show()
+                else
+                    action(song)
+            }
+        }
+    }
+
+    /** Choice menu for a tapped discography track: play now / add to queue /
+     *  download — the same UX as the Player's discography sheet. */
+    private fun showTrackActionMenu(track: TrackSuggestion) {
+        MaterialDialog(requireContext()).show {
+            title(text = "${track.name} - ${track.artist}")
+            listItems(items = listOf(
+                getString(R.string.disc_play_now),
+                getString(R.string.disc_add_to_queue),
+                getString(R.string.disc_add_to_download)
+            )) { _, index, _ ->
+                when (index) {
+                    0 -> resolveFor(track) { song ->
+                        // Stream-mode send starts playback right away.
+                        itemPressed.sendItem(song, MusicMode.stream)
+                    }
+                    1 -> resolveFor(track) { song ->
+                        val svc = MusicService.instance
+                        if (svc == null)
+                            Toast.makeText(requireContext(), R.string.disc_play_first, Toast.LENGTH_SHORT).show()
+                        else {
+                            svc.addToPlayQueue(song)
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.disc_added_to_queue, song.name),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    2 -> resolveFor(track) { song ->
+                        if (Shared.isInLibrary(Shared.getIdFromLink(song.youtubeLink))) {
+                            Toast.makeText(requireContext(), R.string.dl_already_library, Toast.LENGTH_SHORT).show()
+                        } else {
+                            itemPressed.sendItem(song, MusicMode.download)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Drill-down: the artist's discography from Last.fm — albums newest first
      * (with release year), then a "Singles" section with leftover top tracks.
@@ -682,7 +747,7 @@ class Search : Fragment(), CoroutineScope {
                     rv.adapter = DiscographyAdapter(
                         artist.name, artistImage, ordered, singles
                     ) {
-                        onDiscoverTrackPressed(it)
+                        showTrackActionMenu(it)
                     }
                     rv.layoutManager = LinearLayoutManager(requireContext())
                     rv.alpha = 0f

@@ -264,8 +264,11 @@ class Search : Fragment(), CoroutineScope {
         addChip(container, R.string.disc_top_tracks) { loadDiscoverTracks { LastFmClient.topTracks() } }
         addChip(container, R.string.disc_top_artists) { loadDiscoverArtists { LastFmClient.topArtists() } }
         addChip(container, R.string.disc_genres) { pickDiscoverGenre() }
-        // Preload the first source so the tab isn't empty (cached for 30 min).
-        if (suggestArray.isEmpty()) container.getChildAt(0).performClick()
+        // Preload the first source so the tab isn't empty (cached for 30 min),
+        // but only when discovery is usable — the auto-click would otherwise
+        // pop the API-key prompt on every app start.
+        if (suggestArray.isEmpty() && ApiKeyProvider.hasLastFmKey)
+            container.getChildAt(0).performClick()
     }
 
     private fun addChip(container: LinearLayout, labelRes: Int, onClick: () -> Unit) {

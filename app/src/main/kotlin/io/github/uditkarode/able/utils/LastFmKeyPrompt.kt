@@ -19,10 +19,14 @@
 package io.github.uditkarode.able.utils
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.widget.Toast
 import com.afollestad.materialdialogs.MaterialDialog
-import com.afollestad.materialdialogs.input.input
 import io.github.uditkarode.able.R
+import com.afollestad.materialdialogs.callbacks.onDismiss
+import com.afollestad.materialdialogs.input.getInputField
+import com.afollestad.materialdialogs.input.input
 import kotlin.concurrent.thread
 
 /**
@@ -32,6 +36,10 @@ import kotlin.concurrent.thread
  * with a live Last.fm call before being saved.
  */
 object LastFmKeyPrompt {
+
+    /** Several flows can hit a missing key at once; show one dialog, not N. */
+    @Volatile
+    private var showing = false
 
     /**
      * Shows the import dialog only if no key is configured.
@@ -45,16 +53,24 @@ object LastFmKeyPrompt {
 
     /** Always shows the import dialog (used by Settings and retry flows). */
     fun show(context: Context, onSaved: (() -> Unit)? = null) {
-        var dialog: MaterialDialog? = null
-        dialog = MaterialDialog(context).show {
+        if (showing) return
+        showing = true
+        MaterialDialog(context).show {
             title(R.string.lastfm_key_title)
             message(R.string.lastfm_key_message)
-            input(hintRes = R.string.lastfm_key_hint) { _, text ->
-                val candidate = text.toString().trim()
-                if (candidate.isEmpty()) return@input
+            // NOTE: this callback fires on EVERY text change — all logic
+            // belongs on the positive action, not here.
+            input(hintRes = R.string.lastfm_key_hint) { _, _ -> }
+            positiveButton(R.string.lastfm_key_save) { dialog ->
+                val candidate = dialog.getInputField().text.toString().trim()
+                if (candidate.isEmpty()) return@positiveButton
                 thread {
                     val valid = LastFmClient.validateKey(candidate)
-                    dialog?.window?.decorView?.post {
+                    // The dialog may already be dismissed by the time the
+                    // network round-trip finishes; posting to its decorView
+                    // would silently drop the save. Use the main looper.
+                    Handler(Looper.getMainLooper()).post {
+                        showing = false
                         if (valid) {
                             ApiKeyProvider.lastFmApiKey = candidate
                             Toast.makeText(
@@ -68,8 +84,8 @@ object LastFmKeyPrompt {
                     }
                 }
             }
-            positiveButton(R.string.lastfm_key_save)
             negativeButton(android.R.string.cancel)
+            onDismiss { showing = false }
         }
     }
 }

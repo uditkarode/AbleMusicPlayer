@@ -35,6 +35,7 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
@@ -223,13 +224,15 @@ class SongAdapter(
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
                                 title(text = holder.itemView.context.getString(R.string.playlist_namei))
-                                input(holder.itemView.context.getString(R.string.name_s)) { _, charSequence ->
-                                    Shared.createPlaylist(
-                                        charSequence.toString(),
-                                        holder.itemView.context
-                                    )
+                                // The input callback fires on every text change;
+                                // the creation belongs to the positive action.
+                                input(holder.itemView.context.getString(R.string.name_s)) { _, _ -> }
+                                positiveButton {
+                                    val name = getInputField().text.toString().trim()
+                                    if (name.isEmpty()) return@positiveButton
+                                    Shared.createPlaylist(name, holder.itemView.context)
                                     Shared.getPlaylists().firstOrNull {
-                                        it.name == "$charSequence.json"
+                                        it.name == "$name.json"
                                     }?.let { Shared.addToPlaylist(it, current, holder.itemView.context) }
                                 }
                                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")

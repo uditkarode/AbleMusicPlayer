@@ -111,55 +111,60 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <RelativeLayout
+        <LinearLayout
             android:id="@+id/song_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="30dp"
-            android:layout_marginTop="10dp">
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
 
-            <!--suppress AndroidUnknownAttribute -->
-            <TextView
-                android:id="@+id/song_name"
-                fontPath="fonts/interbold.otf"
-                android:layout_width="match_parent"
+            <!-- A RelativeLayout here would inflate to full height when
+                 measured by the packed chain (wrap_content + match_parent
+                 children + alignParentBottom) and swallow the whole screen. -->
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:layout_toStartOf="@+id/player_download"
-                android:paddingEnd="5dp"
-                android:maxLines="2"
-                android:ellipsize="end"
-                android:text="@string/song_ex2"
-                android:textColor="#fbfbfb"
-                android:textSize="22sp"
-                tools:ignore="MissingPrefix,RtlSymmetry" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <!--suppress AndroidUnknownAttribute -->
-            <TextView
-                android:id="@+id/artist_name"
-                fontPath="fonts/interbold.otf"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/song_name"
-                android:layout_alignParentStart="true"
-                android:layout_toStartOf="@+id/player_download"
-                android:paddingEnd="5dp"
-                android:paddingBottom="10dp"
-                android:text="@string/art_ex"
-                android:textColor="#80fbfbfb"
-                android:textSize="20sp"
-                tools:ignore="MissingPrefix" />
+                <!--suppress AndroidUnknownAttribute -->
+                <TextView
+                    android:id="@+id/song_name"
+                    fontPath="fonts/interbold.otf"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="5dp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="@string/song_ex2"
+                    android:textColor="#fbfbfb"
+                    android:textSize="22sp"
+                    tools:ignore="MissingPrefix,RtlSymmetry" />
+
+                <!--suppress AndroidUnknownAttribute -->
+                <TextView
+                    android:id="@+id/artist_name"
+                    fontPath="fonts/interbold.otf"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="5dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/art_ex"
+                    android:textColor="#80fbfbfb"
+                    android:textSize="20sp"
+                    tools:ignore="MissingPrefix" />
+            </LinearLayout>
 
             <ImageView
                 android:id="@+id/player_download"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:layout_alignParentEnd="true"
-                android:layout_alignParentBottom="true"
+                android:layout_gravity="bottom"
                 android:padding="10dp"
                 android:src="@drawable/ic_download_icon"
                 android:contentDescription="@string/disc_add_to_download" />
-        </RelativeLayout>
+        </LinearLayout>
 
         <SeekBar
             android:id="@+id/player_seekbar"

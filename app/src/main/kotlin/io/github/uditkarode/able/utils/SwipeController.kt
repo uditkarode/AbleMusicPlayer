@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.ItemTouchHelper.LEFT
 import androidx.recyclerview.widget.ItemTouchHelper.RIGHT
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
@@ -70,10 +71,15 @@ class SwipeControllerActions(
                             1 -> {
                                 MaterialDialog(context).show {
                                     title(text = context.getString(R.string.playlist_namei))
-                                    input(context.getString(R.string.name_s)) { _, charSequence ->
-                                        Shared.createPlaylist(charSequence.toString(), context)
+                                    // The input callback fires on every text change;
+                                    // the creation belongs to the positive action.
+                                    input(context.getString(R.string.name_s)) { _, _ -> }
+                                    positiveButton {
+                                        val name = getInputField().text.toString().trim()
+                                        if (name.isEmpty()) return@positiveButton
+                                        Shared.createPlaylist(name, context)
                                         Shared.getPlaylists().firstOrNull {
-                                            it.name == "$charSequence.json"
+                                            it.name == "$name.json"
                                         }?.let { Shared.addToPlaylist(it, current, context) }
                                     }
                                     getInputLayout().boxBackgroundColor =

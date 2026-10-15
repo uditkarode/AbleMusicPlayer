@@ -37,7 +37,7 @@ The core communication mechanism. `MusicService` is a foreground service managin
 | `MusicService` | Heart of the app. Foreground service, MediaPlayer, MediaSession, observer registry |
 | `MusicClientActivity` | Abstract base activity with auto MusicClient registration |
 | `MainActivity` | Entry point. Hosts ViewPager2 (Home/Search/Playlists), bottom nav, mini-player bar |
-| `Player` | Full-screen player. 5 layout variants by DPI. Seekbar, album art (Palette colors), metadata editing |
+| `Player` | Full-screen player. Single responsive layout (`res/layout/player.xml`). Seekbar, album art via the hybrid chain (app-stored covers → Last.fm identity → Deezer hi-res, Palette colors). Download button (grey/disabled when the song is already in the library), save-to-playlist button, artist tap → discography bottom sheet. No metadata editing (rename flows removed) |
 | `Home` (fragment) | Tab 1. Song list, `streamAudio()` |
 | `Search` (fragment) | Tab 2. NewPipeExtractor search (YouTube/YouTube Music, multiple content filters) |
 | `Playlists` (fragment) | Tab 3. Local playlist management, Spotify import trigger |
@@ -47,23 +47,63 @@ The core communication mechanism. `MusicService` is a foreground service managin
 | `CustomDownloader` | OkHttp-backed NewPipeExtractor `Downloader` singleton |
 | `SwipeController` | Custom `ItemTouchHelper.Callback` for swipe actions (add to queue/delete/stream) |
 | `ChunkedDownloader` | Downloads audio via 256KB Range-header chunks to bypass YouTube throttling |
-| `DownloadService` | `JobIntentService` for downloads (download body is commented out / WIP) |
+| `DownloadService` | Foreground `Service` for downloads: ChunkedDownloader → FFmpeg transcode (`-c:a mp3`) → video-ID COMM tag → art embed → rename to song name. Persistent queue in SharedPreferences, dedup statics (`isAlreadyQueued`, `onDownloadComplete`, progress) |
 | `AbleApplication` | `Application` subclass, initializes `Constants` and `ViewPump` |
 | `ViewMode` | Global list/grid preference + grid column count; `layoutManagerFor()` is the single source for layout managers |
 | `LastFmClient` | Last.fm API client for discovery: similar tracks/artists, artwork resolution, rate limiting |
 | `TrackResolver` | Resolves a Last.fm `TrackSuggestion` to a playable `Song` via YouTube Music |
 | `Discover` (fragment) | Tab 5. Playlist-based discovery (Last.fm similar tracks aggregated across seeds) |
 | `DiscoverResultAdapter` | Renders discovery suggestions in list or grid rows (used by Search chips, Discover tab, Player sheet) |
+| `DiscographyAdapter` | Artist drill-down list: collapsible album headers (newest first) + "Singles" section; used by Search drill-down and the Player's artist bottom sheet |
+| `DeezerClient` / `ArtworkCache` / `LazyArtLoader` | Hi-res cover fallback for the Player's art chain; persistent URL cache (incl. negative caching) and lazy per-row art loading |
 
 ### Data Models (`:core:model`)
 
-- **`Song`** — Central model: `name`, `artist`, `youtubeLink`, `filePath`, `ytmThumbnail`, `albumId`, `isLocal`, `cacheStatus`, `streamProg`, plus streaming fields (`streamMutexes`, `internalStream`, `streams`)
+- **`Song`** — Central model: `name`, `artist`, `youtubeLink`, `filePath`, `placeholder`, `ytmThumbnail`, `albumId`, `album`, `isLocal`. `youtubeLink` is populated for library songs too (read back from the file's video-ID tag at scan time)
 - **`SongState`** — `playing` / `paused`
-- **`CacheStatus`** — `NULL` / `STARTED`
 - **`MusicMode`** — `"Download"` / `"Stream"`
 - **`Format`** — `MODE_MP3` / `MODE_WEBM`
 - **`Playlist`** — `name` + `JSONArray` of songs
 - **`DownloadableSong`** — Intent payload for DownloadService
+- **`TrackSuggestion` / `AlbumSuggestion` / `ArtistSuggestion`** — Last.fm discovery models
+
+## Video-ID Identity & Download Dedup
+
+Every downloaded MP3 carries its YouTube video ID so duplicate detection never
+depends on title/artist (which used to be editable and may differ in legacy
+files):
+
+- **Write**: `DownloadService` persists the ID as a canonical ID3 `COMM` frame
+  (`FieldKey.COMMENT`) right after the FFmpeg transcode. FFmpeg additionally
+  maps `-metadata comment=` to a legacy `TXXX` frame with description
+  "comment" — older downloads only have that one.
+- **Read**: `Shared.getSongList` extracts the ID with jaudiotagger (`COMM`
+  first, `TXXX "comment"` fallback, validated against an 11-char URL-safe
+  regex), caches it per path (`pathIdCache`), populates `Song.youtubeLink` and
+  rebuilds the registry `Shared.localIds` (`isInLibrary(id)`,
+  `refreshLocalIds()`, `localIdsFresh`).
+- **Playlist dedup**: `Shared.songKey` = `yt:<videoId>` when known, else
+  `filePath`; `addToPlaylist`/`removeFromPlaylist` match on that key (blank
+  key → no-op), fixing false duplicates between streamed songs.
+
+### Player Buttons
+
+- **Download** (`player_download`, bottom-right of the song info block):
+  grey + disabled when the current song is in the library (`Shared.isInLibrary`
+  or device-local `isLocal`), white otherwise; re-evaluated on song change and
+  `onResume`, with a cold-start `refreshLocalIds()` on IO when Home hasn't
+  scanned yet. Tapping funnels into `Player.enqueueDownload`, which also
+  blocks already-queued/in-library songs (covers the discovery sheet too).
+- **Save** (`player_save`, "+" icon left of Discovery): `BottomSheetDialog`
+  (`sheet_add_to_playlist`) listing user playlists with a trailing create row
+  (the only row when none exist). Saving stores the song reference in the
+  playlist JSON — never triggers a download. Creating uses a name-input
+  dialog and guards against overwriting an existing playlist.
+- **Artist tap** (`artist_name`): opens the artist discography in a bottom
+  sheet (`sheet_discography` + `DiscographyAdapter`) — same data flow as
+  Search's drill-down (`artistTopAlbums` → `albumTracks` → leftover
+  `artistTopTracks` as singles, albums sorted newest-first). Artist rows in
+  the similar-tracks sheet behave the same.
 
 ## View Mode & Grid Columns
 
@@ -81,7 +121,7 @@ Rules:
 ### Discovery (Last.fm)
 
 - Requires a Last.fm API key, entered in-app on first use (`ApiKeyProvider` + `LastFmKeyPrompt`).
-- Entry points: Search chips (tracks/artists), Discover tab (seeded by playlist tracks), Player → Discovery button (similar tracks in a `BottomSheetDialog` with per-track play/queue/download actions).
+- Entry points: Search chips (tracks/artists), Search artist drill-down (`showDiscography` → `DiscographyAdapter`), Discover tab (seeded by playlist tracks), Player → Discovery button (similar tracks in a `BottomSheetDialog` with per-track play/queue/download actions), Player → artist name tap (same discography as a bottom sheet).
 - `MusicService.addToPlayQueue` notifies clients via `queueChanged` on `Dispatchers.Default`.
 
 ## NewPipeExtractor Integration
@@ -89,7 +129,7 @@ Rules:
 Initialized once in `MainActivity.onCreate()` via `NewPipe.init(CustomDownloader.getInstance())`.
 
 - **Search**: `YouTube.getSearchExtractor(query, contentFilter)` with filters for `MUSIC_SONGS`, `MUSIC_ALBUMS`, `MUSIC_PLAYLISTS`, `VIDEOS`
-- **Stream resolution**: `StreamInfo.getInfo(url)` → `audioStreams[last]` → `stream.content` for URL, `stream.averageBitrate`, `stream.getFormat()!!.suffix`
+- **Stream resolution**: `StreamInfo.getInfo(url)` → `audioStreams.maxByOrNull { it.averageBitrate }` → `stream.content` for URL, `stream.averageBitrate`, `stream.getFormat()!!.suffix`
 - **Playlist enumeration**: `YouTube.getPlaylistExtractor(link).fetchPage()` → iterate `initialPage.items`
 
 ## Key Libraries
@@ -130,11 +170,13 @@ App uses scoped storage via `context.getExternalFilesDir()`:
 
 ## Known Limitations
 
-- `DownloadService` download body is commented out (WIP)
 - `SpotifyImportService` import logic is commented out (WIP)
 - `MusicService.registeredClients` is not thread-safe (potential `ConcurrentModificationException`)
 - No ViewModel/LiveData — all state is in service companion object statics
 - Compose dependencies declared in build-logic but not used in app module
+- Device-local songs (`Shared.getLocalSongs`, outside the Able dir) have no
+  embedded video ID, so download dedup only covers the Able library and the
+  active download queue for them
 
 ## Conventions
 

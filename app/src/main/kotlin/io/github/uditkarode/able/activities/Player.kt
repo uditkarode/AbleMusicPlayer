@@ -674,7 +674,7 @@ class Player : MusicClientActivity() {
         fun apply(inLibrary: Boolean) {
             binding.playerDownload.isEnabled = !inLibrary
             binding.playerDownload.setColorFilter(
-                if (inLibrary) 0x40fbfbfb else 0xfbfbfb
+                if (inLibrary) 0x40fbfbfb else 0xffffffff.toInt()
             )
         }
 
@@ -710,6 +710,32 @@ class Player : MusicClientActivity() {
         var ret = "${minutes}:"
         if (seconds < 10) ret += "0"
         return ret + seconds
+    }
+
+    /**
+     * Shows the centered loading spinner over a full-screen scrim that dims
+     * the whole player and swallows touches, so a double-tap can't queue
+     * overlapping bottom sheets while the network call is in flight.
+     */
+    private fun showLoading() {
+        binding.loadingScrim.visibility = View.VISIBLE
+        binding.loadingOverlay.visibility = View.VISIBLE
+        binding.playerSave.isEnabled = false
+        binding.playerDiscover.isEnabled = false
+        binding.playerDownload.isEnabled = false
+    }
+
+    /** Hides the scrim/spinner and restores the real control states; the
+     *  download button's enabled state depends on the library registry, so
+     *  it is re-derived for the song currently on screen. */
+    private fun hideLoading() {
+        binding.loadingScrim.visibility = View.GONE
+        binding.loadingOverlay.visibility = View.GONE
+        binding.playerSave.isEnabled = true
+        binding.playerDiscover.isEnabled = true
+        val svc = mService ?: return
+        svc.getPlayQueue().getOrNull(svc.getCurrentIndex())
+            ?.let { updateDownloadButtonState(it) }
     }
 
     override fun attachBaseContext(newBase: Context?) {
@@ -814,6 +840,7 @@ class Player : MusicClientActivity() {
             LastFmKeyPrompt.showIfMissing(this)
             return
         }
+        showLoading()
         launch(Dispatchers.IO) {
             val tracks = try {
                 LastFmClient.similarTracks(current.artist, current.name)
@@ -821,6 +848,7 @@ class Player : MusicClientActivity() {
                 Log.e("Player", "Similar tracks failed", e); emptyList()
             }
             launch(Dispatchers.Main) {
+                hideLoading()
                 if (tracks.isEmpty()) {
                     Toast.makeText(this@Player, R.string.disc_no_suggestions, Toast.LENGTH_SHORT).show()
                     return@launch
@@ -853,7 +881,11 @@ class Player : MusicClientActivity() {
                 onTrackPressed = { suggestion ->
                     showTrackActionMenu(suggestion)
                 },
-                onArtistPressed = { artist -> showArtistDiscography(artist.name) }
+                onArtistPressed = { artist ->
+                    // Don't stack a second bottom sheet over this one.
+                    sheet.dismiss()
+                    showArtistDiscography(artist.name)
+                }
             )
         }
         render()
@@ -878,6 +910,7 @@ class Player : MusicClientActivity() {
             LastFmKeyPrompt.showIfMissing(this)
             return
         }
+        showLoading()
         launch(Dispatchers.IO) {
             val albums = try { LastFmClient.artistTopAlbums(artistName) }
                 catch (e: Exception) { Log.e("Player", "Top albums failed", e); emptyList<AlbumSuggestion>() }
@@ -897,6 +930,7 @@ class Player : MusicClientActivity() {
                     .thenByDescending { it.year }
             )
             launch(Dispatchers.Main) {
+                hideLoading()
                 if (ordered.isEmpty() && singles.isEmpty()) {
                     Toast.makeText(this@Player, R.string.disc_no_discography, Toast.LENGTH_SHORT).show()
                     return@launch

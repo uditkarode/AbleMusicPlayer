@@ -288,4 +288,32 @@
 
     </LinearLayout>
 
+    <!-- Centered loading spinner shown while discovery/discography network
+         calls are in flight. A full-screen scrim dims the whole player and
+         swallows touches (clickable) so a double-tap can't queue overlapping
+         bottom sheets; the spinner rides on top of the scrim. -->
+    <View
+        android:id="@+id/loading_scrim"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/loading_overlay"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:indeterminateTint="#fbfbfb"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

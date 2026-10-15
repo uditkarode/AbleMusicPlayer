@@ -198,6 +198,12 @@ class Player : MusicClientActivity() {
             showArtistDiscography(current.artist)
         }
 
+        binding.playerDownload.setOnClickListener {
+            val svc = mService ?: return@setOnClickListener
+            val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex()) ?: return@setOnClickListener
+            enqueueDownload(current)
+        }
+
         (binding.shuffleButton.parent as View).post {
             val rect = Rect().also {
                 binding.shuffleButton.getHitRect(it)
@@ -631,6 +637,7 @@ class Player : MusicClientActivity() {
             val song = mService.getPlayQueue()[mService.getCurrentIndex()]
             binding.songName.text = song.name
             binding.artistName.text = song.artist
+            updateDownloadButtonState(song)
 
             val duration = mService.getMediaPlayer().duration
             if (duration > 0) {
@@ -643,6 +650,43 @@ class Player : MusicClientActivity() {
                 binding.playerSeekbar.progress = 0
                 binding.completePosition.text = "0:00"
                 binding.playerCurrentPosition.text = "0:00"
+            }
+        }
+    }
+
+    /**
+     * Download affordance state for the current song: grey and disabled when
+     * the song is already in the local library (matched by the rename-proof
+     * video ID, or being a device-local file), white and active otherwise.
+     */
+    private fun updateDownloadButtonState(song: Song) {
+        val videoId = Shared.getIdFromLink(song.youtubeLink)
+
+        fun apply(inLibrary: Boolean) {
+            binding.playerDownload.isEnabled = !inLibrary
+            binding.playerDownload.setColorFilter(
+                if (inLibrary) 0x40fbfbfb else 0xfbfbfb
+            )
+        }
+
+        if ((song.isLocal && song.filePath.isNotBlank()) || Shared.isInLibrary(videoId)) {
+            apply(true)
+            return
+        }
+        apply(false)
+
+        // Cold-start safety: the library registry may not have been built yet
+        // (Home never scanned). Build it on IO, then re-evaluate for the song
+        // still on screen.
+        if (videoId.isNotBlank() && !Shared.localIdsFresh) {
+            launch(Dispatchers.IO) {
+                Shared.refreshLocalIds()
+                launch(Dispatchers.Main) {
+                    val svc = mService ?: return@launch
+                    val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex())
+                    if (current != null && Shared.getIdFromLink(current.youtubeLink) == videoId)
+                        apply(Shared.isInLibrary(videoId))
+                }
             }
         }
     }
@@ -667,12 +711,16 @@ class Player : MusicClientActivity() {
         super.onResume()
         if (mService == null)
             bindEvent()
-        else
+        else {
             playPauseEvent(
                 if ((mService as MusicService)
                         .getMediaPlayer().isPlaying
                 ) SongState.playing else SongState.paused
             )
+            val svc = mService as MusicService
+            svc.getPlayQueue().getOrNull(svc.getCurrentIndex())
+                ?.let { updateDownloadButtonState(it) }
+        }
     }
 
     override fun onDestroy() {
@@ -916,6 +964,12 @@ class Player : MusicClientActivity() {
 
     /** Adds a resolved song to the DownloadService queue (same flow as MainActivity). */
     private fun enqueueDownload(song: Song) {
+        if ((song.isLocal && song.filePath.isNotBlank()) ||
+            Shared.isInLibrary(Shared.getIdFromLink(song.youtubeLink))
+        ) {
+            Toast.makeText(this, R.string.dl_already_library, Toast.LENGTH_SHORT).show()
+            return
+        }
         if (DownloadService.isAlreadyQueued(song.youtubeLink)) {
             Toast.makeText(this, R.string.disc_dl_already, Toast.LENGTH_SHORT).show()
             return

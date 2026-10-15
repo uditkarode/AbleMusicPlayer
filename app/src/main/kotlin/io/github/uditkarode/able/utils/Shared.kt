@@ -333,6 +333,10 @@ object Shared {
     /** Video IDs of the songs currently in the Able library; rebuilt on every scan. */
     private val localIds = HashSet<String>()
 
+    /** False until the ID registry has been built at least once this process. */
+    var localIdsFresh = false
+        private set
+
     /**
      * Reads the YouTube video ID that DownloadService embeds in the file's
      * `comment` tag at download time. Returns "" when absent or invalid.
@@ -378,6 +382,7 @@ object Shared {
             localIds.clear()
             localIds.addAll(ids)
         }
+        localIdsFresh = true
     }
 
     /** Rebuilds the library ID registry straight from the Able song directory. */

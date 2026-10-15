@@ -83,6 +83,7 @@ or via the UPI address %2$s</string>
     <string name="rem_disk">Delete From Disk</string>
     <string name="rem_playlist">Remove Playlist</string>
     <string name="dl_added">is added to Download Queue</string>
+    <string name="dl_already_library">Already in your library</string>
     <string name="about_also">Also, huge thanks to the NewPipe team for the extractor.</string>
     <string name="dev">Udit Karode</string>
     <string name="jayesh">Jayesh Seth</string>

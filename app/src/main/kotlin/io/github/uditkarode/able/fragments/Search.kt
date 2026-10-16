@@ -147,7 +147,12 @@ class Search : Fragment(), CoroutineScope {
 
         sp = requireContext().getSharedPreferences("search", 0)
 
-        when (sp.getString("mode", "Music")) {
+        // The old raw-YouTube-Music "Music" mode IS the Discover cascade now:
+        // migrate the stored preference and treat Discover as the default.
+        if (sp.getString("mode", "") == "Music")
+            sp.edit().putString("mode", "Discover").apply()
+
+        when (sp.getString("mode", "Discover")) {
             "Album" -> {
                 _binding!!.searchMode.setImageDrawable(
                     ContextCompat.getDrawable(
@@ -177,8 +182,11 @@ class Search : Fragment(), CoroutineScope {
         }
 
         View.OnClickListener {
-            when (sp.getString("mode", "Music")) {
-                "Music" -> {
+            // Cycle: Discover → Album → Playlists → Discover. The raw song
+            // search IS Discover (catalog cascade + YouTube rows); raw
+            // YouTube stays reachable via the "!" and "?" query prefixes.
+            when (sp.getString("mode", "Discover")) {
+                "Discover" -> {
                     sp.edit().putString("mode", "Album").apply()
                     _binding!!.searchMode.setImageDrawable(
                         ContextCompat.getDrawable(
@@ -204,16 +212,6 @@ class Search : Fragment(), CoroutineScope {
                         ContextCompat.getDrawable(
                             requireContext(),
                             R.drawable.mode_discover
-                        )
-                    )
-                }
-
-                "Discover" -> {
-                    sp.edit().putString("mode", "Music").apply()
-                    _binding!!.searchMode.setImageDrawable(
-                        ContextCompat.getDrawable(
-                            requireContext(),
-                            R.drawable.mode_music
                         )
                     )
                 }
@@ -265,7 +263,7 @@ class Search : Fragment(), CoroutineScope {
             resultArray.isNotEmpty() && useYtMusic ->
                 rv.adapter = YtmResultAdapter(
                     resultArray, WeakReference(this@Search),
-                    sp.getString("mode", "Music") ?: "Music"
+                    sp.getString("mode", "Discover") ?: "Discover"
                 )
             resultArray.isNotEmpty() ->
                 rv.adapter = YtResultAdapter(resultArray, WeakReference(this@Search))
@@ -285,7 +283,7 @@ class Search : Fragment(), CoroutineScope {
      *  current preference. */
     private fun ytAdapter(): RecyclerView.Adapter<*> =
         if (hybridYtMusic)
-            YtmResultAdapter(resultArray, WeakReference(this@Search), "Music")
+            YtmResultAdapter(resultArray, WeakReference(this@Search), "Discover")
         else
             YtResultAdapter(resultArray, WeakReference(this@Search))
 
@@ -584,7 +582,7 @@ class Search : Fragment(), CoroutineScope {
                                 .getString("source_key", "Youtube Music") == "Youtube Music")
                         }
 
-                        val discoverMode = sp.getString("mode", "Music") == "Discover"
+                        val discoverMode = sp.getString("mode", "Discover") == "Discover"
                         // NewPipe items are platform-typed Java objects: any
                         // unexpected null or extractor hiccup must surface as
                         // a toast, never as a process kill from an IO coroutine
@@ -702,7 +700,7 @@ class Search : Fragment(), CoroutineScope {
                                         YtmResultAdapter(
                                             resultArray,
                                             WeakReference(this@Search),
-                                            sp.getString("mode", "Music") ?: "Music"
+                                            sp.getString("mode", "Discover") ?: "Discover"
                                         )
                                 else
                                     searchRv.adapter =

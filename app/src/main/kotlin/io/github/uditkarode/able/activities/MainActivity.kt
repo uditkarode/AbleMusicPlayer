@@ -318,6 +318,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
             .getString("mode_key", MusicMode.download)
         if (mode.isNotEmpty())
             currentMode = mode
+        Log.i("ABLE>", "sendItem '${song.name}' mode=$currentMode")
 
         song.ytmThumbnail = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
         when (currentMode) {
@@ -355,7 +356,29 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
             }
 
             MusicMode.stream -> {
-                home.streamAudio(song)
+                // Hand the song straight to the service via the static
+                // instance — routing through a fragment reference could hit a
+                // stale Home whose coroutine scope was cancelled (service
+                // started, queue never set, song never started).
+                var freshStart = false
+                if (!Shared.serviceRunning(MusicService::class.java, this)) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(Intent(this, MusicService::class.java))
+                    } else {
+                        startService(Intent(this, MusicService::class.java))
+                    }
+                    freshStart = true
+                }
+                launch(Dispatchers.IO) {
+                    val svc = MusicService.awaitInstance() ?: return@launch
+                    launch(Dispatchers.Main) {
+                        svc.setQueue(arrayListOf(song))
+                        svc.setIndex(0)
+                        if (freshStart)
+                            MusicService.registeredClients
+                                .forEach(MusicService.MusicClient::serviceStarted)
+                    }
+                }
                 launch(Dispatchers.Main) {
                     loadingEvent(true)
                 }

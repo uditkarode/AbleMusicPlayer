@@ -30,13 +30,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.graphics.drawable.toBitmap
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.Settings
 import io.github.uditkarode.able.adapters.SongAdapter
@@ -45,7 +42,6 @@ import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.MusicService
-import io.github.uditkarode.able.utils.ChunkedDownloader
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
@@ -56,7 +52,6 @@ import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import org.schabi.newpipe.extractor.stream.StreamInfo
 import java.io.File
 import java.lang.ref.WeakReference
 import java.util.*
@@ -218,118 +213,6 @@ class Home : Fragment(), CoroutineScope, MusicService.MusicClient {
             )
         } catch (e: Exception) {
             Log.e("ERR>", e.toString())
-        }
-    }
-
-    /**
-     * Downloads and streams a song using chunked Range requests
-     * to bypass YouTube's per-connection throttle.
-     */
-    fun streamAudio(song: Song) {
-        var freshStart = false
-        if (isAdded) {
-            if (!Shared.serviceRunning(MusicService::class.java, requireContext())) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    requireActivity().startForegroundService(
-                        Intent(requireContext(), MusicService::class.java)
-                    )
-                } else {
-                    requireActivity().startService(
-                        Intent(requireContext(), MusicService::class.java)
-                    )
-                }
-                bindEvent()
-                freshStart = true
-            }
-        } else {
-            Log.e("ERR>", "Context Lost")
-            return
-        }
-
-        launch(Dispatchers.IO) {
-            val playSong = fun() {
-                mService.value?.setQueue(
-                    arrayListOf(Song(name = getString(R.string.loading), artist = ""))
-                )
-                mService.value?.setCurrentIndex(0)
-                mService.value?.showNotif()
-
-                val streamInfo: StreamInfo
-                try {
-                    streamInfo = StreamInfo.getInfo(song.youtubeLink)
-                } catch (e: Exception) {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Something went wrong!", Toast.LENGTH_SHORT).show()
-                        MusicService.registeredClients.forEach { it.isLoading(false) }
-                    }
-                    Log.e("ERR>", e.toString())
-                    return
-                }
-
-                val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
-                    ?: streamInfo.audioStreams.firstOrNull()
-                if (stream == null) {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "No audio streams available", Toast.LENGTH_SHORT).show()
-                        MusicService.registeredClients.forEach { it.isLoading(false) }
-                    }
-                    Log.e("ERR>", "No audio streams for ${song.youtubeLink}")
-                    return
-                }
-                val url = stream.content
-                val ext = stream.getFormat()?.suffix ?: run {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Unknown stream format", Toast.LENGTH_SHORT).show()
-                        MusicService.registeredClients.forEach { it.isLoading(false) }
-                    }
-                    Log.e("ERR>", "Stream has no format for ${song.youtubeLink}")
-                    return
-                }
-                val songId = Shared.getIdFromLink(song.youtubeLink)
-
-                // Save album art
-                if (song.ytmThumbnail.isNotBlank()) {
-                    try {
-                        val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
-                        val drw = Glide.with(requireContext())
-                            .load(thumbUrl)
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true)
-                            .submit().get()
-                        Shared.saveStreamingAlbumArt(drw.toBitmap(), songId)
-                    } catch (e: Exception) {
-                        Log.e("ERR>", "Failed to save album art: $e")
-                    }
-                }
-
-                // Download audio using chunked Range requests (fast)
-                val tempFile = File(Constants.cacheDir, "$songId.tmp.$ext")
-                if (!Constants.cacheDir.exists()) Constants.cacheDir.mkdirs()
-
-                try {
-                    ChunkedDownloader.download(url, tempFile)
-                } catch (e: Exception) {
-                    launch(Dispatchers.Main) {
-                        Toast.makeText(requireContext(), "Download failed", Toast.LENGTH_SHORT).show()
-                        MusicService.registeredClients.forEach { it.isLoading(false) }
-                    }
-                    Log.e("ERR>", "Stream download failed: $e")
-                    return
-                }
-
-                song.filePath = tempFile.absolutePath
-                launch(Dispatchers.Main) {
-                    mService.value?.setQueue(arrayListOf(song))
-                    mService.value?.setIndex(0)
-                    if (freshStart)
-                        MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
-                }
-            }
-
-            if (mService.value == null) {
-                mService.first { it != null }
-            }
-            playSong()
         }
     }
 

@@ -18,6 +18,7 @@
 
 package io.github.uditkarode.able.utils
 
+import android.util.Log
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
 import org.schabi.newpipe.extractor.ServiceList.YouTube
@@ -52,6 +53,7 @@ object TrackResolver {
             val best = extractor.initialPage.items.firstOrNull() as? StreamInfoItem
                 ?: return null
 
+            Log.i("ABLE>", "trackResolver '${query}' → ${best.url}")
             suggestion.youtubeLink = best.url
             suggestion.youtubeThumbnail = Shared.getBestThumbnail(best.thumbnails, best.url)
             suggestion.asSong()

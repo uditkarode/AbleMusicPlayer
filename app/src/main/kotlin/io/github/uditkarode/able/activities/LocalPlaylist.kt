@@ -185,24 +185,18 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
         }
 
         launch(Dispatchers.Default) {
-            val playSong = fun() {
-                val mService = mService.value!!
-                mService.setQueue(array)
-                mService.setIndex(index)
-                if (mService.getShuffle())
-                    mService.setShuffleRepeat(shuffle = true, repeat = mService.getRepeat())
-                if (freshStart)
-                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
-            }
-
-            if (mService.value != null) playSong()
-            else {
-                mService.collect {
-                    if (it != null) {
-                        playSong()
-                    }
-                }
-            }
+            val svc = MusicService.awaitInstance() ?: return@launch
+            // Re-tapping the row of the song already queued at this
+            // position must not tear down and restart the player (row-tap
+            // storm: every songChanged released/recreated MediaPlayer
+            // mid-resolution and killed the loading flow).
+            if (svc.getCurrentIndex() == index && svc.getPlayQueue() === array) return@launch
+            svc.setQueue(array)
+            svc.setIndex(index)
+            if (svc.getShuffle())
+                svc.setShuffleRepeat(shuffle = true, repeat = svc.getRepeat())
+            if (freshStart)
+                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
         }
     }
 

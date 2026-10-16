@@ -33,6 +33,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
@@ -51,12 +52,14 @@ import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.ApiKeyProvider
+import io.github.uditkarode.able.utils.CatalogSearch
 import io.github.uditkarode.able.utils.LastFmClient
 import io.github.uditkarode.able.utils.LastFmKeyPrompt
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.SwipeController
 import io.github.uditkarode.able.utils.TrackResolver
 import io.github.uditkarode.able.utils.ViewMode
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -96,6 +99,11 @@ class Search : Fragment(), CoroutineScope {
 
     /** Active swipe controller for YT/YTM results; detached for discovery lists. */
     private var searchItemTouchHelper: ItemTouchHelper? = null
+
+    /** Source (YT Music vs YouTube) resolved for the current Discover search;
+     *  the hybrid list and its view-mode re-renders must stay consistent even
+     *  if the preference changes while the results are on screen. */
+    private var hybridYtMusic = true
 
     /** True while the artist discography drill-down is on screen. */
     private var inDrillDown = false
@@ -242,15 +250,16 @@ class Search : Fragment(), CoroutineScope {
         if (rv.visibility != View.VISIBLE) return
         val ctx = requireContext()
         rv.layoutManager = ViewMode.layoutManagerFor(ctx)
+        val useYtMusic = PreferenceManager.getDefaultSharedPreferences(ctx)
+            .getString("source_key", "Youtube Music") == "Youtube Music"
         when {
+            suggestArray.isNotEmpty() && resultArray.isNotEmpty() ->
+                // Hybrid Discover results: canonical catalog matches lead,
+                // raw YouTube rows follow.
+                rv.adapter = ConcatAdapter(discoverAdapter(), ytAdapter())
             suggestArray.isNotEmpty() ->
-                rv.adapter = DiscoverResultAdapter(
-                    suggestArray,
-                    onTrackPressed = { onDiscoverTrackPressed(it) },
-                    onArtistPressed = { onDiscoverArtistPressed(it) }
-                )
-            resultArray.isNotEmpty() && PreferenceManager.getDefaultSharedPreferences(ctx)
-                .getString("source_key", "Youtube Music") == "Youtube Music" ->
+                rv.adapter = discoverAdapter()
+            resultArray.isNotEmpty() && useYtMusic ->
                 rv.adapter = YtmResultAdapter(
                     resultArray, WeakReference(this@Search),
                     sp.getString("mode", "Music") ?: "Music"
@@ -259,6 +268,23 @@ class Search : Fragment(), CoroutineScope {
                 rv.adapter = YtResultAdapter(resultArray, WeakReference(this@Search))
         }
     }
+
+    /** Suggestions adapter with the standard Discover tap handlers. */
+    private fun discoverAdapter(): DiscoverResultAdapter =
+        DiscoverResultAdapter(
+            suggestArray,
+            onTrackPressed = { onDiscoverTrackPressed(it) },
+            onArtistPressed = { onDiscoverArtistPressed(it) }
+        )
+
+    /** Adapter for the YouTube section of the Discover results; the source
+     *  (YT Music vs YouTube) is the one resolved for the query, not the
+     *  current preference. */
+    private fun ytAdapter(): RecyclerView.Adapter<*> =
+        if (hybridYtMusic)
+            YtmResultAdapter(resultArray, WeakReference(this@Search), "Music")
+        else
+            YtResultAdapter(resultArray, WeakReference(this@Search))
 
     // region discovery chips (always visible, below the search bar)
 
@@ -430,22 +456,69 @@ class Search : Fragment(), CoroutineScope {
                         }
 
                         val discoverMode = sp.getString("mode", "Music") == "Discover"
-                        launch(Dispatchers.IO) {
-                            if (discoverMode) {
-                                // No key configured yet → show the import prompt instead of searching.
-                                if (!ApiKeyProvider.hasLastFmKey) {
-                                    launch(Dispatchers.Main) {
-                                        _binding?.loadingView?.apply {
-                                            pauseAnimation()
-                                            visibility = View.GONE
-                                        }
-                                        LastFmKeyPrompt.showIfMissing(requireContext())
-                                    }
-                                    return@launch
+                        // NewPipe items are platform-typed Java objects: any
+                        // unexpected null or extractor hiccup must surface as
+                        // a toast, never as a process kill from an IO coroutine
+                        // (the try/catch below can't catch launch-internal
+                        // failures).
+                        launch(Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+                            Log.e(TAG, "Search failed", e)
+                            launch(Dispatchers.Main) {
+                                _binding?.loadingView?.apply {
+                                    pauseAnimation()
+                                    visibility = View.GONE
                                 }
-                                val suggestions = LastFmClient.searchTracks(query)
+                                Toast.makeText(
+                                    requireContext(), "Something failed!", Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }) {
+                            if (!discoverMode)
+                                // Stale suggestion lists (chips, a previous
+                                // Discover search) must not leak into YT renders.
                                 suggestArray.clear()
-                                suggestArray.addAll(suggestions)
+                            if (discoverMode) {
+                                suggestArray.clear()
+                                // The catalogs (tier 1+2) and the raw YouTube
+                                // search (tier 3) run in parallel; the
+                                // relevance gate decides who leads the list.
+                                val catalogDeferred = async { CatalogSearch.search(query) }
+                                val ytDeferred = async {
+                                    try {
+                                        val extractor = YouTube.getSearchExtractor(
+                                            query, singletonList(
+                                                if (useYtMusic)
+                                                    YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
+                                                else
+                                                    YoutubeSearchQueryHandlerFactory.VIDEOS
+                                            ), ""
+                                        )
+                                        extractor.fetchPage()
+                                        extractor.initialPage.items.mapNotNull { it as? StreamInfoItem }
+                                            .map { ex ->
+                                                Song(
+                                                    name = ex.name,
+                                                    artist = ex.uploaderName ?: "",
+                                                    youtubeLink = ex.url,
+                                                    ytmThumbnail = Shared.getBestThumbnail(ex.thumbnails, ex.url)
+                                                )
+                                            }
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Discover YouTube fetch failed", e)
+                                        emptyList<Song>()
+                                    }
+                                }
+                                val catalog = catalogDeferred.await()
+                                suggestArray.addAll(catalog.matches)
+                                resultArray.clear()
+                                resultArray.addAll(ytDeferred.await())
+                                hybridYtMusic = useYtMusic
+                                Log.i(
+                                    "ABLE>",
+                                    "discover '$query': ${catalog.matches.size} catalog matches" +
+                                        " (first=${catalog.matches.firstOrNull()?.let { it.artist + " - " + it.name }})" +
+                                        ", yt=${resultArray.size} rows"
+                                )
                             } else if (useYtMusic) {
                                 when (sp.getString("mode", "Music")) {
                                     "Music" -> {
@@ -543,18 +616,30 @@ class Search : Fragment(), CoroutineScope {
                             }
 
                             launch(Dispatchers.Main) {
+                                if (!discoverMode)
+                                    Log.i(
+                                        "ABLE>",
+                                        "search '$query' → ${resultArray.size} rows " +
+                                            "(${if (useYtMusic) "ytmusic" else "youtube"})"
+                                    )
                                 if (discoverMode) {
-                                    if (suggestArray.isEmpty())
-                                        Toast.makeText(
+                                    when {
+                                        // Hybrid: canonical catalog matches
+                                        // lead, the raw YouTube rows follow.
+                                        suggestArray.isNotEmpty() && resultArray.isNotEmpty() ->
+                                            searchRv.adapter = ConcatAdapter(
+                                                discoverAdapter(), ytAdapter()
+                                            )
+                                        suggestArray.isNotEmpty() ->
+                                            searchRv.adapter = discoverAdapter()
+                                        resultArray.isNotEmpty() ->
+                                            searchRv.adapter = ytAdapter()
+                                        else -> Toast.makeText(
                                             requireContext(),
                                             R.string.disc_no_suggestions,
                                             Toast.LENGTH_SHORT
                                         ).show()
-                                    searchRv.adapter = DiscoverResultAdapter(
-                                        suggestArray,
-                                        onTrackPressed = { onDiscoverTrackPressed(it) },
-                                        onArtistPressed = { onDiscoverArtistPressed(it) }
-                                    )
+                                    }
                                 } else if (useYtMusic)
                                     searchRv.adapter =
                                         YtmResultAdapter(

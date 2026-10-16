@@ -92,6 +92,140 @@ object LastFmClient {
     fun similarTracks(artist: String, track: String): List<TrackSuggestion> =
         callTracks("track.getsimilar", "artist" to artist, "track" to track)
 
+    /**
+     * track.getSimilar with graceful degradation for songs missing from (or
+     * mis-tagged against) Last.fm's catalog. Order:
+     *
+     *  1. exact `track.getsimilar(artist, track)`
+     *  2. undecorated title — trailing "(feat. …)" groups and "feat. …" tails
+     *     are stripped from the tag title and the lookup retried
+     *  3. canonicalization via `track.search` — a confidently matching result
+     *     is retried with the canonical identity
+     *  4. top tracks of artists similar to the seed artist (works when the
+     *     artist is known but the specific track is not — e.g. keshi
+     *     "Blue Water Road", absent from Last.fm entirely)
+     *  5. top tracks by the seed artist itself
+     *  6. Deezer artist radio — keyless, for artists Last.fm doesn't know
+     *
+     * Blocking — invoke from a background dispatcher.
+     */
+    fun similarTracksSmart(artist: String, track: String): SimilarDiscovery {
+        if (artist.isNotBlank() && track.isNotBlank()) {
+            val exact = similarTracks(artist, track)
+            if (exact.isNotEmpty())
+                return SimilarDiscovery(exact, SimilarSource.TRACK_SIMILAR)
+
+            // Decorated tag titles ("FE!N (feat. Playboi Carti)", "Song feat. X")
+            // rarely match the canonical entry — try the undecorated title.
+            undecorated(track)?.let { stripped ->
+                val strippedResult = similarTracks(artist, stripped)
+                if (strippedResult.isNotEmpty())
+                    return SimilarDiscovery(strippedResult, SimilarSource.TRACK_CORRECTED)
+            }
+
+            canonicalTrack(artist, track)?.let { (canonArtist, canonTitle) ->
+                val corrected = similarTracks(canonArtist, canonTitle)
+                if (corrected.isNotEmpty())
+                    return SimilarDiscovery(corrected, SimilarSource.TRACK_CORRECTED)
+            }
+
+            val mix = similarArtistsMix(artist)
+            if (mix.isNotEmpty())
+                return SimilarDiscovery(mix, SimilarSource.ARTIST_MIX)
+
+            val own = try { artistTopTracks(artist) } catch (e: Exception) { emptyList<TrackSuggestion>() }
+            if (own.isNotEmpty())
+                return SimilarDiscovery(own.take(15), SimilarSource.ARTIST_TOP)
+        }
+        if (artist.isNotBlank()) {
+            val radio = try { DeezerClient.artistRadio(artist) } catch (e: Exception) { emptyList<TrackSuggestion>() }
+            if (radio.isNotEmpty())
+                return SimilarDiscovery(radio, SimilarSource.DEEZER_RADIO)
+        }
+        return SimilarDiscovery(emptyList(), SimilarSource.NONE)
+    }
+
+    /**
+     * Strips trailing decorations from a tag title: featuring tails
+     * ("Song feat. X", "Song ft. X", "Song featuring X") and trailing
+     * parenthetical/bracketed groups ("FE!N (feat. Playboi Carti)"). Returns
+     * null when nothing meaningful changes (avoids a duplicate API call).
+     */
+    private fun undecorated(title: String): String? {
+        var t = title.trim()
+        t = t.replace(Regex("\\s+(feat\\.?|ft\\.?|featuring)\\s+.*", RegexOption.IGNORE_CASE), "")
+        while (true) {
+            val trailing = Regex("[\\[(][^)\\]]*[)\\]]\\s*$").find(t) ?: break
+            t = t.substring(0, trailing.range.first).trim()
+        }
+        t = t.trimEnd('-', '–', ':', ',', ' ').trim()
+        if (t.isBlank() || normKey(t).length < 3 || normKey(t) == normKey(title)) return null
+        return t
+    }
+
+    /**
+     * Looks [track] up in `track.search` (with the [artist] hint) and returns
+     * the canonical (artist, title) pair when a result title confidently
+     * matches the input title: normalized equality or prefix, both directions,
+     * minimum 3 chars. The strictness matters — Last.fm's fuzzy search happily
+     * returns unrelated songs that only share the artist, and those must not
+     * be mistaken for a canonical identity.
+     */
+    private fun canonicalTrack(artist: String, track: String): Pair<String, String>? {
+        val root = cachedJson("track.search", listOf("artist" to artist, "track" to track))
+            ?: return null
+        val nTrack = normKey(track)
+        if (nTrack.length < 3) return null
+        val inputKey = normKey(artist) + ":" + nTrack
+        for (entry in findArray(root, "track").take(5)) {
+            val obj = entry.asObjectOrNull() ?: continue
+            val name = obj.stringField("name")?.takeIf { it.isNotBlank() } ?: continue
+            val candArtist = obj.artistName().takeIf { it.isNotBlank() } ?: continue
+            val nName = normKey(name)
+            if (nName.length < 3 ||
+                !(nName == nTrack || nName.startsWith(nTrack) || nTrack.startsWith(nName))
+            ) continue
+            // Same identity echoed back by the search = pointless retry.
+            if (normKey(candArtist) + ":" + nName == inputKey) continue
+            return candArtist to name
+        }
+        return null
+    }
+
+    /**
+     * Round-robin over the top tracks of the artists similar to [artist]:
+     * varied rows instead of six consecutive blocks of the same artist.
+     */
+    private fun similarArtistsMix(artist: String): List<TrackSuggestion> {
+        val similar = try {
+            callArtists("artist.getsimilar", "artist" to artist, "limit" to "8")
+        } catch (e: Exception) { emptyList<ArtistSuggestion>() }
+        if (similar.isEmpty()) return emptyList()
+
+        val perArtist = similar.take(6).map { similarArtist ->
+            try {
+                callTracks("artist.gettoptracks", "artist" to similarArtist.name, "limit" to "3")
+            } catch (e: Exception) { emptyList<TrackSuggestion>() }
+        }
+
+        val out = ArrayList<TrackSuggestion>()
+        val seen = HashSet<String>()
+        var index = 0
+        while (out.size < 24) {
+            var progressed = false
+            for (tracks in perArtist) {
+                if (index >= tracks.size) continue
+                progressed = true
+                val candidate = tracks[index]
+                val key = normKey(candidate.name) + "|" + normKey(candidate.artist)
+                if (seen.add(key)) out.add(candidate)
+            }
+            if (!progressed) break
+            index++
+        }
+        return out
+    }
+
     /** Last.fm `track.search` — metadata search used by the Discover search mode. */
     fun searchTracks(query: String): List<TrackSuggestion> =
         callTracks("track.search", "track" to query)
@@ -430,3 +564,26 @@ object LastFmClient {
 
 /** What one cached `track.getInfo` call identifies about a track. */
 data class TrackIdentity(val album: String, val image: String)
+
+/** Where the suggestions in a [SimilarDiscovery] came from. */
+enum class SimilarSource {
+    /** `track.getsimilar` matched the exact artist+title pair. */
+    TRACK_SIMILAR,
+    /** The file tags differed from Last.fm's canonical names; a corrected
+     *  identity (via `track.search`) produced the suggestions. */
+    TRACK_CORRECTED,
+    /** Top tracks of artists similar to the seed artist. */
+    ARTIST_MIX,
+    /** Top tracks by the seed artist itself. */
+    ARTIST_TOP,
+    /** Deezer artist radio (seed artist unknown to Last.fm). */
+    DEEZER_RADIO,
+    /** No source could suggest anything. */
+    NONE
+}
+
+/**
+ * Suggestions for the Player's Discovery button plus the source they came
+ * from; the source drives the sheet title and the "no suggestions" message.
+ */
+data class SimilarDiscovery(val tracks: List<TrackSuggestion>, val source: SimilarSource)

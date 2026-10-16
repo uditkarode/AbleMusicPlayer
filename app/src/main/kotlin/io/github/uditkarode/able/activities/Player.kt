@@ -74,6 +74,8 @@ import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.DeezerClient
 import io.github.uditkarode.able.utils.LastFmClient
 import io.github.uditkarode.able.utils.LastFmKeyPrompt
+import io.github.uditkarode.able.utils.SimilarDiscovery
+import io.github.uditkarode.able.utils.SimilarSource
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
 import io.github.uditkarode.able.utils.TrackResolver
@@ -846,18 +848,23 @@ class Player : MusicClientActivity() {
         }
         showLoading()
         launch(Dispatchers.IO) {
-            val tracks = try {
-                LastFmClient.similarTracks(current.artist, current.name)
+            val discovery = try {
+                LastFmClient.similarTracksSmart(current.artist, current.name)
             } catch (e: Exception) {
-                Log.e("Player", "Similar tracks failed", e); emptyList()
+                Log.e("Player", "Similar tracks failed", e)
+                SimilarDiscovery(emptyList(), SimilarSource.NONE)
             }
+            Log.i(
+                "ABLE>",
+                "discovery '${current.name}': source=${discovery.source} rows=${discovery.tracks.size}"
+            )
             launch(Dispatchers.Main) {
                 hideLoading()
-                if (tracks.isEmpty()) {
+                if (discovery.tracks.isEmpty()) {
                     Toast.makeText(this@Player, R.string.disc_no_suggestions, Toast.LENGTH_SHORT).show()
                     return@launch
                 }
-                showSimilarSheet(tracks)
+                showSimilarSheet(discovery, current.artist)
             }
         }
     }
@@ -868,12 +875,21 @@ class Player : MusicClientActivity() {
      * full-screen MaterialDialog list. Opens collapsed at ~45% of the screen
      * and can be dragged to full height.
      */
-    private fun showSimilarSheet(tracks: List<TrackSuggestion>) {
+    private fun showSimilarSheet(discovery: SimilarDiscovery, artistName: String) {
         val sheet = BottomSheetDialog(this)
         val content = layoutInflater.inflate(R.layout.sheet_similar, null)
         sheet.setContentView(content)
         sheet.behavior.peekHeight =
             (resources.displayMetrics.heightPixels * 0.45f).toInt()
+        // The title tells where the suggestions came from: exact/canonicalized
+        // similarity, related artists, the seed artist itself or Deezer radio.
+        content.findViewById<TextView>(R.id.sheet_title).text = when (discovery.source) {
+            SimilarSource.ARTIST_MIX, SimilarSource.DEEZER_RADIO ->
+                getString(R.string.disc_inspired_by, artistName)
+            SimilarSource.ARTIST_TOP ->
+                getString(R.string.disc_more_from, artistName)
+            else -> getString(R.string.disc_similar)
+        }
         val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
         val toggle = content.findViewById<ImageView>(R.id.sheet_view_mode)
 
@@ -881,7 +897,7 @@ class Player : MusicClientActivity() {
             toggle.setImageResource(ViewMode.toggleIcon(this))
             rv.layoutManager = ViewMode.layoutManagerFor(this)
             rv.adapter = DiscoverResultAdapter(
-                ArrayList<Any>(tracks),
+                ArrayList<Any>(discovery.tracks),
                 onTrackPressed = { suggestion ->
                     showTrackActionMenu(suggestion)
                 },

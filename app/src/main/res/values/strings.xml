@@ -139,6 +139,8 @@ or via the UPI address %2$s</string>
     <string name="disc_local_artists">Local Artists</string>
     <string name="disc_genres">Genres</string>
     <string name="disc_similar">Similar</string>
+    <string name="disc_inspired_by">Inspired by %1$s</string>
+    <string name="disc_more_from">More from %1$s</string>
     <string name="disc_pick_genre">Pick a genre</string>
     <string name="disc_no_suggestions">No suggestions right now</string>
     <string name="disc_no_genres">Couldn\'t load genres</string>

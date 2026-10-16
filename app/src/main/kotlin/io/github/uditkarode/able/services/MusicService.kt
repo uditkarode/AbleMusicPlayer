@@ -99,7 +99,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         var playQueue = ArrayList<Song>()
         var mediaPlayer = MediaPlayer()
         var previousIndex = -1
-        var currentIndex = -1
+        /** Read/written from Main, IO and Default coroutines alike. */
+        @Volatile var currentIndex = -1
 
         val registeredClients: MutableSet<MusicClient> =
             java.util.concurrent.CopyOnWriteArraySet()
@@ -251,6 +252,44 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 )
                 .setOngoing(true)
                 .style = style
+        }
+
+        // Foreground-service contract: startForeground() must run within
+        // seconds of startForegroundService(). Clients start this service and
+        // only populate the queue afterwards (bind → setQueue → setIndex →
+        // stream resolution → cache download can take tens of seconds), while
+        // showNotification() refuses to run without a valid queue — so on a
+        // cold start nothing promoted the service in time and Android 12+
+        // killed the process (ForegroundServiceDidNotStartInTimeException,
+        // seen from AlbumPlaylist and LocalPlaylist). Promote immediately
+        // with a placeholder notification; showNotification() re-uses id 1
+        // and replaces it with the real song once playback starts.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "10002",
+                getString(R.string.music),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                enableLights(false)
+                enableVibration(false)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+        try {
+            val idle = (builder ?: Notification.Builder(this)).apply {
+                setContentTitle(getString(R.string.app_name))
+                setContentText("")
+            }.let { b ->
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    b.setChannelId("10002").build() else b.build()
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                startForeground(1, idle)
+            else
+                notificationManager.notify(1, idle)
+        } catch (e: Exception) {
+            Log.e("ERR>", "Idle startForeground failed: $e")
         }
     }
 

@@ -25,7 +25,6 @@ import okhttp3.Request
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.net.SocketException
 import java.util.concurrent.TimeUnit
 
 /**
@@ -70,7 +69,7 @@ object ChunkedDownloader {
         downloadChunked(url, outputFile, contentLength, listener)
     }
 
-    private fun getContentLength(url: String): Long {
+    internal fun getContentLength(url: String): Long {
         val req = Request.Builder()
             .url(url).head()
             .addHeader("User-Agent", USER_AGENT)
@@ -112,25 +111,44 @@ object ChunkedDownloader {
                         .addHeader("Connection", "close")
                         .build()
                     val resp = client.newCall(req).execute()
-                    val iStream = BufferedInputStream(resp.body.byteStream())
+                    resp.use { r ->
+                        // YouTube answers 403 when the connection rate trips its
+                        // limits (the whole point of chunked downloads). Writing
+                        // the error page into the .tmp file corrupted it and the
+                        // player later failed with "setDataSourceFD failed" —
+                        // surface it as a chunk failure instead.
+                        if (!r.isSuccessful || r.code != 206)
+                            throw java.io.IOException(
+                                "Unexpected HTTP ${r.code} for bytes $downloaded-$rangeEnd"
+                            )
+                        val iStream = BufferedInputStream(r.body.byteStream())
 
-                    val data = ByteArray(65536)
-                    var read: Int
-                    while (iStream.read(data).also { read = it } != -1) {
-                        oStream.write(data, 0, read)
-                        downloaded += read
+                        val data = ByteArray(65536)
+                        var read: Int
+                        var chunkBytes = 0L
+                        while (iStream.read(data).also { read = it } != -1) {
+                            oStream.write(data, 0, read)
+                            downloaded += read
+                            chunkBytes += read
 
-                        val progress = ((downloaded * 100) / contentLength).toInt()
-                        if (progress / 2 != lastNotifiedProgress / 2) {
-                            lastNotifiedProgress = progress
-                            listener?.onProgress(progress)
+                            val progress = ((downloaded * 100) / contentLength).toInt()
+                            if (progress / 2 != lastNotifiedProgress / 2) {
+                                lastNotifiedProgress = progress
+                                listener?.onProgress(progress)
+                            }
                         }
+                        // A clean connection close with zero payload is not a
+                        // "success" — retry the same range.
+                        if (chunkBytes == 0L)
+                            throw java.io.IOException(
+                                "Empty body for bytes $downloaded-$rangeEnd"
+                            )
                     }
 
-                    iStream.close()
-                    resp.close()
                     break // chunk succeeded
-                } catch (e: SocketException) {
+                } catch (e: java.io.IOException) {
+                    // SocketException is an IOException: cover truncations and
+                    // HTTP-level failures alike.
                     Log.e("DL>", "Chunk attempt $attempt failed: ${e.message}")
                     if (attempt == MAX_RETRIES) {
                         oStream.close()
@@ -156,18 +174,26 @@ object ChunkedDownloader {
             .addHeader("User-Agent", USER_AGENT)
             .build()
         val resp = client.newCall(req).execute()
-        val iStream = BufferedInputStream(resp.body.byteStream())
-        val oStream = FileOutputStream(outputFile)
+        resp.use { r ->
+            if (!r.isSuccessful)
+                throw java.io.IOException("Unexpected HTTP ${r.code}")
+            val iStream = BufferedInputStream(r.body.byteStream())
+            val oStream = FileOutputStream(outputFile)
 
-        val data = ByteArray(65536)
-        var read: Int
-        while (iStream.read(data).also { read = it } != -1) {
-            oStream.write(data, 0, read)
+            try {
+                val data = ByteArray(65536)
+                var read: Int
+                while (iStream.read(data).also { read = it } != -1) {
+                    oStream.write(data, 0, read)
+                }
+                oStream.flush()
+            } catch (e: Exception) {
+                oStream.close()
+                outputFile.delete()
+                throw e
+            }
+            oStream.close()
+            iStream.close()
         }
-
-        oStream.flush()
-        oStream.close()
-        iStream.close()
-        resp.close()
     }
 }

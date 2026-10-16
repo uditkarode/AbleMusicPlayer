@@ -32,6 +32,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
@@ -260,7 +261,11 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     fun songChange() {
         if (mService != null) {
             launch(Dispatchers.Main) {
-                val song = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
+                // The service can be bound before the first song is queued:
+                // streamAudio populates the queue asynchronously, so an empty
+                // queue with index -1 is a legitimate transient state.
+                val song = mService!!.getPlayQueue()
+                    .getOrNull(mService!!.getCurrentIndex()) ?: return@launch
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     binding.bbSong.text = Html.fromHtml(

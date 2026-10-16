@@ -468,7 +468,8 @@ class Player : MusicClientActivity() {
         binding.imgAlbart.visibility = View.GONE
         binding.notePh.visibility = View.VISIBLE
         var didGetArt = false
-        val current = mService.getPlayQueue()[mService.getCurrentIndex()]
+        val current = mService.getPlayQueue().getOrNull(mService.getCurrentIndex())
+            ?: return
 
         // Cover stored beside downloaded files. Only meaningful for real
         // downloaded files: streamed/unknown paths ("", "<id>.stream.tmp")
@@ -645,7 +646,8 @@ class Player : MusicClientActivity() {
             val mService = mService as MusicService
             updateAlbumArt()
 
-            val song = mService.getPlayQueue()[mService.getCurrentIndex()]
+            val song = mService.getPlayQueue().getOrNull(mService.getCurrentIndex())
+                ?: return
             binding.songName.text = song.name
             binding.artistName.text = song.artist
             updateDownloadButtonState(song)

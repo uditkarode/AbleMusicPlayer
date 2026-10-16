@@ -373,6 +373,9 @@ class Search : Fragment(), CoroutineScope {
         }
         suggestArray.clear()
         suggestArray.addAll(items)
+        // Chip suggestions and search results are exclusive views; dropping
+        // the stale result list keeps the view-mode re-render unambiguous.
+        resultArray.clear()
         searchItemTouchHelper?.attachToRecyclerView(null)
         rv.adapter = DiscoverResultAdapter(
             suggestArray,
@@ -460,7 +463,7 @@ class Search : Fragment(), CoroutineScope {
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
-                                                    artist = ex.uploaderName,
+                                                    artist = ex.uploaderName ?: "",
                                                     youtubeLink = ex.url,
                                                     ytmThumbnail = thumbnailUrl
                                                 )
@@ -482,7 +485,7 @@ class Search : Fragment(), CoroutineScope {
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
-                                                    artist = ex.uploaderName,
+                                                    artist = ex.uploaderName ?: "",
                                                     youtubeLink = ex.url,
                                                     ytmThumbnail = thumbnailUrl
                                                 )
@@ -508,7 +511,7 @@ class Search : Fragment(), CoroutineScope {
                                             resultArray.add(
                                                 Song(
                                                     name = ex.name,
-                                                    artist = ex.uploaderName,
+                                                    artist = ex.uploaderName ?: "",
                                                     youtubeLink = ex.url,
                                                     ytmThumbnail = thumbnailUrl
                                                 )
@@ -531,7 +534,7 @@ class Search : Fragment(), CoroutineScope {
                                     resultArray.add(
                                         Song(
                                             name = ex.name,
-                                            artist = ex.uploaderName,
+                                            artist = ex.uploaderName ?: "",
                                             youtubeLink = ex.url,
                                             ytmThumbnail = thumbnailUrl
                                         )

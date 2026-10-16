@@ -22,6 +22,7 @@ import android.util.Log
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import io.github.uditkarode.able.model.discovery.ArtistSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -89,6 +90,38 @@ object DeezerClient {
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Deezer track search parse failed", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Artist card search (`/search/artist`): popularity-ranked artist
+     * identities with real photos, feeding the artist tier of the Discover
+     * search mode (an artist-name query must surface the artist itself).
+     * `nb_fan` is mapped onto [ArtistSuggestion.listeners] so rows show the
+     * audience size. Blocking — invoke from a background dispatcher.
+     */
+    fun searchArtists(query: String, limit: Int = 5): List<ArtistSuggestion> {
+        if (query.isBlank()) return emptyList()
+        val body = cachedJson(
+            "artists:$query:$limit",
+            "$BASE/search/artist?q=${URLEncoder.encode(query, "UTF-8")}&limit=$limit"
+        ) ?: return emptyList()
+        return try {
+            JsonParser.parseString(body).asJsonObject.getAsJsonArray("data")
+                .mapNotNull { it.asObjectOrNull() }
+                .mapNotNull { entry ->
+                    val name = entry.stringField("name") ?: return@mapNotNull null
+                    if (name.isBlank()) return@mapNotNull null
+                    ArtistSuggestion(
+                        name = name,
+                        image = entry.stringField("picture_xl")
+                            ?: entry.stringField("picture_big") ?: "",
+                        listeners = entry.stringField("nb_fan") ?: ""
+                    )
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Deezer artist search parse failed", e)
             emptyList()
         }
     }
@@ -172,6 +205,11 @@ object DeezerClient {
      * no longer serves artist photos (every size comes back as the gray
      * placeholder).
      *
+     * Homonyms normalize identically ("GREEK." vs "Greek") and Deezer's
+     * relevance ranking may lead with the lookalike, so among the entries
+     * whose normalized name matches the request the one with the largest
+     * fan base wins; only a total miss falls back to the first hit.
+     *
      * Returns null when the call failed transiently (the caller should NOT
      * cache that), "" when Deezer simply has no match (safe to cache as
      * "no photo"). Blocking.
@@ -181,15 +219,23 @@ object DeezerClient {
         return try {
             val query = URLEncoder.encode(name, "UTF-8")
             val data = http.newCall(
-                Request.Builder().url("$BASE/search/artist?q=$query").build()
+                Request.Builder().url("$BASE/search/artist?q=$query&limit=5").build()
             ).execute().use { resp ->
                 if (!resp.isSuccessful) return null
                 val body = resp.body?.string() ?: return null
                 JsonParser.parseString(body).asJsonObject.getAsJsonArray("data")
             }
-            val first = data?.firstOrNull()?.asJsonObject ?: return ""
-            val pic = first.get("picture_xl")?.takeIf { it.isJsonPrimitive }?.asString
-                ?: first.get("picture_big")?.takeIf { it.isJsonPrimitive }?.asString
+            if (data == null || data.size() == 0) return ""
+            val wanted = normKey(name)
+            val entries = data.mapNotNull { it.asObjectOrNull() }
+            val matched = entries.filter {
+                wanted.length >= 3 && normKey(it.stringField("name").orEmpty()) == wanted
+            }
+            val best = matched.maxByOrNull {
+                it.get("nb_fan")?.takeIf { v -> v.isJsonPrimitive }?.asLong ?: 0L
+            } ?: entries.first()
+            val pic = best.get("picture_xl")?.takeIf { it.isJsonPrimitive }?.asString
+                ?: best.get("picture_big")?.takeIf { it.isJsonPrimitive }?.asString
                 ?: ""
             if (pic.isBlank()) "" else pic
         } catch (e: Exception) {

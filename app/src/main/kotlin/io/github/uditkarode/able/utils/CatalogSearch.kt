@@ -18,6 +18,7 @@
 
 package io.github.uditkarode.able.utils
 
+import io.github.uditkarode.able.model.discovery.ArtistSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -72,18 +73,35 @@ internal fun tokenSet(s: String): Set<String> = normWords(s).toSet()
  * Last.fm is skipped silently when no API key is configured; Deezer is
  * keyless, so the search flow never blocks on the key prompt.
  *
- * The caller falls back to the raw YouTube/YT Music search when
- * [CatalogResult.matches] is empty.
+ * The ARTIST tier inverts the order (**Last.fm → Deezer**): `artist.search`
+ * ranks by exact identity (the real artist leads), while Deezer's relevance
+ * ranking can lead with lookalike variants ("GREEK." vs "Greek"). Collisions
+ * on the normalized name keep the variant with the real audience, and the
+ * cards are audience-ordered before the cap — the established artist leads.
+ *
+ * Two tiers, both cascaded over the catalogs:
+ *  - **Tracks** — title-driven gate first (the user typed the song), then the
+ *    artist-name rule (the query IS the artist's name, e.g. "greek" → every
+ *    track by the artist Greek), each tier keeping catalog popularity order.
+ *  - **Artists** — artist cards for queries that name an artist, rendered
+ *    above the tracks by the caller.
+ *
+ * The caller falls back to the raw YouTube/YT Music search (and its
+ * MUSIC_ARTISTS cards) when both tiers come back empty.
  */
 object CatalogSearch {
 
     /** Canonical catalog matches for a query; empty = no confident match. */
-    data class CatalogResult(val matches: List<TrackSuggestion>)
+    data class CatalogResult(
+        val matches: List<TrackSuggestion>,
+        val artists: List<ArtistSuggestion> = emptyList()
+    )
 
     private const val MAX_MATCHES = 6
+    private const val MAX_ARTISTS = 4
 
     /**
-     * Runs the cascade for [query]. Both catalogs are fetched concurrently
+     * Runs the cascade for [query]. All catalog calls run concurrently
      * (blocking OkHttp calls offloaded to Dispatchers.IO), then filtered,
      * Deezer-first, deduped and capped. Blocking — invoke from a background
      * dispatcher.
@@ -101,19 +119,58 @@ object CatalogSearch {
                 else try { LastFmClient.searchTracks(query) }
                      catch (e: Exception) { emptyList<TrackSuggestion>() }
             }
+            // Artist tier, in parallel with the tracks: an artist-name query
+            // ("greek") must surface the artist card itself.
+            val deezerArtists = async {
+                try { DeezerClient.searchArtists(query) }
+                catch (e: Exception) { emptyList<ArtistSuggestion>() }
+            }
+            val lastfmArtists = async {
+                if (!ApiKeyProvider.hasLastFmKey) emptyList<ArtistSuggestion>()
+                else try { LastFmClient.searchArtists(query) }
+                     catch (e: Exception) { emptyList<ArtistSuggestion>() }
+            }
 
             val qTokens = tokenSet(query)
             val qKey = normKey(query)
             val seen = HashSet<String>()
-            val matches = ArrayList<TrackSuggestion>(MAX_MATCHES)
+
+            // Two passes: title matches lead (they prove the user typed the
+            // song), artist-name matches follow in catalog popularity order.
+            val titleMatches = ArrayList<TrackSuggestion>(MAX_MATCHES)
+            val artistNameMatches = ArrayList<TrackSuggestion>(MAX_MATCHES)
             for (candidate in deezer.await() + lastfm.await()) {
-                if (matches.size >= MAX_MATCHES) break
-                if (!matchesQuery(candidate, qTokens, qKey)) continue
+                if (titleMatches.size >= MAX_MATCHES && artistNameMatches.size >= MAX_MATCHES) break
                 val key = normKey(candidate.name) + "|" + normKey(candidate.artist)
-                if (!seen.add(key)) continue
-                matches.add(candidate)
+                when {
+                    matchesQuery(candidate, qTokens, qKey) ->
+                        if (titleMatches.size < MAX_MATCHES && seen.add(key)) titleMatches.add(candidate)
+                    isArtistNameQuery(candidate, qKey) ->
+                        if (artistNameMatches.size < MAX_MATCHES && seen.add(key)) artistNameMatches.add(candidate)
+                }
             }
-            CatalogResult(matches)
+
+            // Artist tier: Last.fm first (identity-ranked), Deezer fills in
+            // (and brings photos). Collisions on the normalized name keep the
+            // variant with the real audience — 'GREEK.' and 'Greek' normalize
+            // alike, and the lookalike must not shadow the established artist.
+            val seenArtists = HashMap<String, ArtistSuggestion>()
+            for (candidate in lastfmArtists.await() + deezerArtists.await()) {
+                if (!matchesArtistQuery(candidate, qKey)) continue
+                val key = normKey(candidate.name)
+                val existing = seenArtists[key]
+                if (existing == null || audienceOf(candidate) > audienceOf(existing))
+                    seenArtists[key] = candidate
+            }
+            // Established artists lead the cards: audience-descending, capped.
+            val artists = seenArtists.values
+                .sortedByDescending { audienceOf(it) }
+                .take(MAX_ARTISTS)
+
+            val matches = ArrayList<TrackSuggestion>(MAX_MATCHES)
+            matches.addAll(titleMatches)
+            matches.addAll(artistNameMatches.take(MAX_MATCHES - matches.size))
+            CatalogResult(matches, artists)
         }
     }
 
@@ -140,4 +197,32 @@ object CatalogSearch {
                 (qTokens.containsAll(titleTokens) && fullTokens.containsAll(qTokens)) ||
                 (qKey.length >= 3 && normKey(track.name).startsWith(qKey))
     }
+
+    /**
+     * Artist-name rule for tracks: the query IS the artist's name ("greek" →
+     * every track by the artist Greek). Exact normalized equality only —
+     * anything fuzzier drags in unrelated songs that merely share a word.
+     * Used when the title rules above don't fire, so a pure artist query
+     * still surfaces the artist's own songs (catalog popularity order).
+     */
+    internal fun isArtistNameQuery(track: TrackSuggestion, qKey: String): Boolean =
+        qKey.length >= 3 && normKey(track.artist) == qKey
+
+    /**
+     * Confidence gate for artist cards: the artist name and the query overlap
+     * as normalized keys in either direction — exact equality, the query
+     * completing a multi-word artist name ("greek" ↔ "greek human nature"),
+     * or the artist name completing a partial query ("blue water" ↔
+     * "Blue Water Road"). Prefixes shorter than 3 chars are refused.
+     */
+    internal fun matchesArtistQuery(artist: ArtistSuggestion, qKey: String): Boolean {
+        if (qKey.length < 3) return false
+        val aKey = normKey(artist.name)
+        if (aKey.length < 3) return false
+        return aKey == qKey || aKey.startsWith(qKey) || qKey.startsWith(aKey)
+    }
+
+    /** Audience size as a comparable number (missing counters rank 0). */
+    private fun audienceOf(artist: ArtistSuggestion): Long =
+        artist.listeners.toLongOrNull() ?: 0L
 }

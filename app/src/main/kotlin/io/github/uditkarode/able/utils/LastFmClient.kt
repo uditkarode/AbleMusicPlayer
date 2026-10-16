@@ -230,6 +230,10 @@ object LastFmClient {
     fun searchTracks(query: String): List<TrackSuggestion> =
         callTracks("track.search", "track" to query)
 
+    /** Last.fm `artist.search` — artist cards for the Discover search mode. */
+    fun searchArtists(query: String): List<ArtistSuggestion> =
+        callArtists("artist.search", "artist" to query)
+
     /** artist.getTopTracks — drill-down used when pressing an artist suggestion. */
     fun artistTopTracks(artist: String): List<TrackSuggestion> =
         callTracks("artist.gettoptracks", "artist" to artist)

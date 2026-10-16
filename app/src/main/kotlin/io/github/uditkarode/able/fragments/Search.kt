@@ -56,6 +56,7 @@ import io.github.uditkarode.able.utils.CatalogSearch
 import io.github.uditkarode.able.utils.LastFmClient
 import io.github.uditkarode.able.utils.LastFmKeyPrompt
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.normKey
 import io.github.uditkarode.able.utils.SwipeController
 import io.github.uditkarode.able.utils.TrackResolver
 import io.github.uditkarode.able.utils.ViewMode
@@ -64,10 +65,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.schabi.newpipe.extractor.ServiceList.YouTube
+import org.schabi.newpipe.extractor.channel.ChannelInfoItem
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
@@ -416,6 +419,132 @@ class Search : Fragment(), CoroutineScope {
 
     // endregion
 
+    // region raw YouTube/YT Music fetch helpers
+
+    /**
+     * One raw search page for [filter], mapped to playable rows. Accepts both
+     * stream rows (songs/videos) and playlist rows (albums/playlists) — every
+     * search filter yields a mix of item types. Replaces the old per-mode
+     * branches, one of which cast its VIDEOS results to PlaylistInfoItem.
+     */
+    private fun ytRows(query: String, filter: String): List<Song> = try {
+        val extractor = YouTube.getSearchExtractor(query, singletonList(filter), "")
+        extractor.fetchPage()
+        extractor.initialPage.items.mapNotNull { item ->
+            when (item) {
+                is StreamInfoItem -> Song(
+                    name = item.name,
+                    artist = item.uploaderName ?: "",
+                    youtubeLink = item.url,
+                    ytmThumbnail = Shared.getBestThumbnail(item.thumbnails, item.url)
+                )
+                is PlaylistInfoItem -> Song(
+                    name = item.name,
+                    artist = item.uploaderName ?: "",
+                    youtubeLink = item.url,
+                    ytmThumbnail = Shared.getBestThumbnail(item.thumbnails, item.url)
+                )
+                else -> null
+            }
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "YT search '$query' [$filter] failed", e)
+        emptyList()
+    }
+
+    /** Tracks of a pasted playlist URL (playlist contents are videos). */
+    private fun playlistRows(url: String): List<Song> = try {
+        val extractor = YouTube.getPlaylistExtractor(url)
+        extractor.fetchPage()
+        extractor.initialPage.items.mapNotNull { it as? StreamInfoItem }
+            .map { ex ->
+                Song(
+                    name = ex.name,
+                    artist = ex.uploaderName ?: "",
+                    youtubeLink = ex.url,
+                    ytmThumbnail = Shared.getBestThumbnail(ex.thumbnails, ex.url)
+                )
+            }
+    } catch (e: Exception) {
+        Log.e(TAG, "Playlist fetch failed", e)
+        emptyList()
+    }
+
+    /**
+     * YouTube Music artist cards (MUSIC_ARTISTS filter): the tier-4 source
+     * for artists the catalogs don't know. Cards arrive as ChannelInfoItem;
+     * auto-generated topic-channel suffixes ("greek - Topic") are stripped so
+     * the card reads (and dedups) like a catalog one.
+     */
+    private fun ytArtistCards(query: String): List<ArtistSuggestion> = try {
+        val extractor = YouTube.getSearchExtractor(
+            query, singletonList(YoutubeSearchQueryHandlerFactory.MUSIC_ARTISTS), ""
+        )
+        extractor.fetchPage()
+        extractor.initialPage.items.mapNotNull { it as? ChannelInfoItem }
+            .map { card ->
+                ArtistSuggestion(
+                    name = card.name.replace(
+                        Regex("\\s+-\\s+topic\\s*$", RegexOption.IGNORE_CASE), ""
+                    ).trim(),
+                    image = Shared.getBestThumbnail(card.thumbnails, card.url)
+                )
+            }
+    } catch (e: Exception) {
+        Log.e(TAG, "YT artist cards failed", e)
+        emptyList()
+    }
+
+    /**
+     * The artist's YouTube Music albums and singles as a discography
+     * (drill-down fallback when Last.fm doesn't know the artist or no key is
+     * configured): a MUSIC_ALBUMS search, then parallel track enumeration of
+     * the first 8 playlists so the cards expand inline like the Last.fm ones.
+     * Blocking — invoke from a background dispatcher.
+     */
+    private suspend fun ytDiscography(artist: String): List<AlbumSuggestion> = try {
+        val extractor = YouTube.getSearchExtractor(
+            artist, singletonList(YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS), ""
+        )
+        extractor.fetchPage()
+        val albums = extractor.initialPage.items.mapNotNull { it as? PlaylistInfoItem }.take(8)
+        coroutineScope {
+            albums.map { item ->
+                async {
+                    val tracks = try { playlistTracks(item.url) }
+                        catch (e: Exception) {
+                            Log.e(TAG, "Playlist tracks failed for ${item.name}", e)
+                            emptyList<TrackSuggestion>()
+                        }
+                    AlbumSuggestion(
+                        name = item.name,
+                        artist = artist,
+                        image = Shared.getBestThumbnail(item.thumbnails, item.url),
+                        tracks = tracks
+                    )
+                }
+            }.awaitAll()
+        }
+    } catch (e: Exception) {
+        Log.e(TAG, "YT discography failed", e)
+        emptyList()
+    }
+
+    /** Track list of one YouTube playlist (playlist contents are videos). */
+    private fun playlistTracks(url: String): List<TrackSuggestion> {
+        val extractor = YouTube.getPlaylistExtractor(url)
+        extractor.fetchPage()
+        return extractor.initialPage.items.mapNotNull { it as? StreamInfoItem }
+            .map { ex ->
+                TrackSuggestion(
+                    name = ex.name,
+                    artist = ex.uploaderName ?: "",
+                    image = Shared.getBestThumbnail(ex.thumbnails, ex.url)
+                )
+            }
+    }
+
+    // endregion
     private fun getItems(searchBar: EditText, searchRv: RecyclerView) {
         searchBar.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == 6) {
@@ -479,139 +608,67 @@ class Search : Fragment(), CoroutineScope {
                                 suggestArray.clear()
                             if (discoverMode) {
                                 suggestArray.clear()
-                                // The catalogs (tier 1+2) and the raw YouTube
-                                // search (tier 3) run in parallel; the
+                                // Tier 1+2: catalog tracks + artist cards;
+                                // tier 3: raw YouTube rows; tier 4: YT Music
+                                // artist cards. All run in parallel; the
                                 // relevance gate decides who leads the list.
                                 val catalogDeferred = async { CatalogSearch.search(query) }
                                 val ytDeferred = async {
-                                    try {
-                                        val extractor = YouTube.getSearchExtractor(
-                                            query, singletonList(
-                                                if (useYtMusic)
-                                                    YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
-                                                else
-                                                    YoutubeSearchQueryHandlerFactory.VIDEOS
-                                            ), ""
-                                        )
-                                        extractor.fetchPage()
-                                        extractor.initialPage.items.mapNotNull { it as? StreamInfoItem }
-                                            .map { ex ->
-                                                Song(
-                                                    name = ex.name,
-                                                    artist = ex.uploaderName ?: "",
-                                                    youtubeLink = ex.url,
-                                                    ytmThumbnail = Shared.getBestThumbnail(ex.thumbnails, ex.url)
-                                                )
-                                            }
-                                    } catch (e: Exception) {
-                                        Log.e(TAG, "Discover YouTube fetch failed", e)
-                                        emptyList<Song>()
-                                    }
+                                    ytRows(
+                                        query,
+                                        if (useYtMusic) YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
+                                        else YoutubeSearchQueryHandlerFactory.VIDEOS
+                                    )
                                 }
+                                val ytArtistsDeferred = async { ytArtistCards(query) }
                                 val catalog = catalogDeferred.await()
+                                // Artist cards lead the canonical section,
+                                // track matches follow in catalog rank order.
+                                suggestArray.addAll(catalog.artists)
                                 suggestArray.addAll(catalog.matches)
                                 resultArray.clear()
                                 resultArray.addAll(ytDeferred.await())
+                                // Tier 4: YouTube Music artist cards for artists
+                                // the catalogs don't know, deduped by normalized
+                                // name (the topic-channel suffix is stripped in
+                                // the card mapping).
+                                val knownArtists = suggestArray
+                                    .filterIsInstance<ArtistSuggestion>()
+                                    .mapTo(HashSet()) { normKey(it.name) }
+                                for (card in ytArtistsDeferred.await()) {
+                                    if (normKey(card.name) in knownArtists) continue
+                                    knownArtists.add(normKey(card.name))
+                                    suggestArray.add(card)
+                                }
                                 hybridYtMusic = useYtMusic
                                 Log.i(
                                     "ABLE>",
-                                    "discover '$query': ${catalog.matches.size} catalog matches" +
-                                        " (first=${catalog.matches.firstOrNull()?.let { it.artist + " - " + it.name }})" +
+                                    "discover '$query': ${catalog.artists.size} artists," +
+                                        " ${catalog.matches.size} track matches (first=" +
+                                        "${catalog.matches.firstOrNull()?.let { it.artist + " - " + it.name }})" +
                                         ", yt=${resultArray.size} rows"
                                 )
-                            } else if (useYtMusic) {
-                                when (sp.getString("mode", "Music")) {
-                                    "Music" -> {
-                                        val extractor = YouTube.getSearchExtractor(
-                                            query, singletonList(
-                                                YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
-                                            ), ""
-                                        )
-
-                                        extractor.fetchPage()
-
-                                        for (song in extractor.initialPage.items) {
-                                            val ex = song as StreamInfoItem
-                                            val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
-                                            resultArray.add(
-                                                Song(
-                                                    name = ex.name,
-                                                    artist = ex.uploaderName ?: "",
-                                                    youtubeLink = ex.url,
-                                                    ytmThumbnail = thumbnailUrl
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    "Album" -> {
-                                        val extractor = YouTube.getSearchExtractor(
-                                            query, singletonList(
-                                                YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS
-                                            ), ""
-                                        )
-
-                                        extractor.fetchPage()
-                                        for (song in extractor.initialPage.items) {
-                                            val ex = song as PlaylistInfoItem
-                                            val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
-                                            resultArray.add(
-                                                Song(
-                                                    name = ex.name,
-                                                    artist = ex.uploaderName ?: "",
-                                                    youtubeLink = ex.url,
-                                                    ytmThumbnail = thumbnailUrl
-                                                )
-                                            )
-                                        }
-                                    }
-
-                                    "Playlists" -> {
-                                        val extractor = if (query.startsWith("https://"))
-                                            YouTube.getPlaylistExtractor(query)
-                                        else
-                                            YouTube.getSearchExtractor(
-                                                query, singletonList(
-                                                    YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS
-                                                ), ""
-                                            )
-
-                                        extractor.fetchPage()
-
-                                        for (song in extractor.initialPage.items) {
-                                            val ex = song as PlaylistInfoItem
-                                            val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
-                                            resultArray.add(
-                                                Song(
-                                                    name = ex.name,
-                                                    artist = ex.uploaderName ?: "",
-                                                    youtubeLink = ex.url,
-                                                    ytmThumbnail = thumbnailUrl
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
                             } else {
-                                val extractor = YouTube.getSearchExtractor(
-                                    query, singletonList(
-                                        YoutubeSearchQueryHandlerFactory.VIDEOS
-                                    ), ""
-                                )
-
-                                extractor.fetchPage()
-
-                                for (song in extractor.initialPage.items) {
-                                    val ex = song as PlaylistInfoItem
-                                    val thumbnailUrl = Shared.getBestThumbnail(song.thumbnails, ex.url)
-                                    resultArray.add(
-                                        Song(
-                                            name = ex.name,
-                                            artist = ex.uploaderName ?: "",
-                                            youtubeLink = ex.url,
-                                            ytmThumbnail = thumbnailUrl
-                                        )
-                                    )
+                                // Unified raw YouTube/YT Music fetch: one helper
+                                // for every mode (the old per-mode branches
+                                // duplicated the extractor dance, and the plain-
+                                // YouTube branch cast its VIDEOS StreamInfoItems
+                                // to PlaylistInfoItem — a guaranteed
+                                // ClassCastException → "Something failed!").
+                                val mode = sp.getString("mode", "Discover") ?: "Discover"
+                                if (useYtMusic && mode == "Playlists" &&
+                                    query.startsWith("https://"))
+                                    resultArray.addAll(playlistRows(query))
+                                else {
+                                    val filter = when {
+                                        !useYtMusic -> YoutubeSearchQueryHandlerFactory.VIDEOS
+                                        mode == "Album" ->
+                                            YoutubeSearchQueryHandlerFactory.MUSIC_ALBUMS
+                                        mode == "Playlists" ->
+                                            YoutubeSearchQueryHandlerFactory.MUSIC_PLAYLISTS
+                                        else -> YoutubeSearchQueryHandlerFactory.MUSIC_SONGS
+                                    }
+                                    resultArray.addAll(ytRows(query, filter))
                                 }
                             }
 
@@ -785,7 +842,6 @@ class Search : Fragment(), CoroutineScope {
     private fun onDiscoverArtistPressed(artist: ArtistSuggestion) = showDiscography(artist)
 
     private fun showDiscography(artist: ArtistSuggestion) {
-        if (!ApiKeyProvider.hasLastFmKey) { LastFmKeyPrompt.showIfMissing(requireContext()); return }
         setDiscoverLoading(true)
         inDrillDown = true
         backCallback?.isEnabled = true
@@ -795,36 +851,50 @@ class Search : Fragment(), CoroutineScope {
         }
         launch(Dispatchers.IO) {
             coroutineScope {
-                // Artist photo (Deezer-backed) runs next to the discography
-                // fetches so it doesn't add latency to the drill-down.
+                // Artist photo (Deezer-backed, keyless) runs next to the
+                // discography fetches so it doesn't add latency.
                 val imageDeferred = async {
                     try { LastFmClient.resolveArtistImage(artist.name) }
                     catch (e: Exception) { Log.e(TAG, "Artist image failed", e); "" }
                 }
-                val albums = try { LastFmClient.artistTopAlbums(artist.name) }
-                    catch (e: Exception) { Log.e(TAG, "Top albums failed", e); emptyList<AlbumSuggestion>() }
-                val loaded = albums.mapNotNull { album ->
-                    try { LastFmClient.albumTracks(artist.name, album.name, album.image) }
-                    catch (e: Exception) { Log.e(TAG, "Album tracks failed for ${album.name}", e); null }
+                // Tier 1: the Last.fm discography — albums newest first (with
+                // release year), then a "Singles" section with leftover top
+                // tracks. Skipped entirely without an API key.
+                var albums = emptyList<AlbumSuggestion>()
+                var singles = emptyList<TrackSuggestion>()
+                if (ApiKeyProvider.hasLastFmKey) {
+                    try {
+                        val loaded = LastFmClient.artistTopAlbums(artist.name).mapNotNull { album ->
+                            try { LastFmClient.albumTracks(artist.name, album.name, album.image) }
+                            catch (e: Exception) { Log.e(TAG, "Album tracks failed for ${album.name}", e); null }
+                        }
+                        val albumTrackNames = loaded.flatMap { it.tracks }
+                            .map { it.name.lowercase() }
+                            .toSet()
+                        singles = try { LastFmClient.artistTopTracks(artist.name) }
+                            catch (e: Exception) { emptyList<TrackSuggestion>() }
+                            .filter { it.name.lowercase() !in albumTrackNames }
+                        // Albums first, newest first; undated albums last (popularity order).
+                        albums = loaded.sortedWith(
+                            compareByDescending<AlbumSuggestion> { it.year != 0 }
+                                .thenByDescending { it.year }
+                        )
+                    } catch (e: Exception) { Log.e(TAG, "Last.fm discography failed", e) }
                 }
-                val albumTrackNames = loaded.flatMap { it.tracks }
-                    .map { it.name.lowercase() }
-                    .toSet()
-                val singles = try { LastFmClient.artistTopTracks(artist.name) }
-                    catch (e: Exception) { emptyList<TrackSuggestion>() }
-                    .filter { it.name.lowercase() !in albumTrackNames }
-                // Albums first, newest first; undated albums last (popularity order).
-                val ordered = loaded.sortedWith(
-                    compareByDescending<AlbumSuggestion> { it.year != 0 }
-                        .thenByDescending { it.year }
-                )
+                // Tier 2: the artist's YouTube Music albums+singles playlists —
+                // works keyless and for artists Last.fm doesn't know.
+                if (albums.isEmpty() && singles.isEmpty()) albums = ytDiscography(artist.name)
                 val artistImage = imageDeferred.await()
+                Log.i(
+                    "ABLE>",
+                    "discography '${artist.name}': ${albums.size} albums, ${singles.size} singles"
+                )
 
                 launch(Dispatchers.Main) {
                     if (!inDrillDown) return@launch // user went back in the meantime
                     setDiscoverLoading(false)
                     val rv = _binding?.searchRv ?: return@launch
-                    if (ordered.isEmpty() && singles.isEmpty()) {
+                    if (albums.isEmpty() && singles.isEmpty()) {
                         Toast.makeText(
                             requireContext(), R.string.disc_no_discography, Toast.LENGTH_SHORT
                         ).show()
@@ -833,7 +903,7 @@ class Search : Fragment(), CoroutineScope {
                     }
                     searchItemTouchHelper?.attachToRecyclerView(null)
                     rv.adapter = DiscographyAdapter(
-                        artist.name, artistImage, ordered, singles
+                        artist.name, artistImage, albums, singles
                     ) {
                         showTrackActionMenu(it)
                     }

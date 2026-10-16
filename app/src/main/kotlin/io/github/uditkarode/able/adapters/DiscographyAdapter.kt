@@ -30,7 +30,9 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.model.discovery.AlbumSuggestion
 import io.github.uditkarode.able.model.discovery.TrackSuggestion
+import io.github.uditkarode.able.utils.DeezerClient
 import io.github.uditkarode.able.utils.LastFmClient
+import io.github.uditkarode.able.utils.LazyArtLoader
 
 /**
  * Renders an artist's discography: a hero header (artist photo with the
@@ -47,6 +49,11 @@ class DiscographyAdapter(
     private val singles: List<TrackSuggestion>,
     private val onTrackPressed: (TrackSuggestion) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+    /** Resolves placeholder/missing art in the background — Last.fm answers
+     *  many discography queries with its gray placeholder, and showing
+     *  default art forever is not an answer (see [LazyArtLoader]). */
+    private val artLoader = LazyArtLoader()
 
     /** Album names currently expanded inline. */
     private val expanded = HashSet<String>()
@@ -154,8 +161,21 @@ class DiscographyAdapter(
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .into(holder.art)
                 } else {
-                    holder.artProgress.visibility = View.GONE
-                    holder.art.setImageResource(R.drawable.def_albart)
+                    // Placeholder/blank: resolve the real cover from Deezer
+                    // (the Player's hi-res path). The winner also feeds the
+                    // album's track rows, which carry the same Last.fm image.
+                    artLoader.load(
+                        holder.itemView, holder.art, holder.artProgress, position,
+                        "al:${item.artist}|${item.name}", item.image,
+                        resolve = { DeezerClient.albumCover(item.artist, item.name) },
+                        onResult = { url ->
+                            item.image = url
+                            item.tracks.forEach { track ->
+                                if (track.image.isBlank() || LastFmClient.isPlaceholderImage(track.image))
+                                    track.image = url
+                            }
+                        }
+                    )
                 }
             }
 
@@ -175,8 +195,14 @@ class DiscographyAdapter(
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .into(holder.songAlbumArt)
                 } else {
-                    holder.artProgress.visibility = View.GONE
-                    holder.songAlbumArt.setImageResource(R.drawable.def_albart)
+                    // Same resolution path as the search list: persistent
+                    // ArtworkCache, rate-limit aware.
+                    artLoader.load(
+                        holder.itemView, holder.songAlbumArt, holder.artProgress, position,
+                        "t:${item.artist}|${item.name}", item.image,
+                        resolve = { LastFmClient.resolveTrackImage(item.artist, item.name) },
+                        onResult = { item.image = it }
+                    )
                 }
             }
         }

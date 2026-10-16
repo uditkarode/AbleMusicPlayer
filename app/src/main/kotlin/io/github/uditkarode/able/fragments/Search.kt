@@ -849,11 +849,14 @@ class Search : Fragment(), CoroutineScope {
         }
         launch(Dispatchers.IO) {
             coroutineScope {
-                // Artist photo (Deezer-backed, keyless) runs next to the
+                // Artist photo: the tapped suggestion often carries a real one
+                // already (YTM card thumbnail / Deezer search) — use it and
+                // resolve via Deezer only when blank. Runs next to the
                 // discography fetches so it doesn't add latency.
                 val imageDeferred = async {
-                    try { LastFmClient.resolveArtistImage(artist.name) }
-                    catch (e: Exception) { Log.e(TAG, "Artist image failed", e); "" }
+                    if (artist.image.isNotBlank()) artist.image
+                    else try { LastFmClient.resolveArtistImage(artist.name) }
+                         catch (e: Exception) { Log.e(TAG, "Artist image failed", e); "" }
                 }
                 // Tier 1: the Last.fm discography — albums newest first (with
                 // release year), then a "Singles" section with leftover top

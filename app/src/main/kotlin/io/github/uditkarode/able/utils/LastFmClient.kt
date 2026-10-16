@@ -453,12 +453,14 @@ object LastFmClient {
         return findArray(root, "artist")
             .mapNotNull { it.asObjectOrNull() }
             .filter { it.stringField("name")?.isNotBlank() == true }
-            .map {
+            .map { entry ->
                 ArtistSuggestion(
-                    name = it.stringField("name") ?: "",
-                    image = it.bestImage(),
-                    listeners = it.stringField("listeners") ?: "",
-                    mbid = it.stringField("mbid") ?: ""
+                    name = entry.stringField("name") ?: "",
+                    // Gray placeholders are useless everywhere: hand the row
+                    // a blank image so the lazy loader resolves a real photo.
+                    image = entry.bestImage().let { if (isPlaceholderImage(it)) "" else it },
+                    listeners = entry.stringField("listeners") ?: "",
+                    mbid = entry.stringField("mbid") ?: ""
                 )
             }
     }

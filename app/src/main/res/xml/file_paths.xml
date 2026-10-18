@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Narrow grant: only the devlog export zip inside the internal cache. -->
+    <cache-path
+        name="devlog"
+        path="devlog/" />
+</paths>

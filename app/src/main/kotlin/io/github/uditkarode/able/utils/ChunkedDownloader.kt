@@ -41,6 +41,7 @@ object ChunkedDownloader {
 
     // No connection pooling — each chunk gets a fresh TCP connection
     private val client = OkHttpClient.Builder()
+        .addInterceptor(ApiLoggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(2, TimeUnit.MINUTES)
         .writeTimeout(30, TimeUnit.SECONDS)

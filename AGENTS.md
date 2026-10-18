@@ -59,6 +59,7 @@ The core communication mechanism. `MusicService` is a foreground service managin
 | `DiscoverResultAdapter` | Renders discovery suggestions in list or grid rows (used by Search chips, Discover tab, Player sheet) |
 | `DiscographyAdapter` | Artist drill-down list: collapsible album headers (newest first) + "Singles" section; used by Search drill-down and the Player's artist bottom sheet |
 | `DeezerClient` / `ArtworkCache` / `LazyArtLoader` | Hi-res cover fallback for the Player's art chain; persistent URL cache (incl. negative caching) and lazy per-row art loading |
+| `DevLog` / `ApiLoggingInterceptor` | Developer logging (Settings "Developer logs", off by default): tails own-UID logcat into daily `logs/devlog-YYYY-MM-DD.log` files (5 MB rollover, 7-day retention, `api_key` masking, crash hook); the OkHttp interceptor adds one `HTTP>` line per API call to all 5 clients. Retrieve via `adb pull …/files/logs/` or the "Export logs" share sheet |
 
 ### Data Models (`:core:model`)
 

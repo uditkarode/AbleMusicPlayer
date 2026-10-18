@@ -162,4 +162,13 @@ or via the UPI address %2$s</string>
     <string name="disc_pick_playlist">Discover from a playlist</string>
     <string name="disc_no_playlists">Create a playlist first to get suggestions</string>
     <string name="disc_playlist_unusable">No usable tracks in this playlist</string>
+
+    <!-- Developer logs -->
+    <string name="devlog_category">Developer</string>
+    <string name="pref_dev_logs">Developer logs</string>
+    <string name="pref_dev_logs_sum">Capture app and API logs into a local file (logs/ folder). Files are kept for 7 days; retrieve them by connecting the phone to a PC.</string>
+    <string name="pref_export_logs">Export logs</string>
+    <string name="pref_export_logs_sum">Share the collected log files (zip)</string>
+    <string name="devlog_export_empty">No log files yet — enable Developer logs first</string>
+    <string name="devlog_export_failed">Couldn\'t create the log export</string>
 </resources>

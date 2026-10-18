@@ -53,6 +53,7 @@ object DeezerClient {
     private const val CACHE_TTL_MS = 30L * 60 * 1000
 
     private val http = OkHttpClient.Builder()
+        .addInterceptor(ApiLoggingInterceptor)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .build()

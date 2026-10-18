@@ -44,6 +44,9 @@ class Constants {
         /** a File object pointing to the folder where temporary items will be stored */
         val cacheDir: File get() = File(baseDir, "cache")
 
+        /** a File object pointing to the folder where developer logs are stored */
+        val logsDir: File get() = File(baseDir, "logs")
+
         /**
          * API keys which *should* be replaced during compilation.
          * The old RapidAPI/Deezer key placeholder is gone: cover art

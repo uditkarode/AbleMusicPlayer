@@ -68,6 +68,7 @@ object LastFmClient {
     private var lastArtCallAt = 0L
 
     private val http = OkHttpClient.Builder()
+        .addInterceptor(ApiLoggingInterceptor)
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .build()

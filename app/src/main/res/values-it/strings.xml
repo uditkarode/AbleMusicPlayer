@@ -86,4 +86,13 @@ o tramite l\'indirizzo UPI %2$s</string>
     <string name="deseg_hpm">Head Product Manager</string>
     <string name="deseg_gd">Designer Grafico</string>
     <string name="deseg_pm">Product Manager</string>
+
+    <!-- Log sviluppatore -->
+    <string name="devlog_category">Sviluppatore</string>
+    <string name="pref_dev_logs">Log sviluppatore</string>
+    <string name="pref_dev_logs_sum">Registra i log dell\'app e delle API in un file locale (cartella logs/). I file vengono conservati per 7 giorni; recuperabili collegando il telefono a un PC.</string>
+    <string name="pref_export_logs">Esporta log</string>
+    <string name="pref_export_logs_sum">Condividi i file di log raccolti (zip)</string>
+    <string name="devlog_export_empty">Nessun file di log — attiva prima i log sviluppatore</string>
+    <string name="devlog_export_failed">Impossibile creare l\'esportazione dei log</string>
 </resources>

@@ -737,37 +737,26 @@ class Search : Fragment(), CoroutineScope {
         }
     }
 
-    fun itemPressed(song: Song) {
-        if (Shared.isInternetConnected(requireContext()))
-            itemPressed.sendItem(song)
-        else
+    /** A tapped raw YouTube/YT Music result (a Song is already resolved) —
+     *  shows the same choice menu as the Discover rows; nothing is sent to
+     *  the service until an option is picked. */
+    fun onResultPressed(song: Song) {
+        if (!Shared.isInternetConnected(requireContext())) {
             Toast.makeText(requireContext(), "No Internet Connection", Toast.LENGTH_LONG).show()
+            return
+        }
+        showTrackActionMenu(song)
     }
 
-    /** Resolves a Last.fm suggestion on YouTube Music, then hands the Song to MainActivity. */
+    /** A tapped Discover suggestion shows the same choice menu as the
+     *  drill-down rows (play now / add to queue / download): resolution on
+     *  YouTube Music and playback happen only after an option is picked. */
     private fun onDiscoverTrackPressed(track: TrackSuggestion) {
         if (!Shared.isInternetConnected(requireContext())) {
             Toast.makeText(requireContext(), "No Internet Connection", Toast.LENGTH_LONG).show()
             return
         }
-        _binding?.let {
-            it.loadingView.progress = 0.3080229f
-            it.loadingView.visibility = View.VISIBLE
-            it.loadingView.playAnimation()
-        }
-        launch(Dispatchers.IO) {
-            val song = try { TrackResolver.resolve(track) } catch (e: Exception) { null }
-            launch(Dispatchers.Main) {
-                _binding?.let {
-                    it.loadingView.pauseAnimation()
-                    it.loadingView.visibility = View.GONE
-                }
-                if (song == null)
-                    Toast.makeText(requireContext(), R.string.disc_yt_fail, Toast.LENGTH_SHORT).show()
-                else
-                    itemPressed(song)
-            }
-        }
+        showTrackActionMenu(track)
     }
 
     /** Resolves a suggestion on YouTube Music, then runs the action with the
@@ -793,43 +782,63 @@ class Search : Fragment(), CoroutineScope {
         }
     }
 
-    /** Choice menu for a tapped discography track: play now / add to queue /
-     *  download — the same UX as the Player's discography sheet. */
-    private fun showTrackActionMenu(track: TrackSuggestion) {
+    /** Title + three-option list shared by every track choice menu in the
+     *  tab: Discover rows, raw YT rows and drill-down tracks. */
+    private fun showTrackOptions(title: String, onChoice: (Int) -> Unit) {
         MaterialDialog(requireContext()).show {
-            title(text = "${track.name} - ${track.artist}")
+            title(text = title)
             listItems(items = listOf(
                 getString(R.string.disc_play_now),
                 getString(R.string.disc_add_to_queue),
                 getString(R.string.disc_add_to_download)
             )) { _, index, _ ->
-                when (index) {
-                    0 -> resolveFor(track) { song ->
-                        // Stream-mode send starts playback right away.
-                        itemPressed.sendItem(song, MusicMode.stream)
-                    }
-                    1 -> resolveFor(track) { song ->
-                        val svc = MusicService.instance
-                        if (svc == null)
-                            Toast.makeText(requireContext(), R.string.disc_play_first, Toast.LENGTH_SHORT).show()
-                        else {
-                            svc.addToPlayQueue(song)
-                            Toast.makeText(
-                                requireContext(),
-                                getString(R.string.disc_added_to_queue, song.name),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                    2 -> resolveFor(track) { song ->
-                        if (Shared.isInLibrary(Shared.getIdFromLink(song.youtubeLink))) {
-                            Toast.makeText(requireContext(), R.string.dl_already_library, Toast.LENGTH_SHORT).show()
-                        } else {
-                            itemPressed.sendItem(song, MusicMode.download)
-                        }
-                    }
-                }
+                onChoice(index)
             }
+        }
+    }
+
+    /** Choice menu for a tapped Discover suggestion: play now / add to queue /
+     *  download — the track is resolved on YouTube Music only after the option
+     *  is picked (loading spinner while the resolution runs). */
+    private fun showTrackActionMenu(track: TrackSuggestion) =
+        showTrackOptions("${track.name} - ${track.artist}") { index ->
+            resolveFor(track) { song ->
+                onTrackChoice(index, song)
+            }
+        }
+
+    /** Choice menu for a tapped raw YT row: the Song is already resolved. */
+    private fun showTrackActionMenu(song: Song) =
+        showTrackOptions("${song.name} - ${song.artist}") { index ->
+            onTrackChoice(index, song)
+        }
+
+    /** Runs one menu option on an already-resolved Song. */
+    private fun onTrackChoice(index: Int, song: Song) {
+        when (index) {
+            0 -> // Stream-mode send starts playback right away.
+                itemPressed.sendItem(song, MusicMode.stream)
+            1 -> addToQueue(song)
+            2 ->
+                if (Shared.isInLibrary(Shared.getIdFromLink(song.youtubeLink)))
+                    Toast.makeText(requireContext(), R.string.dl_already_library, Toast.LENGTH_SHORT).show()
+                else
+                    itemPressed.sendItem(song, MusicMode.download)
+        }
+    }
+
+    /** Appends the song to the running player's queue. */
+    private fun addToQueue(song: Song) {
+        val svc = MusicService.instance
+        if (svc == null)
+            Toast.makeText(requireContext(), R.string.disc_play_first, Toast.LENGTH_SHORT).show()
+        else {
+            svc.addToPlayQueue(song)
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.disc_added_to_queue, song.name),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

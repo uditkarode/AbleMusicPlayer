@@ -69,7 +69,7 @@ class YtResultAdapter(
         holder.titleTxt.isSelected = true
         holder.uploaderTxt.isSelected = true
         holder.itemView.setOnClickListener {
-            wr.get()?.itemPressed(songList[position])
+            wr.get()?.onResultPressed(songList[position])
         }
         /* Will Show Full Name for the Song held */
         holder.itemView.setOnLongClickListener {

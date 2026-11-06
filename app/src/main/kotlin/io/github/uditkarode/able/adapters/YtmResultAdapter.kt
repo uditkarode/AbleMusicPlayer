@@ -85,7 +85,7 @@ class YtmResultAdapter(
                         this
                     })
                 }
-            } else wr.get()?.itemPressed(songList[position])
+            } else wr.get()?.onResultPressed(songList[position])
         }
     }
 

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Same policy as the previous usesCleartextTraffic="true" (no behavior
+    change), but declared as a config so the media stack's own cleartext
+    check can never block MusicService's StreamProxy on http://127.0.0.1.
+    When the LAN/cast mode arrives, tighten base-config and keep the
+    loopback allowance here.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

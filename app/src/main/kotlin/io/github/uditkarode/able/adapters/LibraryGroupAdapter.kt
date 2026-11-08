@@ -25,6 +25,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.utils.ViewMode
 
 /**
  * Adapter for the Library fragment. Shows artist or album groups with the
@@ -39,7 +40,12 @@ class LibraryGroupAdapter(
     data class Group(val label: String, val count: Int)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
-        VH(LayoutInflater.from(parent.context).inflate(R.layout.library_group_item, parent, false))
+        VH(
+            LayoutInflater.from(parent.context).inflate(
+                if (ViewMode.isGrid(parent.context)) R.layout.lib_group_grid_item else R.layout.library_group_item,
+                parent, false
+            )
+        )
 
     override fun getItemCount() = items.size
 

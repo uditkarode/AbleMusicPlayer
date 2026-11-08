@@ -49,7 +49,9 @@ object SpotifyImport {
     private const val TAG = "SpotifyImport"
     private const val EMBED_URL = "https://open.spotify.com/embed/playlist/"
 
-    private val okClient = OkHttpClient()
+    private val okClient = OkHttpClient.Builder()
+        .addInterceptor(ApiLoggingInterceptor)
+        .build()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val nextDataPattern = Pattern.compile(
         """<script id="__NEXT_DATA__" type="application/json">(.*?)</script>"""

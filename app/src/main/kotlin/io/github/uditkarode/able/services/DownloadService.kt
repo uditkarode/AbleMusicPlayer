@@ -42,6 +42,8 @@ import io.github.uditkarode.able.utils.Shared
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.schabi.newpipe.extractor.stream.StreamInfo
+import org.jaudiotagger.audio.AudioFileIO
+import org.jaudiotagger.tag.FieldKey
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.LinkedBlockingQueue
@@ -178,9 +180,7 @@ class DownloadService : Service() {
     }
 
     private fun download(song: DownloadableSong) {
-        val id = song.youtubeLink.run {
-            this.substring(this.lastIndexOf("=") + 1)
-        }
+        val id = Shared.getIdFromLink(song.youtubeLink)
 
         val notifName =
             if (song.name.length > 25) song.name.substring(0, 25) + "..." else song.name
@@ -192,23 +192,33 @@ class DownloadService : Service() {
         currentStatus = getString(R.string.init_dl)
         currentProgress = -1
 
-        // Save album art
+        // Save album art; retry with a lower-res variant if the hi-res
+        // URL doesn't resolve (maxresdefault 404s for some videos).
         if (song.ytmThumbnailLink.isNotBlank()) {
-            try {
-                val drw = Glide
-                    .with(this@DownloadService)
-                    .load(song.ytmThumbnailLink)
-                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                    .skipMemoryCache(true)
-                    .submit()
-                    .get()
+            var saved = false
+            for (url in arrayOf(
+                song.ytmThumbnailLink,
+                Shared.thumbnailFallbackUrl(song.ytmThumbnailLink)
+            )) {
+                try {
+                    val drw = Glide
+                        .with(this@DownloadService)
+                        .load(url)
+                        .diskCacheStrategy(DiskCacheStrategy.NONE)
+                        .skipMemoryCache(true)
+                        .submit()
+                        .get()
 
-                if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
-                val img = File(Constants.albumArtDir, id)
-                Shared.saveAlbumArtToDisk(drw.toBitmap(), img)
-            } catch (e: Exception) {
-                Log.e("ERR>", "Failed to save album art: $e")
+                    if (!Constants.albumArtDir.exists()) Constants.albumArtDir.mkdirs()
+                    val img = File(Constants.albumArtDir, id)
+                    Shared.saveAlbumArtToDisk(drw.toBitmap(), img)
+                    saved = true
+                    break
+                } catch (e: Exception) {
+                    Log.e("ERR>", "Album art load failed for $url: $e")
+                }
             }
+            if (!saved) Log.e("ERR>", "No album art could be saved for ${song.name}")
         }
 
         try {
@@ -270,6 +280,17 @@ class DownloadService : Service() {
                 ReturnCode.isSuccess(session.returnCode) -> {
                     tempFile.delete()
                     val mp3File = File(Constants.ableSongDir, "$id.mp3")
+
+                    // Persist the video ID as a canonical COMM frame so the
+                    // download stays identifiable for dedup checks even if
+                    // other metadata is edited later.
+                    try {
+                        val audio = AudioFileIO.read(mp3File)
+                        audio.tagOrCreateDefault.setField(FieldKey.COMMENT, id)
+                        audio.commit()
+                    } catch (e: Exception) {
+                        Log.e("ERR>", "Failed to write video ID tag: $e")
+                    }
 
                     // Embed album art into MP3 metadata
                     try {

@@ -22,7 +22,10 @@ import android.app.Application
 import io.github.inflationx.calligraphy3.CalligraphyConfig
 import io.github.inflationx.calligraphy3.CalligraphyInterceptor
 import io.github.inflationx.viewpump.ViewPump
+import io.github.uditkarode.able.utils.ApiKeyProvider
+import io.github.uditkarode.able.utils.ArtworkCache
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.DevLog
 import io.github.uditkarode.able.utils.Shared
 import kotlin.concurrent.thread
 
@@ -35,6 +38,9 @@ class AbleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         Constants.init(this)
+        ApiKeyProvider.init(this)
+        ArtworkCache.init(this)
+        DevLog.init(this)
         thread {
             Shared.migrateFileNames(this)
             Shared.migrateAlbumTags(this)

@@ -35,6 +35,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.ViewMode
 import java.io.File
 
 /**
@@ -47,7 +48,12 @@ class LibraryDetailAdapter(
 ) : RecyclerView.Adapter<LibraryDetailAdapter.RVVH>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
-        RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
+        RVVH(
+            LayoutInflater.from(parent.context).inflate(
+                if (ViewMode.isGrid(parent.context)) R.layout.rv_grid_result else R.layout.rv_ytm_result,
+                parent, false
+            )
+        )
 
     override fun getItemCount() = songList.size
 

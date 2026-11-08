@@ -36,6 +36,7 @@ import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.ViewMode
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -47,7 +48,12 @@ class LocalPlaylistAdapter(
     private val wr: WeakReference<LocalPlaylist>
 ) : RecyclerView.Adapter<LocalPlaylistAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
-        RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
+        RVVH(
+            LayoutInflater.from(parent.context).inflate(
+                if (ViewMode.isGrid(parent.context)) R.layout.rv_grid_result else R.layout.rv_ytm_result,
+                parent, false
+            )
+        )
 
     override fun getItemCount() = songList.size
 

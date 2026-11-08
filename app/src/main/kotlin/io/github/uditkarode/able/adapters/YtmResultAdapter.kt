@@ -34,6 +34,7 @@ import io.github.uditkarode.able.activities.AlbumPlaylist
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.ViewMode
 import java.lang.ref.WeakReference
 
 /**
@@ -45,7 +46,12 @@ class YtmResultAdapter(
     private val mode: String
 ) : RecyclerView.Adapter<YtmResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
-        RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_ytm_result, parent, false))
+        RVVH(
+            LayoutInflater.from(parent.context).inflate(
+                if (ViewMode.isGrid(parent.context)) R.layout.rv_grid_result else R.layout.rv_ytm_result,
+                parent, false
+            )
+        )
 
     override fun getItemCount() = songList.size
 
@@ -79,7 +85,7 @@ class YtmResultAdapter(
                         this
                     })
                 }
-            } else wr.get()?.itemPressed(songList[position])
+            } else wr.get()?.onResultPressed(songList[position])
         }
     }
 

@@ -32,6 +32,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
 import android.text.Html
 import android.view.TouchDelegate
 import android.view.View
@@ -143,7 +144,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
 
         home = Home()
         mainContent.isUserInputEnabled = false
-        mainContent.offscreenPageLimit = 3
+        mainContent.offscreenPageLimit = 4
         mainContent.adapter = ViewPagerAdapter(this, home)
         var currentPage = 0
         bottomNavigation = binding.bottomNavigation
@@ -153,6 +154,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
                 R.id.search_menu -> 1
                 R.id.library_menu -> 2
                 R.id.settings_menu -> 3
+                R.id.discover_menu -> 4
                 else -> 0
             }
             if (newPage != currentPage) {
@@ -259,7 +261,11 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
     fun songChange() {
         if (mService != null) {
             launch(Dispatchers.Main) {
-                val song = mService!!.getPlayQueue()[mService!!.getCurrentIndex()]
+                // The service can be bound before the first song is queued:
+                // streamAudio populates the queue asynchronously, so an empty
+                // queue with index -1 is a legitimate transient state.
+                val song = mService!!.getPlayQueue()
+                    .getOrNull(mService!!.getCurrentIndex()) ?: return@launch
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     binding.bbSong.text = Html.fromHtml(
@@ -312,6 +318,7 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
             .getString("mode_key", MusicMode.download)
         if (mode.isNotEmpty())
             currentMode = mode
+        Log.i("ABLE>", "sendItem '${song.name}' mode=$currentMode")
 
         song.ytmThumbnail = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
         when (currentMode) {
@@ -349,7 +356,29 @@ class MainActivity : MusicClientActivity(), Search.SongCallback {
             }
 
             MusicMode.stream -> {
-                home.streamAudio(song)
+                // Hand the song straight to the service via the static
+                // instance — routing through a fragment reference could hit a
+                // stale Home whose coroutine scope was cancelled (service
+                // started, queue never set, song never started).
+                var freshStart = false
+                if (!Shared.serviceRunning(MusicService::class.java, this)) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(Intent(this, MusicService::class.java))
+                    } else {
+                        startService(Intent(this, MusicService::class.java))
+                    }
+                    freshStart = true
+                }
+                launch(Dispatchers.IO) {
+                    val svc = MusicService.awaitInstance() ?: return@launch
+                    launch(Dispatchers.Main) {
+                        svc.setQueue(arrayListOf(song))
+                        svc.setIndex(0)
+                        if (freshStart)
+                            MusicService.registeredClients
+                                .forEach(MusicService.MusicClient::serviceStarted)
+                    }
+                }
                 launch(Dispatchers.Main) {
                     loadingEvent(true)
                 }

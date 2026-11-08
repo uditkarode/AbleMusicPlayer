@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#212121">
+
+    <TextView
+        android:id="@+id/discover_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="15dp"
+        android:layout_marginTop="12dp"
+        android:drawablePadding="6dp"
+        android:padding="8dp"
+        android:text="@string/disc_back_to_playlists"
+        android:textColor="#94BCE3"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
+    <ImageView
+        android:id="@+id/discover_view_mode"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@+id/discover_back"
+        android:layout_marginEnd="15dp"
+        android:layout_marginTop="3dp"
+        android:contentDescription="@string/txt_view_mode"
+        android:src="@drawable/ic_list"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/discover_rv"
+        android:visibility="gone"
+        android:layout_below="@+id/discover_back"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fadingEdge="vertical"
+        android:requiresFadingEdge="vertical"
+        android:layout_marginTop="12dp" />
+
+    <TextView
+        android:id="@+id/discover_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:textColor="#A8A8A7"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/discover_loading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:lottie_renderMode="hardware"
+        android:layout_centerInParent="true"
+        app:lottie_fileName="musicfly.json"
+        app:lottie_progress="0.3080229"
+        app:lottie_loop="true"
+        app:lottie_autoPlay="false" />
+
+</RelativeLayout>

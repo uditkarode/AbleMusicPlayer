@@ -22,4 +22,10 @@
         android:title="@string/playlists"
         android:icon="@drawable/ic_library_music_black_24dp"
         />
+
+    <item
+        android:id="@+id/discover_menu"
+        android:title="@string/discover"
+        android:icon="@drawable/ic_discover"
+        />
 </menu>

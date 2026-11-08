@@ -35,6 +35,7 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.listItems
@@ -127,16 +128,18 @@ class SongAdapter(
             }
 
         }
-        if (currentIndex >= 0 && currentIndex < songList.size && songList.size != 0) {
-            if (current.placeholder) holder.songName.setTextColor(Color.parseColor("#66bb6a"))
-            else {
-                val service = wr?.get()?.mService?.value
-                if (service != null) {
-                    if (current.filePath == service.getPlayQueue()[service.getCurrentIndex()].filePath) {
-                        holder.songName.setTextColor(Color.parseColor("#5e92f3"))
-                    } else holder.songName.setTextColor(Color.parseColor("#fbfbfb"))
-                }
-            }
+        if (current.placeholder) {
+            holder.songName.setTextColor(Color.parseColor("#66bb6a"))
+        } else {
+            // Always paint a color: a bound row must never inherit a stale
+            // blue tint from a recycled holder.
+            val playing = (wr?.get()?.mService?.value)?.let { playingSongOf(it) }
+            holder.songName.setTextColor(
+                Color.parseColor(
+                    if (playing != null && sameSong(playing, current)) "#5e92f3"
+                    else "#fbfbfb"
+                )
+            )
         }
 
         holder.itemView.setOnClickListener {
@@ -221,13 +224,15 @@ class SongAdapter(
                         1 -> {
                             MaterialDialog(holder.itemView.context).show {
                                 title(text = holder.itemView.context.getString(R.string.playlist_namei))
-                                input(holder.itemView.context.getString(R.string.name_s)) { _, charSequence ->
-                                    Shared.createPlaylist(
-                                        charSequence.toString(),
-                                        holder.itemView.context
-                                    )
+                                // The input callback fires on every text change;
+                                // the creation belongs to the positive action.
+                                input(holder.itemView.context.getString(R.string.name_s)) { _, _ -> }
+                                positiveButton {
+                                    val name = getInputField().text.toString().trim()
+                                    if (name.isEmpty()) return@positiveButton
+                                    Shared.createPlaylist(name, holder.itemView.context)
                                     Shared.getPlaylists().firstOrNull {
-                                        it.name == "$charSequence.json"
+                                        it.name == "$name.json"
                                     }?.let { Shared.addToPlaylist(it, current, holder.itemView.context) }
                                 }
                                 getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
@@ -333,16 +338,35 @@ class SongAdapter(
     override fun playStateChanged(state: SongState) {}
 
     override fun songChanged() {
-        val service = wr?.get()?.mService?.value
-        if (service != null) {
-            playingSong = service.run {
-                this.getPlayQueue()[this.getCurrentIndex()]
-            }
-            launch(Dispatchers.Main) {
-                notifyItemChanged(service.getPreviousIndex())
-                notifyItemChanged(service.getCurrentIndex())
-            }
+        val service = wr?.get()?.mService?.value ?: return
+        val previous = if (::playingSong.isInitialized) playingSong else null
+        val now = playingSongOf(service) ?: return
+        playingSong = now
+        launch(Dispatchers.Main) {
+            // Repaint by song identity, not by queue index: the queue may
+            // contain items that are not in this list (e.g. discovery
+            // suggestions inserted from the Player), which shifts indexes.
+            val oldPos = previous?.let { prev -> songList.indexOfFirst { sameSong(it, prev) } } ?: -1
+            val newPos = songList.indexOfFirst { sameSong(it, now) }
+            if (oldPos >= 0) notifyItemChanged(oldPos)
+            if (newPos >= 0 && newPos != oldPos) notifyItemChanged(newPos)
         }
+    }
+
+    /** The song the service is currently playing, or null when out of bounds. */
+    private fun playingSongOf(service: MusicService): Song? {
+        val queue = service.getPlayQueue()
+        val idx = service.getCurrentIndex()
+        return if (idx in queue.indices) queue[idx] else null
+    }
+
+    /** Same song? Compares by YouTube link, then file path, then name+artist. */
+    private fun sameSong(a: Song, b: Song): Boolean = when {
+        a.youtubeLink.isNotEmpty() && b.youtubeLink.isNotEmpty() ->
+            a.youtubeLink == b.youtubeLink
+        a.filePath.isNotEmpty() && b.filePath.isNotEmpty() ->
+            a.filePath == b.filePath
+        else -> a.name == b.name && a.artist == b.artist
     }
 
     override fun durationChanged(duration: Int) {}
@@ -350,7 +374,10 @@ class SongAdapter(
     override fun isExiting() {}
 
     override fun queueChanged(arrayList: ArrayList<Song>) {
-        if (!showArt) songList = arrayList
+        if (!showArt) {
+            songList = arrayList
+            notifyDataSetChanged()
+        }
     }
 
     override fun shuffleRepeatChanged(onShuffle: Boolean, onRepeat: Boolean) {

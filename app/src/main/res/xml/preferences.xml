@@ -21,6 +21,24 @@
         android:key="mode_key"
         />
 
+    <SwitchPreferenceCompat
+        android:key="view_mode_grid"
+        android:defaultValue="false"
+        app:iconSpaceReserved="false"
+        android:title="@string/pref_view_mode"
+        android:summary="@string/pref_view_mode_sum"
+        />
+
+    <ListPreference
+        android:key="grid_column_count"
+        android:defaultValue="2"
+        android:entries="@array/grid_columns"
+        android:entryValues="@array/grid_columns_values"
+        app:iconSpaceReserved="false"
+        android:title="@string/pref_grid_columns"
+        android:summary="@string/pref_grid_columns_sum"
+        />
+
     <Preference
         android:title="@string/downloads_title"
         app:iconSpaceReserved="false"
@@ -42,4 +60,24 @@
             android:targetClass="io.github.uditkarode.able.activities.About"
             />
     </Preference>
+
+    <PreferenceCategory
+        android:title="@string/devlog_category"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            android:key="developer_logs"
+            android:defaultValue="false"
+            app:iconSpaceReserved="false"
+            android:title="@string/pref_dev_logs"
+            android:summary="@string/pref_dev_logs_sum"
+            />
+
+        <Preference
+            android:key="export_logs"
+            app:iconSpaceReserved="false"
+            android:title="@string/pref_export_logs"
+            android:summary="@string/pref_export_logs_sum"
+            />
+    </PreferenceCategory>
 </PreferenceScreen>

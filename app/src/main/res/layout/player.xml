@@ -26,6 +26,26 @@
             android:src="@drawable/down_arrow" />
 
         <ImageView
+            android:id="@+id/player_save"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:padding="20dp"
+            android:layout_marginTop="4dp"
+            android:layout_toStartOf="@+id/player_discover"
+            android:src="@drawable/ic_add"
+            android:contentDescription="@string/playlist_addto" />
+
+        <ImageView
+            android:id="@+id/player_discover"
+            android:layout_width="68dp"
+            android:layout_height="68dp"
+            android:padding="20dp"
+            android:layout_marginTop="4dp"
+            android:layout_toStartOf="@+id/player_queue"
+            android:src="@drawable/ic_discover"
+            android:contentDescription="@string/disc_similar" />
+
+        <ImageView
             android:id="@+id/player_queue"
             android:layout_width="68dp"
             android:layout_height="68dp"
@@ -93,37 +113,57 @@
 
         <LinearLayout
             android:id="@+id/song_info"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="30dp"
             android:layout_marginTop="10dp"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
-            <!--suppress AndroidUnknownAttribute -->
-            <TextView
-                android:id="@+id/song_name"
-                fontPath="fonts/interbold.otf"
-                android:layout_width="wrap_content"
+            <!-- A RelativeLayout here would inflate to full height when
+                 measured by the packed chain (wrap_content + match_parent
+                 children + alignParentBottom) and swallow the whole screen. -->
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:paddingEnd="5dp"
-                android:maxLines="2"
-                android:text="@string/song_ex2"
-                android:textColor="#fbfbfb"
-                android:textSize="22sp"
-                tools:ignore="MissingPrefix,RtlSymmetry" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <!--suppress AndroidUnknownAttribute -->
-            <TextView
-                android:id="@+id/artist_name"
-                fontPath="fonts/interbold.otf"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingEnd="5dp"
-                android:paddingBottom="10dp"
-                android:text="@string/art_ex"
-                android:textColor="#80fbfbfb"
-                android:textSize="20sp"
-                tools:ignore="MissingPrefix" />
+                <!--suppress AndroidUnknownAttribute -->
+                <TextView
+                    android:id="@+id/song_name"
+                    fontPath="fonts/interbold.otf"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="5dp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="@string/song_ex2"
+                    android:textColor="#fbfbfb"
+                    android:textSize="22sp"
+                    tools:ignore="MissingPrefix,RtlSymmetry" />
+
+                <!--suppress AndroidUnknownAttribute -->
+                <TextView
+                    android:id="@+id/artist_name"
+                    fontPath="fonts/interbold.otf"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingEnd="5dp"
+                    android:paddingBottom="10dp"
+                    android:text="@string/art_ex"
+                    android:textColor="#80fbfbfb"
+                    android:textSize="20sp"
+                    tools:ignore="MissingPrefix" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/player_download"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="bottom"
+                android:padding="10dp"
+                android:src="@drawable/ic_download_icon"
+                android:contentDescription="@string/disc_add_to_download" />
         </LinearLayout>
 
         <SeekBar
@@ -247,5 +287,33 @@
             tools:ignore="MissingPrefix" />
 
     </LinearLayout>
+
+    <!-- Centered loading spinner shown while discovery/discography network
+         calls are in flight. A full-screen scrim dims the whole player and
+         swallows touches (clickable) so a double-tap can't queue overlapping
+         bottom sheets; the spinner rides on top of the scrim. -->
+    <View
+        android:id="@+id/loading_scrim"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#B3000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/loading_overlay"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:indeterminateTint="#fbfbfb"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -23,7 +23,7 @@
             android:paddingStart="12dp"
             android:maxLines="1"
             android:textColor="#fbfbfb"
-            android:layout_weight="0.9"
+            android:layout_weight="0.8"
             android:paddingEnd="12dp"
             android:inputType="text"
             android:imeOptions="actionDone"
@@ -34,7 +34,7 @@
         <RelativeLayout
             android:id="@+id/search_mode_pr"
             android:layout_width="0dp"
-            android:layout_weight="0.13"
+            android:layout_weight="0.12"
             android:layout_marginStart="5dp"
             android:background="@drawable/rounded_rectangle"
             android:layout_height="match_parent">
@@ -49,12 +49,61 @@
 
         </RelativeLayout>
 
+        <RelativeLayout
+            android:id="@+id/search_view_mode_pr"
+            android:layout_width="0dp"
+            android:layout_weight="0.12"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/rounded_rectangle"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/search_view_mode"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:layout_centerInParent="true"
+                android:contentDescription="@string/txt_view_mode"
+                android:src="@drawable/ic_grid"
+                />
+
+        </RelativeLayout>
+
     </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/search_chips_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/sr_pr"
+        android:layout_marginTop="12dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/search_chips"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/search_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/search_chips_scroll"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="15dp"
+        android:layout_marginTop="8dp"
+        android:padding="8dp"
+        android:text="@string/disc_back_to_artists"
+        android:textColor="#94BCE3"
+        android:textSize="15sp"
+        android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/search_rv"
         android:visibility="gone"
-        android:layout_below="@+id/sr_pr"
+        android:layout_below="@+id/search_back"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fadingEdge="vertical"

@@ -24,7 +24,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.LinearLayoutManager
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.activities.LibraryDetail
 import io.github.uditkarode.able.adapters.LibraryGroupAdapter
@@ -32,6 +31,7 @@ import io.github.uditkarode.able.databinding.LibraryBinding
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.ViewMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,6 +51,7 @@ class Library : Fragment(), CoroutineScope {
 
     private var mode: Mode = Mode.ARTISTS
     private var allSongs: List<Song> = emptyList()
+    private var lastGroups: List<LibraryGroupAdapter.Group> = emptyList()
     private lateinit var adapter: LibraryGroupAdapter
 
     private enum class Mode { ARTISTS, ALBUMS }
@@ -69,7 +70,12 @@ class Library : Fragment(), CoroutineScope {
             openDetail(group.label)
         }
         binding.libraryRv.adapter = adapter
-        binding.libraryRv.layoutManager = LinearLayoutManager(requireContext())
+        applyViewMode()
+
+        binding.libraryViewMode.setOnClickListener {
+            ViewMode.toggle(requireContext())
+            applyViewMode()
+        }
 
         binding.libraryToggle.check(R.id.library_btn_artists)
         binding.libraryToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
@@ -115,6 +121,20 @@ class Library : Fragment(), CoroutineScope {
         }
     }
 
+    /** (Re)builds the adapter + layout manager according to the list/grid preference. */
+    private fun applyViewMode() {
+        if (_binding == null) return
+        binding.libraryViewMode.setImageResource(
+            ViewMode.toggleIcon(requireContext())
+        )
+        binding.libraryRv.layoutManager = ViewMode.layoutManagerFor(requireContext())
+        adapter = LibraryGroupAdapter(lastGroups) { group ->
+            openDetail(group.label)
+        }
+        binding.libraryRv.adapter = adapter
+        refresh()
+    }
+
     private fun refresh() {
         if (_binding == null) return
         val groups: List<LibraryGroupAdapter.Group> = when (mode) {
@@ -127,6 +147,7 @@ class Library : Fragment(), CoroutineScope {
                 .map { (k, v) -> LibraryGroupAdapter.Group(k, v.size) }
                 .sortedBy { it.label.uppercase(Locale.getDefault()) }
         }
+        lastGroups = groups
         adapter.update(groups)
 
         val emptyMsgRes = if (mode == Mode.ALBUMS) R.string.no_albums else R.string.no_artists

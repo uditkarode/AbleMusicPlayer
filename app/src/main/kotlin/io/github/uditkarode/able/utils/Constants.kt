@@ -44,12 +44,15 @@ class Constants {
         /** a File object pointing to the folder where temporary items will be stored */
         val cacheDir: File get() = File(baseDir, "cache")
 
-        /**
-         * API keys and version code names which *should* be replaced during compilation.
-         */
-        const val RAPID_API_KEY= "INSERT_RAPID_KEY"
+        /** a File object pointing to the folder where developer logs are stored */
+        val logsDir: File get() = File(baseDir, "logs")
 
-        const val DEEZER_API = "https://deezerdevs-deezer.p.rapidapi.com/search?q="
+        /**
+         * API keys which *should* be replaced during compilation.
+         * The old RapidAPI/Deezer key placeholder is gone: cover art
+         * resolution uses Last.fm (user key, see ApiKeyProvider) with an
+         * optional keyless Deezer upgrade (see DeezerClient).
+         */
         const val CHANNEL_ID = "AbleMusicDownload"
     }
 }

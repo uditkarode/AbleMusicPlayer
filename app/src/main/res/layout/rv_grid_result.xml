@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/parent_hrvv"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    app:cardBackgroundColor="#1b1b1b"
+    app:cardCornerRadius="10dp"
+    app:rippleColor="#5e92f3">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp">
+
+        <com.makeramen.roundedimageview.RoundedImageView
+            android:id="@+id/vid_albart"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:contentDescription="@string/add_song"
+            android:scaleType="centerCrop"
+            android:src="@drawable/def_albart"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:riv_corner_radius="7dp" />
+
+        <ProgressBar
+            android:id="@+id/vid_art_progress"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:indeterminateTint="#94BCE3"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/vid_albart"
+            app:layout_constraintEnd_toEndOf="@+id/vid_albart"
+            app:layout_constraintStart_toStartOf="@+id/vid_albart"
+            app:layout_constraintTop_toTopOf="@+id/vid_albart" />
+
+        <TextView
+            android:id="@+id/vid_song"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/vid_albart" />
+
+        <TextView
+            android:id="@+id/vid_uploader"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#80fbfbfb"
+            android:textSize="13sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/vid_song" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

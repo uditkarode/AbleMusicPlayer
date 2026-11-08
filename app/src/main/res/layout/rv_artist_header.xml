@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hero header of the discography list: full-width artist photo with the
+     name overlaid at the bottom over a darkening gradient. When no photo
+     could be resolved the image and scrim hide and the name renders as a
+     plain bold title row. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="6dp">
+
+    <com.makeramen.roundedimageview.RoundedImageView
+        android:id="@+id/artist_header_image"
+        android:layout_width="match_parent"
+        android:layout_height="230dp"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null"
+        android:visibility="gone"
+        app:riv_corner_radius="8dp"
+        tools:visibility="visible" />
+
+    <View
+        android:id="@+id/artist_header_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="110dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/artist_name_gradient"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!--suppress AndroidUnknownAttribute -->
+    <TextView
+        android:id="@+id/artist_header_name"
+        fontPath="fonts/interbold.otf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="12dp"
+        android:paddingTop="6dp"
+        android:shadowColor="#B3000000"
+        android:shadowDy="2"
+        android:shadowRadius="6"
+        android:textColor="#fbfbfb"
+        android:textSize="26sp"
+        tools:ignore="MissingPrefix"
+        tools:text="Artist Name" />
+
+</FrameLayout>

@@ -5,12 +5,26 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp">
+
+    <ImageView
+        android:id="@+id/library_view_mode"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:layout_marginEnd="20dp"
+        android:src="@drawable/ic_grid"
+        android:contentDescription="@string/txt_view_mode" />
+
     <com.google.android.material.button.MaterialButtonToggleGroup
         android:id="@+id/library_toggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="20dp"
+        android:layout_centerInParent="true"
         app:singleSelection="true"
         app:selectionRequired="true">
 
@@ -37,6 +51,7 @@
             app:strokeColor="@color/white" />
 
     </com.google.android.material.button.MaterialButtonToggleGroup>
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/library_empty_state"

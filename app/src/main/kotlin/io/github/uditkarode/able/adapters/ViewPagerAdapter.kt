@@ -21,6 +21,7 @@ package io.github.uditkarode.able.adapters
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import io.github.uditkarode.able.fragments.Discover
 import io.github.uditkarode.able.fragments.Home
 import io.github.uditkarode.able.fragments.Library
 import io.github.uditkarode.able.fragments.Search
@@ -37,9 +38,10 @@ class ViewPagerAdapter(activity: FragmentActivity, private val home: Home) :
             0 -> home
             1 -> Search()
             2 -> Library()
-            else -> Playlists()
+            3 -> Playlists()
+            else -> Discover()
         }
     }
 
-    override fun getItemCount() = 4
+    override fun getItemCount() = 5
 }

@@ -45,6 +45,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.bumptech.glide.signature.ObjectKey
 import io.github.uditkarode.able.R
@@ -54,6 +55,7 @@ import io.github.uditkarode.able.model.song.SongState
 import io.github.uditkarode.able.utils.ChunkedDownloader
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.StreamProxy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -90,11 +92,16 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         private const val PREF_REPEAT = "playback_repeat"
 
         @Volatile var isServiceRunning = false
+
+        /** Live instance for callers without a binding (e.g. fragments
+         *  adding to the queue); null while the service isn't running. */
+        @Volatile var instance: MusicService? = null
         var songCoverArt: WeakReference<Bitmap>? = null
         var playQueue = ArrayList<Song>()
         var mediaPlayer = MediaPlayer()
         var previousIndex = -1
-        var currentIndex = -1
+        /** Read/written from Main, IO and Default coroutines alike. */
+        @Volatile var currentIndex = -1
 
         val registeredClients: MutableSet<MusicClient> =
             java.util.concurrent.CopyOnWriteArraySet()
@@ -121,12 +128,34 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         private lateinit var mediaSession: MediaSession
         private var ps = PlaybackState.Builder()
         private var coverArtHeight: Int? = null
-        var isLoading = false
+        /** Read from client activities on Main, written from playback coroutines. */
+        @Volatile var isLoading = false
             private set
         private var isInstantiated = false
         private var onShuffle = false
         private var onRepeat = false
         @Volatile private var consecutiveStreamFailures = 0
+
+        /** Songs whose stream resolution+download is already running — dedup
+         *  between the current song and the prefetch of the next one. */
+        private val activeDownloads = java.util.Collections.synchronizedSet(HashSet<Int>())
+
+        /**
+         * The single playback handoff channel for every client: waits for the
+         * instance to appear after startForegroundService (onCreate is async).
+         * The old per-fragment bind/flow handoffs raced with onCreate —
+         * bindEvent re-checked serviceRunning and could skip binding entirely,
+         * leaving the queue never set and the song never started.
+         */
+        suspend fun awaitInstance(timeoutMs: Long = 10_000L): MusicService? {
+            val deadline = System.currentTimeMillis() + timeoutMs
+            var svc = instance
+            while (svc == null && System.currentTimeMillis() < deadline) {
+                kotlinx.coroutines.delay(50)
+                svc = instance
+            }
+            return svc
+        }
     }
 
     override val coroutineContext = Dispatchers.Main + SupervisorJob()
@@ -156,6 +185,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     override fun onCreate() {
         super.onCreate()
         isServiceRunning = true
+        instance = this
+        Log.i("ABLE>", "service created")
 
         // Restore persisted shuffle/repeat flags. Queue is empty at this point
         // so we only set the flags — actual queue manipulation happens later
@@ -246,10 +277,49 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
                 .setOngoing(true)
                 .style = style
         }
+
+        // Foreground-service contract: startForeground() must run within
+        // seconds of startForegroundService(). Clients start this service and
+        // only populate the queue afterwards (bind → setQueue → setIndex →
+        // stream resolution → cache download can take tens of seconds), while
+        // showNotification() refuses to run without a valid queue — so on a
+        // cold start nothing promoted the service in time and Android 12+
+        // killed the process (ForegroundServiceDidNotStartInTimeException,
+        // seen from AlbumPlaylist and LocalPlaylist). Promote immediately
+        // with a placeholder notification; showNotification() re-uses id 1
+        // and replaces it with the real song once playback starts.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "10002",
+                getString(R.string.music),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                enableLights(false)
+                enableVibration(false)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+        try {
+            val idle = (builder ?: Notification.Builder(this)).apply {
+                setContentTitle(getString(R.string.app_name))
+                setContentText("")
+            }.let { b ->
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                    b.setChannelId("10002").build() else b.build()
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                startForeground(1, idle)
+            else
+                notificationManager.notify(1, idle)
+        } catch (e: Exception) {
+            Log.e("ERR>", "Idle startForeground failed: $e")
+        }
     }
 
     override fun onDestroy() {
         isServiceRunning = false
+        instance = null
         super.onDestroy()
         coroutineContext.cancelChildren()
         unregisterReceiver(receiver)
@@ -321,6 +391,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      */
     fun setQueue(queue: ArrayList<Song>) {
         playQueue = queue
+        Log.i("ABLE>", "setQueue ${queue.size} songs, first='${queue.firstOrNull()?.name}'")
         launch(Dispatchers.Default) {
             registeredClients.forEach { it.queueChanged(playQueue) }
         }
@@ -358,6 +429,7 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun setIndex(index: Int) {
         previousIndex = currentIndex
         currentIndex = index
+        Log.i("ABLE>", "setIndex $index '${playQueue.getOrNull(index)?.name ?: "?"}'")
         songChanged()
         launch(Dispatchers.Default) {
             registeredClients.forEach { it.indexChanged(currentIndex) }
@@ -467,6 +539,9 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
     fun addToPlayQueue(song: Song) {
         if (currentIndex != playQueue.size - 1) playQueue.add(currentIndex + 1, song)
         else playQueue.add(song)
+        launch(Dispatchers.Default) {
+            registeredClients.forEach { it.queueChanged(playQueue) }
+        }
     }
 
     /**
@@ -499,22 +574,45 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         }
         if (!isInstantiated) isInstantiated = true
         else {
-            // Release and recreate instead of reset() to avoid
-            // INVALID_OPERATION (-38) errors from prepareAsync
+            // Detach listeners BEFORE releasing: a player released during
+            // playback can deliver a spurious INVALID_OPERATION (-38) event
+            // afterwards, which the still-attached error handler turned into
+            // a nextSong() skip (the "plays the wrong song" bug).
+            mediaPlayer.setOnErrorListener(null)
+            mediaPlayer.setOnCompletionListener(null)
+            mediaPlayer.setOnPreparedListener(null)
             mediaPlayer.release()
             mediaPlayer = MediaPlayer()
         }
 
         isLoading = true
+        Log.i(
+            "ABLE>",
+            "songChanged idx=$currentIndex " +
+                "'${playQueue[currentIndex].name}' " +
+                "src=${if (playQueue[currentIndex].filePath == "") "stream" else "file"}"
+        )
         launch(Dispatchers.Default) {
             registeredClients.forEach { it.isLoading(true) }
         }
 
         mediaPlayer.setOnErrorListener { _, what, extra ->
             Log.e("ERR>", "MediaPlayer error: what=$what extra=$extra")
+            if (what == -38) {
+                // INVALID_OPERATION: lifecycle race (stale/ghost event), not
+                // a media failure — never skip because of it.
+                return@setOnErrorListener true
+            }
             isLoading = false
             launch(Dispatchers.Default) {
                 registeredClients.forEach { it.isLoading(false) }
+            }
+            launch(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MusicService,
+                    getString(R.string.disc_play_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             previousIndex = currentIndex
             nextSong()
@@ -547,63 +645,187 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
         } else {
             playSongFromFile()
         }
+        maybePrefetchNext()
     }
 
     private fun resolveAndDownloadStream(index: Int) {
+        // One resolution+download per song at a time: the prefetch of this song
+        // may already be running when the user skips to it.
+        if (!activeDownloads.add(index)) return
+        var progressive = false
         try {
-            val song = playQueue[index]
+            val song = playQueue.getOrNull(index) ?: return
+            Log.i("ABLE>", "resolve[$index] start '${song.name}' - ${song.artist}")
             val streamInfo = StreamInfo.getInfo(song.youtubeLink)
-            val stream = streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
+            // Progressive playback needs front-loaded container metadata: prefer
+            // YouTube's m4a audio (moov at the file head) over webm/opus (Cues at
+            // the tail would stall prepare until the whole file is cached).
+            val stream = streamInfo.audioStreams
+                .filter { it.format?.mimeType == "audio/mp4" }
+                .maxByOrNull { it.averageBitrate }
+                ?: streamInfo.audioStreams.maxByOrNull { it.averageBitrate }
                 ?: streamInfo.audioStreams.firstOrNull()
                 ?: throw IllegalStateException("No audio streams available for ${song.youtubeLink}")
             val url = stream.content
             val songId = Shared.getIdFromLink(song.youtubeLink)
 
-            // Fetch album art
+            // Fetch album art; maxresdefault 404s for many topic videos, so
+            // retry with a lower-res variant before giving up.
             if (song.ytmThumbnail.isNotBlank()) {
-                try {
-                    val thumbUrl = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
-                    val bitmap = Glide.with(this@MusicService)
-                        .asBitmap().load(thumbUrl)
-                        .signature(ObjectKey("save")).submit().get()
-                    Shared.saveStreamingAlbumArt(bitmap, songId)
-                } catch (_: Exception) {}
+                var saved = false
+                val primary = Shared.upscaleThumbnailUrl(song.ytmThumbnail)
+                for (url in arrayOf(primary, Shared.thumbnailFallbackUrl(primary))) {
+                    try {
+                        val bitmap = Glide.with(this@MusicService)
+                            .asBitmap().load(url)
+                            .signature(ObjectKey("save")).submit().get()
+                        Shared.saveStreamingAlbumArt(bitmap, songId)
+                        saved = true
+                        break
+                    } catch (e: Exception) {
+                        Log.e("ERR>", "Album art fetch failed for $url: $e")
+                    }
+                }
+                if (!saved) Log.e("ERR>", "No streaming cover saved for ${song.name}")
             }
 
-            // Download audio using chunked Range requests
             val tempFile = File(Constants.cacheDir, "$songId.stream.tmp")
             if (!Constants.cacheDir.exists()) Constants.cacheDir.mkdirs()
-            ChunkedDownloader.download(url, tempFile)
+            // Create the file NOW: the progressive source is registered before
+            // the producer starts writing, and opening a not-yet-existing file
+            // killed the process (ENOENT on the Main thread).
+            try { tempFile.createNewFile() } catch (_: Exception) {}
 
-            // Check that the user hasn't skipped to another song
-            if (currentIndex != index) {
-                tempFile.delete()
-                return
+            val contentLength = ChunkedDownloader.getContentLength(url)
+            Log.i(
+                "ABLE>",
+                "resolve[$index] '${song.name}' bitrate=${stream.averageBitrate} " +
+                    "mime=${stream.format?.mimeType} len=$contentLength"
+            )
+
+            // Progressive playback (current song only): hand the player an in-process
+            // MediaDataSource over the growing cache file NOW — audio starts as
+            // soon as the first chunks land — and keep downloading below.
+            if (index == currentIndex && contentLength > 0) {
+                StreamProxy.register(songId, tempFile, contentLength)
+                launch(Dispatchers.Main) { playStreamFromProxy(songId) }
+                Log.i("ABLE>", "resolve[$index] PROGRESSIVE (MediaDataSource)")
+                progressive = true
+            } else if (index == currentIndex) {
+                Log.i("ABLE>", "resolve[$index] FALLBACK full-download (len=$contentLength)")
             }
+
+            // Producer: fills the cache file, feeding the proxy along the way.
+            // A user skip no longer aborts it — the file lands in the cache and
+            // skipping back later replays it instantly.
+            val dlStart = System.currentTimeMillis()
+            try {
+                ChunkedDownloader.download(url, tempFile)
+            } catch (e: Exception) {
+                StreamProxy.markFailed(songId)
+                throw e
+            }
+            Log.i(
+                "ABLE>",
+                "resolve[$index] cached '${song.name}' in " +
+                    "${(System.currentTimeMillis() - dlStart) / 1000.0}s"
+            )
 
             consecutiveStreamFailures = 0
+            StreamProxy.markComplete(songId)
             playQueue[index].filePath = tempFile.absolutePath
-            launch(Dispatchers.Main) { playSongFromFile() }
+            if (index != currentIndex)
+                Log.i("ABLE>", "prefetch[$index] done '${song.name}'")
+            // Only the CURRENT song's completion may start playback: the
+            // prefetch of a future item must never touch the player — it would
+            // read playQueue[currentIndex] (possibly still an empty stream
+            // path) and crash or toast spuriously.
+            if (index == currentIndex && !progressive)
+                launch(Dispatchers.Main) { playSongFromFile() }
+            maybePrefetchNext()
         } catch (e: Exception) {
             Log.e("ERR>", "resolveAndDownloadStream failed: $e")
-            consecutiveStreamFailures++
-            if (consecutiveStreamFailures < playQueue.size) {
-                launch(Dispatchers.Main) { nextSong() }
-            } else {
-                consecutiveStreamFailures = 0
-                isLoading = false
-                launch(Dispatchers.Default) {
-                    registeredClients.forEach { it.isLoading(false) }
+            if (index == currentIndex) {
+                launch(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MusicService,
+                        getString(R.string.disc_play_failed),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-                Log.e("ERR>", "All songs failed stream resolution, stopping.")
+                consecutiveStreamFailures++
+                if (consecutiveStreamFailures < playQueue.size) {
+                    launch(Dispatchers.Main) { nextSong() }
+                } else {
+                    consecutiveStreamFailures = 0
+                    isLoading = false
+                    launch(Dispatchers.Default) {
+                        registeredClients.forEach { it.isLoading(false) }
+                    }
+                    Log.e("ERR>", "All songs failed stream resolution, stopping.")
+                }
+            } else {
+                // Prefetch failure: silent — the song re-resolves when played.
             }
+        } finally {
+            activeDownloads.remove(index)
         }
+    }
+
+    /**
+     * Progressive playback through [StreamProxy]: prepareAsync keeps the Main
+     * thread free while the producer fills the cache; the prepared listener
+     * (already attached in songChanged for stream songs) flips the UI to
+     * playing as soon as buffering completes.
+     */
+    private fun playStreamFromProxy(songId: String) {
+        val source = StreamProxy.sourceFor(songId)
+        if (source == null) {
+            Log.e("ABLE>", "playStream: no source registered for $songId")
+            nextSong()
+            return
+        }
+        Log.i("ABLE>", "playStream $songId (MediaDataSource)")
+        try {
+            mediaPlayer.setDataSource(source)
+            mediaPlayer.prepareAsync()
+        } catch (e: Exception) {
+            Log.e("ERR>", "playStreamFromProxy: $e")
+            Toast.makeText(
+                this@MusicService,
+                getString(R.string.disc_play_failed),
+                Toast.LENGTH_SHORT
+            ).show()
+            nextSong()
+        }
+    }
+
+    /**
+     * Prefetch the next queue item while the current one plays: resolve+cache
+     * it so the skip is instant. Deliberately only ONE song ahead, and only
+     * when the current song's own download is done (no bandwidth fight with
+     * the proxy producer) — resolveAndDownloadStream's completion re-triggers
+     * this, but the isNotBlank guard stops the chain from running away.
+     */
+    private fun maybePrefetchNext() {
+        val next = currentIndex + 1
+        if (next < 0 || next >= playQueue.size) return
+        if (playQueue[next].filePath.isNotBlank()) return
+        if (activeDownloads.contains(currentIndex)) return
+        if (activeDownloads.contains(next)) return
+        Log.i("ABLE>", "prefetch[$next] start '${playQueue[next].name}'")
+        launch(Dispatchers.IO) { resolveAndDownloadStream(next) }
     }
 
     private fun playSongFromFile() {
         try {
             mediaPlayer.setDataSource(playQueue[currentIndex].filePath)
             mediaPlayer.prepare()
+            Log.i(
+                "ABLE>",
+                "playFile '${playQueue.getOrNull(currentIndex)?.name}' " +
+                    "dur=${mediaPlayer.duration}ms"
+            )
 
             isLoading = false
             launch(Dispatchers.Default) {
@@ -624,6 +846,13 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
             }
         } catch (e: Exception) {
             Log.e("ERR>", "playSongFromFile: $e")
+            launch(Dispatchers.Main) {
+                Toast.makeText(
+                    this@MusicService,
+                    getString(R.string.disc_play_failed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
@@ -749,6 +978,8 @@ class MusicService : Service(), AudioManager.OnAudioFocusChangeListener, Corouti
      * releases the media session and wakelock and gets ready to die.
      */
     private fun cleanUp() {
+        Log.i("ABLE>", "cleanUp (proxy stopped, notification cancelled)")
+        StreamProxy.stop()
         launch(Dispatchers.Default) {
             registeredClients.forEach(MusicClient::isExiting)
         }

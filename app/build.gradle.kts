@@ -1,6 +1,19 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
 }
+
+// Legacy fallback only: the Last.fm key is now imported from inside the app
+// (see ApiKeyProvider / LastFmKeyPrompt). Local builds may still provide it in
+// local.properties (git-ignored) or gradle.properties (~/.gradle or project root).
+val localSecrets = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val lastFmApiKey = providers.gradleProperty("LASTFM_API_KEY")
+    .orElse(providers.provider { localSecrets.getProperty("LASTFM_API_KEY") ?: "" })
+    .get()
 
 android {
     namespace = "io.github.uditkarode.able"
@@ -17,6 +30,8 @@ android {
             viewBinding = true
             buildConfig = true
         }
+
+        buildConfigField("String", "LASTFM_API_KEY", "\"$lastFmApiKey\"")
     }
 
     splits {

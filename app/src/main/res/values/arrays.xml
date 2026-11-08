@@ -9,4 +9,18 @@
         <item>Download</item>
         <item>Stream</item>
     </string-array>
+
+    <string-array name="grid_columns">
+        <item>1 column</item>
+        <item>2 columns</item>
+        <item>3 columns</item>
+        <item>4 columns</item>
+    </string-array>
+
+    <string-array name="grid_columns_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
 </resources>

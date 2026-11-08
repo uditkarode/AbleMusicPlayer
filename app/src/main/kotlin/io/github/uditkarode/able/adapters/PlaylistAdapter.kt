@@ -35,6 +35,7 @@ import io.github.uditkarode.able.activities.LocalPlaylist
 import io.github.uditkarode.able.model.Playlist
 import io.github.uditkarode.able.utils.Constants
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.ViewMode
 import java.io.File
 
 /**
@@ -44,7 +45,10 @@ class PlaylistAdapter(private var playlists: ArrayList<Playlist>) :
     RecyclerView.Adapter<PlaylistAdapter.PLVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PLVH {
         return PLVH(
-            LayoutInflater.from(parent.context).inflate(R.layout.playlist_item, parent, false)
+            LayoutInflater.from(parent.context).inflate(
+                if (ViewMode.isGrid(parent.context)) R.layout.playlist_grid_item else R.layout.playlist_item,
+                parent, false
+            )
         )
     }
 

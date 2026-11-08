@@ -37,6 +37,8 @@ import io.github.uditkarode.able.databinding.LocalplaylistBinding
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.ViewMode
+import android.widget.ImageView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -121,7 +123,7 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
             launch(Dispatchers.Main) {
                 binding.apRv.adapter =
                     LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
-                binding.apRv.layoutManager = LinearLayoutManager(this@LocalPlaylist)
+                binding.apRv.layoutManager = ViewMode.layoutManagerFor(this@LocalPlaylist)
                 binding.loadingView.visibility = View.GONE
                 binding.loadingView.pauseAnimation()
                 binding.apRv.alpha = 0f
@@ -130,6 +132,16 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
                 binding.srPr.alpha = 0f
                 binding.srPr.visibility = View.VISIBLE
                 binding.srPr.animate().alpha(1f).duration = 200
+            }
+        }
+
+        binding.playlistViewMode.apply {
+            setImageResource(ViewMode.toggleIcon(this@LocalPlaylist))
+            setOnClickListener { v ->
+                val grid = ViewMode.toggle(this@LocalPlaylist)
+                (v as ImageView).setImageResource(if (grid) R.drawable.ic_list else R.drawable.ic_grid)
+                binding.apRv.adapter = LocalPlaylistAdapter(resultArray, WeakReference(this@LocalPlaylist))
+                binding.apRv.layoutManager = ViewMode.layoutManagerFor(this@LocalPlaylist)
             }
         }
     }
@@ -173,24 +185,18 @@ class LocalPlaylist : AppCompatActivity(), CoroutineScope {
         }
 
         launch(Dispatchers.Default) {
-            val playSong = fun() {
-                val mService = mService.value!!
-                mService.setQueue(array)
-                mService.setIndex(index)
-                if (mService.getShuffle())
-                    mService.setShuffleRepeat(shuffle = true, repeat = mService.getRepeat())
-                if (freshStart)
-                    MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
-            }
-
-            if (mService.value != null) playSong()
-            else {
-                mService.collect {
-                    if (it != null) {
-                        playSong()
-                    }
-                }
-            }
+            val svc = MusicService.awaitInstance() ?: return@launch
+            // Re-tapping the row of the song already queued at this
+            // position must not tear down and restart the player (row-tap
+            // storm: every songChanged released/recreated MediaPlayer
+            // mid-resolution and killed the loading flow).
+            if (svc.getCurrentIndex() == index && svc.getPlayQueue() === array) return@launch
+            svc.setQueue(array)
+            svc.setIndex(index)
+            if (svc.getShuffle())
+                svc.setShuffleRepeat(shuffle = true, repeat = svc.getRepeat())
+            if (freshStart)
+                MusicService.registeredClients.forEach(MusicService.MusicClient::serviceStarted)
         }
     }
 

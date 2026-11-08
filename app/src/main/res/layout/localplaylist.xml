@@ -30,6 +30,15 @@
             android:textColor="#94BCE3"
             android:textSize="30.69sp" />
 
+        <ImageView
+            android:id="@+id/playlist_view_mode"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="@string/txt_view_mode"
+            android:src="@drawable/ic_grid" />
+
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

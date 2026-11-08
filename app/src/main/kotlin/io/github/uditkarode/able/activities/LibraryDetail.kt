@@ -36,6 +36,7 @@ import io.github.uditkarode.able.databinding.LibraryDetailBinding
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.services.MusicService
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.ViewMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -92,9 +93,21 @@ class LibraryDetail : AppCompatActivity(), CoroutineScope {
             }
         }
 
-        binding.libRv.layoutManager = LinearLayoutManager(this)
+        binding.libRv.layoutManager = ViewMode.layoutManagerFor(this)
         binding.libRv.adapter = LibraryDetailAdapter(resultArray) { position ->
             itemPressed(resultArray, position)
+        }
+
+        binding.libViewMode.apply {
+            setImageResource(ViewMode.toggleIcon(this@LibraryDetail))
+            setOnClickListener { v ->
+                val grid = ViewMode.toggle(this@LibraryDetail)
+                (v as android.widget.ImageView).setImageResource(ViewMode.toggleIcon(this@LibraryDetail))
+                binding.libRv.layoutManager = ViewMode.layoutManagerFor(this@LibraryDetail)
+                binding.libRv.adapter = LibraryDetailAdapter(resultArray) { position ->
+                    itemPressed(resultArray, position)
+                }
+            }
         }
 
         binding.libPlay.setOnClickListener {

@@ -26,7 +26,10 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 class CustomDownloader private constructor(builder: OkHttpClient.Builder) : Downloader() {
-    private val client: OkHttpClient = builder.readTimeout(30, TimeUnit.SECONDS).build()
+    private val client: OkHttpClient = builder
+        .addInterceptor(ApiLoggingInterceptor)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
 
     @Throws(IOException::class, ReCaptchaException::class)
     override fun execute(request: Request): Response {

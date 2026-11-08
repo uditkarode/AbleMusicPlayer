@@ -7,18 +7,33 @@
     android:orientation="horizontal"
     android:layout_marginTop="14dp">
 
-    <com.makeramen.roundedimageview.RoundedImageView
-        android:id="@+id/vid_albart"
+    <FrameLayout
+        android:id="@+id/vid_albart_frame"
         android:layout_width="53dp"
         android:layout_height="53dp"
-        app:riv_corner_radius="5dp"
-        android:layout_alignParentStart="true"
-        android:contentDescription="@string/add_song" />
+        android:layout_alignParentStart="true">
+
+        <com.makeramen.roundedimageview.RoundedImageView
+            android:id="@+id/vid_albart"
+            android:layout_width="53dp"
+            android:layout_height="53dp"
+            app:riv_corner_radius="5dp"
+            android:contentDescription="@string/add_song" />
+
+        <ProgressBar
+            android:id="@+id/vid_art_progress"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="#94BCE3"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toEndOf="@+id/vid_albart"
+        android:layout_toEndOf="@+id/vid_albart_frame"
         android:layout_centerVertical="true"
         android:layout_marginStart="10dp"
         android:orientation="vertical">

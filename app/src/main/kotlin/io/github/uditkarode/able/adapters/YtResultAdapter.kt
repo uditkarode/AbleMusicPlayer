@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.RecyclerView
 import io.github.uditkarode.able.R
 import io.github.uditkarode.able.fragments.Search
 import io.github.uditkarode.able.model.song.Song
+import io.github.uditkarode.able.utils.ViewMode
 import java.lang.ref.WeakReference
 
 /**
@@ -38,7 +39,12 @@ class YtResultAdapter(
     private val wr: WeakReference<Search>
 ) : RecyclerView.Adapter<YtResultAdapter.RVVH>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RVVH =
-        RVVH(LayoutInflater.from(parent.context).inflate(R.layout.rv_result, parent, false))
+        RVVH(
+            LayoutInflater.from(parent.context).inflate(
+                if (ViewMode.isGrid(parent.context)) R.layout.rv_grid_text_item else R.layout.rv_result,
+                parent, false
+            )
+        )
 
     override fun getItemCount() = songList.size
 
@@ -63,7 +69,7 @@ class YtResultAdapter(
         holder.titleTxt.isSelected = true
         holder.uploaderTxt.isSelected = true
         holder.itemView.setOnClickListener {
-            wr.get()?.itemPressed(songList[position])
+            wr.get()?.onResultPressed(songList[position])
         }
         /* Will Show Full Name for the Song held */
         holder.itemView.setOnLongClickListener {

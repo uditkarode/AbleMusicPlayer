@@ -52,6 +52,15 @@
             android:textColor="#8a8a8c"
             android:textSize="22.69sp" />
 
+        <ImageView
+            android:id="@+id/playlist_view_mode"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="end"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="@string/txt_view_mode"
+            android:src="@drawable/ic_grid" />
+
         <Button
             android:id="@+id/playbum_play"
             android:layout_width="wrap_content"

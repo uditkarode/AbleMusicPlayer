@@ -19,16 +19,17 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Rect
-import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.TouchDelegate
 import android.view.View
+import android.widget.Toast
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -43,38 +44,50 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.bottomsheets.BottomSheet
-import com.afollestad.materialdialogs.input.getInputField
 import com.afollestad.materialdialogs.input.getInputLayout
 import com.afollestad.materialdialogs.input.input
 import com.afollestad.materialdialogs.list.customListAdapter
-import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.ReturnCode
+import com.afollestad.materialdialogs.list.listItems
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.signature.ObjectKey
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.makeramen.roundedimageview.RoundedImageView
 import io.github.inflationx.viewpump.ViewPumpContextWrapper
 import io.github.uditkarode.able.AbleApplication
 import io.github.uditkarode.able.R
+import io.github.uditkarode.able.adapters.DiscographyAdapter
+import io.github.uditkarode.able.adapters.DiscoverResultAdapter
 import io.github.uditkarode.able.adapters.SongAdapter
 import io.github.uditkarode.able.databinding.PlayerBinding
-import io.github.uditkarode.able.fragments.Home
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import io.github.uditkarode.able.model.Playlist
+import io.github.uditkarode.able.model.discovery.AlbumSuggestion
+import io.github.uditkarode.able.model.discovery.TrackSuggestion
 import io.github.uditkarode.able.model.song.Song
 import io.github.uditkarode.able.model.song.SongState
+import io.github.uditkarode.able.services.DownloadService
 import io.github.uditkarode.able.services.MusicService
+import io.github.uditkarode.able.utils.ApiKeyProvider
 import io.github.uditkarode.able.utils.Constants
+import io.github.uditkarode.able.utils.DeezerClient
+import io.github.uditkarode.able.utils.LastFmClient
+import io.github.uditkarode.able.utils.LastFmKeyPrompt
+import io.github.uditkarode.able.utils.SimilarDiscovery
+import io.github.uditkarode.able.utils.SimilarSource
 import io.github.uditkarode.able.utils.MusicClientActivity
 import io.github.uditkarode.able.utils.Shared
+import io.github.uditkarode.able.utils.TrackResolver
+import io.github.uditkarode.able.utils.ViewMode
 import androidx.activity.OnBackPressedCallback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import okhttp3.CacheControl
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -123,6 +136,8 @@ class Player : MusicClientActivity() {
         binding.playerDownArrow.setOnClickListener {
             finish()
         }
+
+        binding.playerDiscover.setOnClickListener { showSimilarSheet() }
 
         binding.shuffleButton.setOnClickListener {
             if (onShuffle) {
@@ -184,165 +199,22 @@ class Player : MusicClientActivity() {
             override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {}
         })
 
-        binding.albumArt.setOnClickListener {
-            if (mService != null) {
-                val ms = mService as MusicService
-                if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
-                    MaterialDialog(this@Player).show {
-                        cornerRadius(20f)
-                        title(text = this@Player.getString(R.string.enter_song))
-                        input(this@Player.getString(R.string.song_ex)) { _, charSequence ->
-                            updateAlbumArt(charSequence.toString(), true)
-                        }
-                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
-                    }
-            }
-        }
-
-        binding.albumArt.setOnLongClickListener {
-            if (mService != null) {
-                val ms = mService as MusicService
-                if (ms.getPlayQueue()[ms.getCurrentIndex()].filePath.contains("emulated/0/"))
-                    MaterialDialog(this@Player).show {
-                        cornerRadius(20f)
-                        title(text = this@Player.getString(R.string.enter_song))
-                        input(prefill = ms.getPlayQueue()[ms.getCurrentIndex()].name) { _, charSequence ->
-                            updateAlbumArt(charSequence.toString(), true)
-                        }
-                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
-                    }
-            }
-            true
-        }
-
-        binding.songName.setOnClickListener {
-            if (mService != null) {
-                val mService = this.mService as MusicService
-                val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-                if (current.filePath.contains("emulated/0/")) {
-                    MaterialDialog(this@Player).show {
-                        title(text = this@Player.getString(R.string.enter_new_song))
-                        input(this@Player.getString(R.string.song_ex2)) { _, charSequence ->
-                            val ext = current.filePath.run {
-                                this.substring(this.lastIndexOf(".") + 1)
-                            }
-                            val session = FFmpegKit.execute(
-                                "-i " +
-                                        "\"${current.filePath}\" -y -c copy " +
-                                        "-metadata title=\"$charSequence\" " +
-                                        "-metadata artist=\"${current.artist}\"" +
-                                        " \"${current.filePath}.new.$ext\""
-                            )
-                            when {
-                                ReturnCode.isSuccess(session.returnCode) -> {
-                                    File(current.filePath).delete()
-                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                                    if (current.isLocal) {
-                                        /* update media store for the song in question */
-                                        MediaScannerConnection.scanFile(this@Player,
-                                            arrayOf(current.filePath), null,
-                                            object :
-                                                MediaScannerConnection.MediaScannerConnectionClient {
-                                                override fun onMediaScannerConnected() {}
-
-                                                override fun onScanCompleted(
-                                                    path: String?,
-                                                    uri: Uri?
-                                                ) {
-                                                    changeMetadata(
-                                                        name = charSequence.toString(),
-                                                        artist = current.artist
-                                                    )
-                                                }
-                                            })
-                                    }
-                                }
-
-                                ReturnCode.isCancel(session.returnCode) -> {
-                                    Log.e(
-                                        "ERR>",
-                                        "Command execution cancelled by user."
-                                    )
-                                }
-
-                                else -> {
-                                    Log.e(
-                                        "ERR>",
-                                        "Command execution failed with rc=${session.returnCode}"
-                                    )
-                                }
-                            }
-                        }
-                        getInputField().setText(current.name)
-                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
-                    }
-                }
-            }
-        }
-
         binding.artistName.setOnClickListener {
-            if (mService != null) {
-                val mService = this.mService as MusicService
-                val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-                if (current.filePath.contains("emulated/0/")) {
-                    MaterialDialog(this@Player).show {
-                        title(text = this@Player.getString(R.string.enter_new_art))
-                        input(this@Player.getString(R.string.art_ex)) { _, charSequence ->
-                            val ext = current.filePath.run {
-                                this.substring(this.lastIndexOf(".") + 1)
-                            }
-                            val session = FFmpegKit.execute(
-                                "-i " +
-                                        "\"${current.filePath}\" -c copy " +
-                                        "-metadata title=\"${current.name}\" " +
-                                        "-metadata artist=\"$charSequence\"" +
-                                        " \"${current.filePath}.new.$ext\""
-                            )
-                            when {
-                                ReturnCode.isSuccess(session.returnCode) -> {
-                                    File(current.filePath).delete()
-                                    File(current.filePath + ".new.$ext").renameTo(File(current.filePath))
-                                    if (current.isLocal) {
-                                        /* update media store for the song in question */
-                                        MediaScannerConnection.scanFile(this@Player,
-                                            arrayOf(current.filePath), null,
-                                            object :
-                                                MediaScannerConnection.MediaScannerConnectionClient {
-                                                override fun onMediaScannerConnected() {}
+            val svc = mService ?: return@setOnClickListener
+            val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex()) ?: return@setOnClickListener
+            showArtistDiscography(current.artist)
+        }
 
-                                                override fun onScanCompleted(
-                                                    path: String?,
-                                                    uri: Uri?
-                                                ) {
-                                                    changeMetadata(
-                                                        name = current.name,
-                                                        artist = charSequence.toString()
-                                                    )
-                                                }
-                                            })
-                                    }
-                                }
+        binding.playerDownload.setOnClickListener {
+            val svc = mService ?: return@setOnClickListener
+            val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex()) ?: return@setOnClickListener
+            enqueueDownload(current)
+        }
 
-                                ReturnCode.isCancel(session.returnCode) -> {
-                                    Log.e(
-                                        "ERR>",
-                                        "Command execution cancelled by user."
-                                    )
-                                }
-
-                                else -> {
-                                    Log.e(
-                                        "ERR>",
-                                        "Command execution failed with rc=${session.returnCode}"
-                                    )
-                                }
-                            }
-                        }
-                        getInputField().setText(current.artist)
-                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
-                    }
-                }
-            }
+        binding.playerSave.setOnClickListener {
+            val svc = mService ?: return@setOnClickListener
+            val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex()) ?: return@setOnClickListener
+            showAddToPlaylistSheet(current)
         }
 
         (binding.shuffleButton.parent as View).post {
@@ -591,247 +463,183 @@ class Player : MusicClientActivity() {
         }
     }
 
-    private fun updateAlbumArt(customSongName: String? = null, forceDeezer: Boolean = false) {
-        if (mService != null) {
-            val mService = mService as MusicService
+    private fun updateAlbumArt() {
+        if (mService == null) return
+        val mService = mService as MusicService
 
-            binding.imgAlbart.visibility = View.GONE
-            binding.notePh.visibility = View.VISIBLE
-            var didGetArt = false
-            val current = mService.getPlayQueue()[mService.getCurrentIndex()]
-            val img = File(
-                Constants.ableSongDir.absolutePath + "/album_art",
-                File(current.filePath).nameWithoutExtension
-            )
-            val cacheImg = File(
-                Constants.ableSongDir.absolutePath + "/cache",
-                "sCache" + Shared.getIdFromLink(MusicService.playQueue[MusicService.currentIndex].youtubeLink)
-            )
+        binding.imgAlbart.visibility = View.GONE
+        binding.notePh.visibility = View.VISIBLE
+        var didGetArt = false
+        val current = mService.getPlayQueue().getOrNull(mService.getCurrentIndex())
+            ?: return
 
-            launch(Dispatchers.IO) {
-                /*
-                Check priority:
-                1) Album art from metadata (if the song is a local song)
-                2) Album art from disk (if the song is not a local song)
-                3) Album art from Deezer (regardless of song being local or not)
+        // Cover stored beside downloaded files. Only meaningful for real
+        // downloaded files: streamed/unknown paths ("", "<id>.stream.tmp")
+        // resolve to bogus targets — including the album_art directory
+        // itself, which exists() and made the lookup believe it had found
+        // art, leaving the previous song's cover on screen.
+        val isDownloaded = !current.isLocal && current.filePath.isNotBlank() &&
+                !current.filePath.endsWith(".tmp")
+        val img = if (isDownloaded)
+            File(Constants.albumArtDir, File(current.filePath).nameWithoutExtension)
+        else null
 
-                in case (3), if the song is local, the album art should be added
-                to the song metadata, and if not, it should be stored in the Able
-                album art folder.
-                */
+        // Streaming cover cache, keyed by the YouTube video id.
+        val streamId = Shared.getIdFromLink(current.youtubeLink)
+        val cacheImg = if (streamId.isNotBlank())
+            File(Constants.cacheDir, "sCache$streamId")
+        else null
 
+        launch(Dispatchers.IO) {
+            /*
+            Check priority:
+            1) Album art from metadata (local songs only)
+            2) Album art saved by the app (downloaded → album_art/<name>,
+               streamed → cache/sCache<videoId>)
+            3) Last.fm track.getInfo — exact artist+track match (~300px),
+               also returning the album the track belongs to
+            4) Deezer — high-res cover (1400px) of that identified album
 
-                /* (1) Check albumart in song metadata (if the song is a local song) */
-                if (current.isLocal && !forceDeezer) {
-                    Log.i("INFO>", "Fetching from metadata")
+            The previous song's cover is never left on screen: every level
+            repaints through showArtBitmap and failed loads simply fall
+            through to the next level instead of keeping stale pixels.
+            */
+
+            /* (1) Check albumart in song metadata (if the song is a local song) */
+            if (current.isLocal) {
+                Log.i("INFO>", "Fetching from metadata")
+                try {
+                    val sArtworkUri =
+                        Uri.parse("content://media/external/audio/albumart")
+
+                    val bmp = Glide
+                        .with(this@Player)
+                        .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                        .signature(ObjectKey("player"))
+                        .submit()
+                        .get().toBitmap()
+                    Shared.bmp = bmp
+
+                    showArtBitmap(bmp)
+                    didGetArt = true
+                } catch (e: java.lang.Exception) {
+                    didGetArt = false
+                }
+            }
+
+            /* (2) Cover files saved by the app */
+            if (!didGetArt) {
+                val imgToLoad = img?.takeIf { it.exists() }
+                    ?: cacheImg?.takeIf { it.exists() }
+                if (imgToLoad != null) {
+                    Log.i("INFO>", "Fetching app-stored cover: ${imgToLoad.name}")
                     try {
-                        binding.notePh.visibility = View.GONE
-                        val sArtworkUri =
-                            Uri.parse("content://media/external/audio/albumart")
-
-                        Shared.bmp = Glide
-                            .with(this@Player)
-                            .load(ContentUris.withAppendedId(sArtworkUri, current.albumId))
+                        val bmp = Glide.with(this@Player)
+                            .asBitmap()
+                            .load(imgToLoad)
                             .signature(ObjectKey("player"))
                             .submit()
-                            .get().toBitmap()
-
-                        launch(Dispatchers.Main) {
-                            binding.imgAlbart.setImageBitmap(Shared.bmp)
-                            binding.imgAlbart.visibility = View.VISIBLE
-                            binding.notePh.visibility = View.GONE
-                            Palette.from(Shared.getSharedBitmap()).generate {
-                                setBgColor(
-                                    it?.getDominantColor(0x002171) ?: 0x002171,
-                                    it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                    it
-                                )
-                            }
-                        }
+                            .get()
+                        showArtBitmap(bmp)
                         didGetArt = true
-                    } catch (e: java.lang.Exception) {
-                        didGetArt = false
-                    }
-                }
-
-                /* (2) Album art from disk (if the song is not a local song) */
-                if (!didGetArt && !forceDeezer) {
-                    if (!current.isLocal) {
-                        Log.i("INFO>", "Fetching from Able folder")
-                        val imgToLoad = if (img.exists()) img else cacheImg
-                        if (imgToLoad.exists()) {
-                            launch(Dispatchers.Main) {
-                                binding.imgAlbart.visibility = View.VISIBLE
-                                binding.notePh.visibility = View.GONE
-                                Glide.with(this@Player)
-                                    .load(imgToLoad)
-                                    .centerCrop()
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .into(binding.imgAlbart)
-                                try {
-                                    Shared.bmp?.recycle()
-                                    Shared.bmp = BitmapFactory.decodeFile(imgToLoad.absolutePath)
-                                    Palette.from(Shared.getSharedBitmap()).generate {
-                                        setBgColor(
-                                            it?.getDominantColor(0x002171) ?: 0x002171,
-                                            it?.getLightMutedColor(0x002171) ?: 0x002171,
-                                            it // causes transparent bar
-                                        )
-
-                                        Shared.clearBitmap()
-                                    }
-                                } catch (e: java.lang.Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-                            didGetArt = true
-                        }
-                    }
-                }
-
-                /* (3) Album art from Deezer (regardless of song being local or not) */
-                if (!didGetArt && Shared.isInternetConnected(this@Player)) {
-                    Log.i("INFO>", "Fetching from Deezer")
-                    val albumArtRequest = if (customSongName == null) {
-                        Request.Builder()
-                            .url(Constants.DEEZER_API + current.name)
-                            .get()
-                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                            .cacheControl(CacheControl.FORCE_NETWORK)
-                            .build()
-                    } else {
-                        Request.Builder()
-                            .url(Constants.DEEZER_API + customSongName)
-                            .get()
-                            .addHeader("x-rapidapi-host", "deezerdevs-deezer.p.rapidapi.com")
-                            .addHeader("x-rapidapi-key", Constants.RAPID_API_KEY)
-                            .build()
-                    }
-
-                    val response = OkHttpClient().newCall(albumArtRequest).execute()
-
-                    try {
-                        run {
-                            val json = JSONObject(response.body.string()).getJSONArray("data")
-                                .getJSONObject(0).getJSONObject("album")
-                            val imgLink = json.getString("cover_xl")
-                            val albumName = json.getString("title")
-
-                            try {
-                                Shared.bmp = Glide
-                                    .with(this@Player)
-                                    .load(imgLink)
-                                    .centerCrop()
-                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
-                                    .skipMemoryCache(true)
-                                    .submit()
-                                    .get().toBitmap()
-
-                                Palette.from(Shared.getSharedBitmap()).generate {
-                                    setBgColor(
-                                        it?.getDominantColor(0x002171) ?: 0x002171,
-                                        it?.getLightVibrantColor(0x002171) ?: 0x002171,
-                                        it
-                                    )
-                                }
-
-                                if (img.exists()) img.delete()
-                                Shared.saveAlbumArtToDisk(Shared.getSharedBitmap(), img)
-
-                                launch(Dispatchers.Main) {
-                                    binding.imgAlbart.setImageBitmap(Shared.getSharedBitmap())
-                                    binding.imgAlbart.visibility = View.VISIBLE
-                                    binding.notePh.visibility = View.GONE
-                                    if (mService.getMediaPlayer().isPlaying) {
-                                        mService.showNotification(
-                                            mService.generateAction(
-                                                R.drawable.notif_pause,
-                                                "Pause",
-                                                "ACTION_PAUSE"
-                                            ), Shared.getSharedBitmap()
-                                        )
-                                    } else {
-                                        mService.showNotification(
-                                            mService.generateAction(
-                                                R.drawable.notif_play,
-                                                "Play",
-                                                "ACTION_PLAY"
-                                            ), Shared.getSharedBitmap()
-                                        )
-                                    }
-                                }
-                                Shared.addThumbnails(
-                                    current.filePath,
-                                    albumName,
-                                    this@Player
-                                )
-                                didGetArt = true
-                                launch(Dispatchers.Main) {
-                                    Home.songAdapter?.notifyItemChanged(mService.getCurrentIndex())
-                                }
-                            } catch (e: Exception) {
-                                didGetArt = false
-                                Log.e("ERR>", e.toString())
-                            }
-                        }
                     } catch (e: Exception) {
-                        Log.e("ERR>", e.toString())
+                        Log.e("ERR>", "Stored cover load failed: $e")
                     }
                 }
+            }
 
-                if (!didGetArt) {
-                    launch(Dispatchers.Main) {
-                        binding.imgAlbart.visibility = View.GONE
-                        binding.notePh.visibility = View.VISIBLE
-                        setBgColor(0x002171)
-                        binding.playerSeekbar.progressDrawable.setTint(
-                            ContextCompat.getColor(
-                                this@Player,
-                                R.color.thatAccent
-                            )
-                        )
-                        binding.playerSeekbar.thumb.setTint(
-                            ContextCompat.getColor(
-                                this@Player,
-                                R.color.colorPrimary
-                            )
-                        )
-                        tintControls(0x002171)
+            /* (3) Last.fm — exact artist+track identity, cached */
+            var albumName: String? = null
+            val webTitle = current.name
+            if (!didGetArt &&
+                Shared.isInternetConnected(this@Player) &&
+                current.artist.isNotBlank() && webTitle.isNotBlank()
+            ) {
+                try {
+                    val identity =
+                        LastFmClient.resolveTrackIdentity(current.artist, webTitle)
+                    if (identity != null) {
+                        Log.i("INFO>", "Fetching from Last.fm")
+                        albumName = identity.album.takeIf { it.isNotBlank() }
+                        if (identity.image.isNotBlank()) {
+                            val bmp = Glide.with(this@Player)
+                                .asBitmap()
+                                .load(identity.image)
+                                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                .skipMemoryCache(true)
+                                .submit()
+                                .get()
+                            showArtBitmap(bmp)
+                            didGetArt = true
+                            // Persist so the next play loads straight from disk
+                            (cacheImg ?: img)?.let { Shared.saveAlbumArtToDisk(bmp, it) }
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e("ERR>", "Last.fm cover failed: $e")
+                }
+            }
+
+            /* (4) Deezer — hi-res cover of the album Last.fm identified */
+            if (albumName != null && Shared.isInternetConnected(this@Player)) {
+                try {
+                    val hiRes = DeezerClient.albumCover(current.artist, albumName)
+                    if (hiRes.isNotBlank()) {
+                        Log.i("INFO>", "Upgrading cover from Deezer")
+                        val bmp = Glide.with(this@Player)
+                            .asBitmap()
+                            .load(hiRes)
+                            .diskCacheStrategy(DiskCacheStrategy.NONE)
+                            .skipMemoryCache(true)
+                            .submit()
+                            .get()
+                        showArtBitmap(bmp)
+                        didGetArt = true
+                        // Keep the best art we have for the next play
+                        (cacheImg ?: img)?.let { Shared.saveAlbumArtToDisk(bmp, it) }
+                    }
+                } catch (e: Exception) {
+                    Log.e("ERR>", "Deezer cover upgrade failed: $e")
+                }
+            }
+
+            if (!didGetArt) {
+                launch(Dispatchers.Main) {
+                    binding.imgAlbart.visibility = View.GONE
+                    binding.notePh.visibility = View.VISIBLE
+                    setBgColor(0x002171)
+                    binding.playerSeekbar.progressDrawable.setTint(
+                        ContextCompat.getColor(
+                            this@Player,
+                            R.color.thatAccent
+                        )
+                    )
+                    binding.playerSeekbar.thumb.setTint(
+                        ContextCompat.getColor(
+                            this@Player,
+                            R.color.colorPrimary
+                        )
+                    )
+                    tintControls(0x002171)
                 }
             }
         }
     }
 
-    private fun changeMetadata(name: String, artist: String) {
-        if (mService != null) {
-            val mService = mService as MusicService
-            launch(Dispatchers.Main) {
-                binding.songName.text = name
-                binding.artistName.text = artist
-            }
-
-            if (mService.getMediaPlayer().isPlaying) {
-                mService.showNotification(
-                    mService.generateAction(
-                        R.drawable.notif_pause,
-                        getString(R.string.pause),
-                        "ACTION_PAUSE"
-                    ), nameOverride = name, artistOverride = artist
-                )
-            } else {
-                mService.showNotification(
-                    mService.generateAction(
-                        R.drawable.notif_play,
-                        getString(R.string.play),
-                        "ACTION_PLAY"
-                    ), nameOverride = name, artistOverride = artist
+    /** Shows a freshly fetched cover and re-derives the palette colors. */
+    private fun showArtBitmap(bitmap: Bitmap) {
+        Shared.bmp = bitmap
+        launch(Dispatchers.Main) {
+            binding.imgAlbart.setImageBitmap(bitmap)
+            binding.imgAlbart.visibility = View.VISIBLE
+            binding.notePh.visibility = View.GONE
+            Palette.from(bitmap).generate {
+                setBgColor(
+                    it?.getDominantColor(0x002171) ?: 0x002171,
+                    it?.getLightMutedColor(0x002171) ?: 0x002171,
+                    it
                 )
             }
-
-            // TODO MusicService.registeredClients.forEach { it.queueChanged() }
         }
     }
 
@@ -840,9 +648,11 @@ class Player : MusicClientActivity() {
             val mService = mService as MusicService
             updateAlbumArt()
 
-            val song = mService.getPlayQueue()[mService.getCurrentIndex()]
+            val song = mService.getPlayQueue().getOrNull(mService.getCurrentIndex())
+                ?: return
             binding.songName.text = song.name
             binding.artistName.text = song.artist
+            updateDownloadButtonState(song)
 
             val duration = mService.getMediaPlayer().duration
             if (duration > 0) {
@@ -859,6 +669,43 @@ class Player : MusicClientActivity() {
         }
     }
 
+    /**
+     * Download affordance state for the current song: grey and disabled when
+     * the song is already in the local library (matched by the rename-proof
+     * video ID, or being a device-local file), white and active otherwise.
+     */
+    private fun updateDownloadButtonState(song: Song) {
+        val videoId = Shared.getIdFromLink(song.youtubeLink)
+
+        fun apply(inLibrary: Boolean) {
+            binding.playerDownload.isEnabled = !inLibrary
+            binding.playerDownload.setColorFilter(
+                if (inLibrary) 0x40fbfbfb else 0xffffffff.toInt()
+            )
+        }
+
+        if ((song.isLocal && song.filePath.isNotBlank()) || Shared.isInLibrary(videoId)) {
+            apply(true)
+            return
+        }
+        apply(false)
+
+        // Cold-start safety: the library registry may not have been built yet
+        // (Home never scanned). Build it on IO, then re-evaluate for the song
+        // still on screen.
+        if (videoId.isNotBlank() && !Shared.localIdsFresh) {
+            launch(Dispatchers.IO) {
+                Shared.refreshLocalIds()
+                launch(Dispatchers.Main) {
+                    val svc = mService ?: return@launch
+                    val current = svc.getPlayQueue().getOrNull(svc.getCurrentIndex())
+                    if (current != null && Shared.getIdFromLink(current.youtubeLink) == videoId)
+                        apply(Shared.isInLibrary(videoId))
+                }
+            }
+        }
+    }
+
     private fun getDurationFromMs(durtn: Int): String {
         val duration = durtn.toLong()
         val seconds = (TimeUnit.MILLISECONDS.toSeconds(duration) -
@@ -871,6 +718,32 @@ class Player : MusicClientActivity() {
         return ret + seconds
     }
 
+    /**
+     * Shows the centered loading spinner over a full-screen scrim that dims
+     * the whole player and swallows touches, so a double-tap can't queue
+     * overlapping bottom sheets while the network call is in flight.
+     */
+    private fun showLoading() {
+        binding.loadingScrim.visibility = View.VISIBLE
+        binding.loadingOverlay.visibility = View.VISIBLE
+        binding.playerSave.isEnabled = false
+        binding.playerDiscover.isEnabled = false
+        binding.playerDownload.isEnabled = false
+    }
+
+    /** Hides the scrim/spinner and restores the real control states; the
+     *  download button's enabled state depends on the library registry, so
+     *  it is re-derived for the song currently on screen. */
+    private fun hideLoading() {
+        binding.loadingScrim.visibility = View.GONE
+        binding.loadingOverlay.visibility = View.GONE
+        binding.playerSave.isEnabled = true
+        binding.playerDiscover.isEnabled = true
+        val svc = mService ?: return
+        svc.getPlayQueue().getOrNull(svc.getCurrentIndex())
+            ?.let { updateDownloadButtonState(it) }
+    }
+
     override fun attachBaseContext(newBase: Context?) {
         super.attachBaseContext(ViewPumpContextWrapper.wrap(newBase!!, AbleApplication.viewPump))
     }
@@ -879,12 +752,16 @@ class Player : MusicClientActivity() {
         super.onResume()
         if (mService == null)
             bindEvent()
-        else
+        else {
             playPauseEvent(
                 if ((mService as MusicService)
                         .getMediaPlayer().isPlaying
                 ) SongState.playing else SongState.paused
             )
+            val svc = mService as MusicService
+            svc.getPlayQueue().getOrNull(svc.getCurrentIndex())
+                ?.let { updateDownloadButtonState(it) }
+        }
     }
 
     override fun onDestroy() {
@@ -949,6 +826,333 @@ class Player : MusicClientActivity() {
                 binding.playerCenterIcon.visibility = View.VISIBLE
             }
         }
+    }
+
+    /**
+     * Discovery on the playing track: bottom sheet with Last.fm suggestions
+     * similar to the song currently in `playQueue[currentIndex]`.
+     */
+    private fun showSimilarSheet() {
+        val current = MusicService.playQueue.getOrNull(MusicService.currentIndex)
+        if (current == null) {
+            Toast.makeText(this, R.string.disc_play_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (current.artist.isBlank()) {
+            Toast.makeText(this, R.string.disc_unknown_artist, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!ApiKeyProvider.hasLastFmKey) {
+            LastFmKeyPrompt.showIfMissing(this)
+            return
+        }
+        showLoading()
+        launch(Dispatchers.IO) {
+            val discovery = try {
+                LastFmClient.similarTracksSmart(current.artist, current.name)
+            } catch (e: Exception) {
+                Log.e("Player", "Similar tracks failed", e)
+                SimilarDiscovery(emptyList(), SimilarSource.NONE)
+            }
+            Log.i(
+                "ABLE>",
+                "discovery '${current.name}': source=${discovery.source} rows=${discovery.tracks.size}"
+            )
+            launch(Dispatchers.Main) {
+                hideLoading()
+                if (discovery.tracks.isEmpty()) {
+                    Toast.makeText(this@Player, R.string.disc_no_suggestions, Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                showSimilarSheet(discovery, current.artist)
+            }
+        }
+    }
+
+    /**
+     * Compact bottom sheet for the suggestions: RecyclerView with the global
+     * list/grid preference and an inline toggle, instead of the default
+     * full-screen MaterialDialog list. Opens collapsed at ~45% of the screen
+     * and can be dragged to full height.
+     */
+    private fun showSimilarSheet(discovery: SimilarDiscovery, artistName: String) {
+        val sheet = BottomSheetDialog(this)
+        val content = layoutInflater.inflate(R.layout.sheet_similar, null)
+        sheet.setContentView(content)
+        sheet.behavior.peekHeight =
+            (resources.displayMetrics.heightPixels * 0.45f).toInt()
+        // The title tells where the suggestions came from: exact/canonicalized
+        // similarity, related artists, the seed artist itself or Deezer radio.
+        content.findViewById<TextView>(R.id.sheet_title).text = when (discovery.source) {
+            SimilarSource.ARTIST_MIX, SimilarSource.DEEZER_RADIO ->
+                getString(R.string.disc_inspired_by, artistName)
+            SimilarSource.ARTIST_TOP ->
+                getString(R.string.disc_more_from, artistName)
+            else -> getString(R.string.disc_similar)
+        }
+        val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
+        val toggle = content.findViewById<ImageView>(R.id.sheet_view_mode)
+
+        fun render() {
+            toggle.setImageResource(ViewMode.toggleIcon(this))
+            rv.layoutManager = ViewMode.layoutManagerFor(this)
+            rv.adapter = DiscoverResultAdapter(
+                ArrayList<Any>(discovery.tracks),
+                onTrackPressed = { suggestion ->
+                    showTrackActionMenu(suggestion)
+                },
+                onArtistPressed = { artist ->
+                    // Don't stack a second bottom sheet over this one.
+                    sheet.dismiss()
+                    showArtistDiscography(artist.name)
+                }
+            )
+        }
+        render()
+        toggle.setOnClickListener {
+            ViewMode.toggle(this)
+            render()
+        }
+        sheet.show()
+    }
+
+    /**
+     * Artist drill-down for the currently playing song: the same discography
+     * experience as the Search tab (albums newest-first, collapsible, then
+     * leftover top tracks as singles), presented as a bottom sheet.
+     */
+    private fun showArtistDiscography(artistName: String) {
+        if (artistName.isBlank()) {
+            Toast.makeText(this, R.string.disc_unknown_artist, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!ApiKeyProvider.hasLastFmKey) {
+            LastFmKeyPrompt.showIfMissing(this)
+            return
+        }
+        showLoading()
+        launch(Dispatchers.IO) {
+            coroutineScope {
+                // Artist photo (artist.getinfo) runs next to the discography
+                // fetches so it doesn't add latency to the sheet.
+                val imageDeferred = async {
+                    try { LastFmClient.resolveArtistImage(artistName) }
+                    catch (e: Exception) { Log.e("Player", "Artist image failed", e); "" }
+                }
+                val albums = try { LastFmClient.artistTopAlbums(artistName) }
+                    catch (e: Exception) { Log.e("Player", "Top albums failed", e); emptyList<AlbumSuggestion>() }
+                val loaded = albums.mapNotNull { album ->
+                    try { LastFmClient.albumTracks(artistName, album.name, album.image) }
+                    catch (e: Exception) { Log.e("Player", "Album tracks failed for ${album.name}", e); null }
+                }
+                val albumTrackNames = loaded.flatMap { it.tracks }
+                    .map { it.name.lowercase() }
+                    .toSet()
+                val singles = try { LastFmClient.artistTopTracks(artistName) }
+                    catch (e: Exception) { emptyList<TrackSuggestion>() }
+                    .filter { it.name.lowercase() !in albumTrackNames }
+                // Albums first, newest first; undated albums last (popularity order).
+                val ordered = loaded.sortedWith(
+                    compareByDescending<AlbumSuggestion> { it.year != 0 }
+                        .thenByDescending { it.year }
+                )
+                val artistImage = imageDeferred.await()
+                launch(Dispatchers.Main) {
+                    hideLoading()
+                    if (ordered.isEmpty() && singles.isEmpty()) {
+                        Toast.makeText(this@Player, R.string.disc_no_discography, Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+                    showDiscographySheet(artistName, artistImage, ordered, singles)
+                }
+            }
+        }
+    }
+
+    /** Bottom sheet hosting the artist header (photo + name, rendered by
+     *  the adapter) and the discography list; track taps reuse the
+     *  suggestion action menu (play now / add to queue / download). */
+    private fun showDiscographySheet(
+        artistName: String,
+        artistImage: String,
+        albums: List<AlbumSuggestion>,
+        singles: List<TrackSuggestion>
+    ) {
+        val sheet = BottomSheetDialog(this)
+        val content = layoutInflater.inflate(R.layout.sheet_discography, null)
+        sheet.setContentView(content)
+        sheet.behavior.peekHeight =
+            (resources.displayMetrics.heightPixels * 0.55f).toInt()
+        val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
+        rv.layoutManager = LinearLayoutManager(this)
+        rv.adapter = DiscographyAdapter(artistName, artistImage, albums, singles) { suggestion ->
+            showTrackActionMenu(suggestion)
+        }
+        sheet.show()
+    }
+
+    /**
+     * Save the current song into one of the user's playlists: a bottom sheet
+     * listing the playlists with a trailing "+" row that creates a new one
+     * on the fly (the only row when no playlist exists yet). Saving stores
+     * the song reference (name, artist, link, artwork) — never a download.
+     */
+    private fun showAddToPlaylistSheet(song: Song) {
+        val sheet = BottomSheetDialog(this)
+        val content = layoutInflater.inflate(R.layout.sheet_add_to_playlist, null)
+        sheet.setContentView(content)
+        sheet.behavior.peekHeight =
+            (resources.displayMetrics.heightPixels * 0.55f).toInt()
+        val rv = content.findViewById<RecyclerView>(R.id.sheet_rv)
+
+        fun render() {
+            rv.layoutManager = LinearLayoutManager(this)
+            rv.adapter = PlaylistPickerAdapter(
+                Shared.getPlaylists(),
+                onPick = { playlist ->
+                    Shared.addToPlaylist(playlist, song, this)
+                    Toast.makeText(
+                        this,
+                        getString(R.string.playlist_added, playlist.name.replace(".json", "")),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    sheet.dismiss()
+                },
+                onCreate = {
+                    MaterialDialog(this).show {
+                        title(text = this@Player.getString(R.string.playlist_namei))
+                        input(this@Player.getString(R.string.name_s)) { _, charSequence ->
+                            val name = charSequence.toString().trim()
+                            if (name.isBlank()) return@input
+                            // createPlaylist overwrites; only create when new.
+                            if (!Shared.playlistExists("$name.json"))
+                                Shared.createPlaylist(name, this@Player)
+                            Shared.getPlaylists().firstOrNull { it.name == "$name.json" }
+                                ?.let { playlist ->
+                                    Shared.addToPlaylist(playlist, song, this@Player)
+                                    Toast.makeText(
+                                        this@Player,
+                                        getString(R.string.playlist_added, name),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            render() // sheet stays open with the updated list
+                        }
+                        getInputLayout().boxBackgroundColor = Color.parseColor("#000000")
+                    }
+                }
+            )
+        }
+        render()
+        sheet.show()
+    }
+
+    /**
+     * Rows of the add-to-playlist sheet: one entry per user playlist, then a
+     * final "+" row to create a new playlist. With no playlists at all, the
+     * "+" row is the only content.
+     */
+    private inner class PlaylistPickerAdapter(
+        private val playlists: List<Playlist>,
+        private val onPick: (Playlist) -> Unit,
+        private val onCreate: () -> Unit
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        private val typePlaylist = 0
+        private val typeCreate = 1
+
+        override fun getItemCount(): Int = playlists.size + 1
+
+        override fun getItemViewType(position: Int): Int =
+            if (position < playlists.size) typePlaylist else typeCreate
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val view = layoutInflater.inflate(R.layout.row_playlist_picker, parent, false)
+            return object : RecyclerView.ViewHolder(view) {}
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            val creating = getItemViewType(position) == typeCreate
+            holder.itemView.findViewById<ImageView>(R.id.row_icon)
+                .setImageResource(if (creating) R.drawable.ic_add else R.drawable.pl_playlist)
+            holder.itemView.findViewById<TextView>(R.id.row_text).text =
+                if (creating) getString(R.string.crp)
+                else playlists[position].name.replace(".json", "")
+            holder.itemView.setOnClickListener {
+                if (creating) onCreate() else onPick(playlists[position])
+            }
+        }
+    }
+
+    /** Choice menu for a tapped suggestion: play now / add to queue / download. */
+    private fun showTrackActionMenu(suggestion: TrackSuggestion) {
+        MaterialDialog(this).show {
+            title(text = "${suggestion.name} - ${suggestion.artist}")
+            listItems(items = listOf(
+                getString(R.string.disc_play_now),
+                getString(R.string.disc_add_to_queue),
+                getString(R.string.disc_add_to_download)
+            )) { _, index, _ ->
+                when (index) {
+                    0 -> resolveSuggestion(suggestion) { song ->
+                        val svc = mService ?: return@resolveSuggestion
+                        svc.addToPlayQueue(song)
+                        svc.setIndex(MusicService.currentIndex + 1) // starts playing
+                    }
+                    1 -> resolveSuggestion(suggestion) { song ->
+                        mService?.addToPlayQueue(song) // now notifies queueChanged
+                        Toast.makeText(
+                            this@Player,
+                            getString(R.string.disc_added_to_queue, song.name),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    2 -> resolveSuggestion(suggestion) { song -> enqueueDownload(song) }
+                }
+            }
+        }
+    }
+
+    /** Resolves a suggestion on YouTube Music, then runs the action with the Song. */
+    private fun resolveSuggestion(suggestion: TrackSuggestion, action: (Song) -> Unit) {
+        launch(Dispatchers.IO) {
+            val song = try { TrackResolver.resolve(suggestion) } catch (e: Exception) {
+                Log.e("Player", "Resolution failed for ${suggestion.name}", e); null
+            }
+            launch(Dispatchers.Main) {
+                if (song == null)
+                    Toast.makeText(this@Player, R.string.disc_yt_fail, Toast.LENGTH_SHORT).show()
+                else
+                    action(song)
+            }
+        }
+    }
+
+    /** Adds a resolved song to the DownloadService queue (same flow as MainActivity). */
+    private fun enqueueDownload(song: Song) {
+        if ((song.isLocal && song.filePath.isNotBlank()) ||
+            Shared.isInLibrary(Shared.getIdFromLink(song.youtubeLink))
+        ) {
+            Toast.makeText(this, R.string.dl_already_library, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (DownloadService.isAlreadyQueued(song.youtubeLink)) {
+            Toast.makeText(this, R.string.disc_dl_already, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val list = ArrayList<String>().apply {
+            add(song.name)
+            add(song.youtubeLink)
+            add(song.artist)
+            add(Shared.upscaleThumbnailUrl(song.ytmThumbnail))
+        }
+        val intent = Intent(this, DownloadService::class.java)
+            .putStringArrayListExtra("song", list)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            startForegroundService(intent)
+        else
+            startService(intent)
+        Toast.makeText(this, R.string.disc_dl_added, Toast.LENGTH_SHORT).show()
     }
 
     override fun spotifyImportChange(starting: Boolean) {}
